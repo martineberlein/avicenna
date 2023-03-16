@@ -1,5 +1,6 @@
 from typing import List, Dict, Iterable, Union, Set, Callable, Tuple
 import logging
+import sys
 from time import perf_counter
 import pandas
 from sklearn.metrics import precision_score, recall_score, f1_score
@@ -24,6 +25,7 @@ from avicenna.helpers import (
 from avicenna.fuzzer.generator import Generator
 from avicenna.learner import InputElementLearner
 from avicenna_formalizations import get_pattern_file_path
+from avicenna.input import Input
 
 ISLA_GENERATOR_TIMEOUT_SECONDS = 10
 
@@ -44,15 +46,12 @@ class Avicenna(Timetable):
 
         super().__init__(working_dir)
         self._start_time = None
-        self._grammar: Grammar = grammar
         self._activated_patterns = activated_patterns
         self._evaluation_function = evaluation_function
         self._max_iterations: int = max_iterations
         self._max_excluded_features: int = max_excluded_features - 1
         self._iteration = 0
         self._timeout: int = 3600  # timeout in seconds
-        self._new_inputs: Union[List[DerivationTree], None] = None
-        self._initial_inputs = initial_inputs
         self._data = None
         self._all_data = None
         self._learned_invariants: Dict[str, List[float]] = {}
@@ -67,11 +66,27 @@ class Avicenna(Timetable):
         self._infeasible_constraints: Set = set()
         self._max_conjunction_size = max_conjunction_size
 
-        try:
-            assert is_valid_grammar(self._grammar)
-        except TypeError:
-            logging.info("Invalid grammar provided. Exiting.")
-            exit(-1)
+        self._grammar: Grammar = grammar
+        assert is_valid_grammar(self._grammar)
+
+        self._initial_inputs: List[str] = initial_inputs
+        self._new_inputs: Set[Input] = set()
+
+    def _setup(self):
+        for inp in self._initial_inputs:
+            try:
+                self._new_inputs.add(
+                    Input(
+                        DerivationTree.from_parse_tree(
+                            next(EarleyParser(self._grammar).parse(inp))
+                        )
+                    )
+                )
+            except SyntaxError:
+                logging.error(
+                    "Avicenna: Could not parse initial inputs with given grammar!"
+                )
+                sys.exit(-1)
 
     def _initialize(self):
         # Initializing Data Frame
