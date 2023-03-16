@@ -26,6 +26,7 @@ from avicenna.fuzzer.generator import Generator
 from avicenna.learner import InputElementLearner
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.input import Input
+from avicenna.oracle import OracleResult
 
 ISLA_GENERATOR_TIMEOUT_SECONDS = 10
 
@@ -34,7 +35,7 @@ class Avicenna(Timetable):
     def __init__(
             self,
             grammar: Grammar,
-            evaluation_function: Callable[[DerivationTree], bool],
+            prop: Callable[[DerivationTree], bool],
             initial_inputs: List[str],
             working_dir: Path = Path("/tmp").resolve(),
             activated_patterns: List[str] = None,
@@ -47,9 +48,10 @@ class Avicenna(Timetable):
         super().__init__(working_dir)
         self._start_time = None
         self._activated_patterns = activated_patterns
-        self._evaluation_function = evaluation_function
+        self._prop = prop
         self._max_iterations: int = max_iterations
         self._max_excluded_features: int = max_excluded_features - 1
+        self._targeted_start_size: int = 10
         self._iteration = 0
         self._timeout: int = 3600  # timeout in seconds
         self._data = None
@@ -70,12 +72,25 @@ class Avicenna(Timetable):
         assert is_valid_grammar(self._grammar)
 
         self._initial_inputs: List[str] = initial_inputs
-        self._new_inputs: Set[Input] = set()
+        self._inputs: Set[Input] = set()
+
+    def _execute_input(self, test_input: Input) -> OracleResult:
+        """
+        A wrapper function that wraps the user defined prop (evaluation function). This wrapper returns an OracleResult.
+        :param test_input:
+        :return:
+        """
+        exec_result: bool = self._prop(test_input.tree)
+        return OracleResult.BUG if exec_result else OracleResult.NO_BUG
 
     def _setup(self):
+        """
+        This function parses the given initial input files and obtains the execution label ("BUG"/"NO_BUG")
+        :return:
+        """
         for inp in self._initial_inputs:
             try:
-                self._new_inputs.add(
+                self._inputs.add(
                     Input(
                         DerivationTree.from_parse_tree(
                             next(EarleyParser(self._grammar).parse(inp))
@@ -88,49 +103,55 @@ class Avicenna(Timetable):
                 )
                 sys.exit(-1)
 
+        for inp in self._inputs:
+            inp.oracle = self._execute_input(inp)
+
     def _initialize(self):
-        # Initializing Data Frame
+        """
+        This function generates additional test inputs with a mutation-based fuzzer if not initial inputs have been given.
+        :return:
+        """
         self._all_data = pandas.DataFrame(columns=["input", "oracle"])
 
-        derivation_trees = [
-            language.DerivationTree.from_parse_tree(
-                next(EarleyParser(self._grammar).parse(inp))
-            )
-            for inp in self._initial_inputs
-        ]
-
-        derivation_trees, exec_oracle = self._get_execution_outcome(derivation_trees)
-
-        positive_samples = []
-        negative_samples = []
-        for i, inp in enumerate(derivation_trees):
-            if exec_oracle[i] is True:
-                positive_samples.append(inp)
+        positive_trees = []
+        negative_trees = []
+        for inp in self._inputs:
+            if inp.oracle == OracleResult.BUG:
+                positive_trees.append(inp.tree)
             else:
-                negative_samples.append(inp)
+                negative_trees.append(inp.tree)
 
-        logging.debug(f"Positive samples: {positive_samples}")
         assert (
-                len(positive_samples) != 0
+                len(positive_trees) != 0
         ), "No failure-inducing input hase been given. Exiting"
+
         logging.info(
-            f"{len(positive_samples)} failure inducing and {len(negative_samples)} benign inputs given."
+            f"{len(positive_trees)} failure inducing and {len(negative_trees)} benign inputs given."
         )
 
-        if exec_oracle.count(True) < 10 or exec_oracle.count(False) < 10:
+        if (len(positive_trees) or len(negative_trees)) < self._targeted_start_size:
             logging.info("Trying to generate additional inputs with mutation fuzzing.")
-            generator = Generator(50, 50, self._grammar, self._evaluation_function)
-            pos_inputs, neg_inputs = generator.generate_mutation(positive_samples, negative_samples)
-            positive_samples += pos_inputs
-            negative_samples += neg_inputs
+            generator = Generator(
+                self._targeted_start_size,
+                self._targeted_start_size,
+                self._grammar,
+                self._prop)
 
-        logging.info(
-            f"Generated additional {len(positive_samples)} failure inducing and "
-            f"{len(negative_samples)} "
-            "benign inputs given."
-        )
+            pos_inputs, neg_inputs = generator.generate_mutation(positive_trees, negative_trees)
+            logging.info(
+                f"Generated additional {len(pos_inputs)} failure inducing and "
+                f"{len(neg_inputs)} "
+                "benign inputs given."
+            )
 
-        self._new_inputs = positive_samples + negative_samples
+            for tree in pos_inputs + neg_inputs:
+                self._inputs.add(
+                    Input(
+                        DerivationTree.from_parse_tree(
+                            next(EarleyParser(self._grammar).parse(tree))
+                        )
+                    )
+                )
 
     def generate(self):
         logging.info("Starting AVICENNA.")
