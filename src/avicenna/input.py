@@ -40,7 +40,12 @@ class Input:
         return str(self.__tree)
 
     def __hash__(self):
-        return hash(self.__tree)
+        return hash(self.__tree.structural_hash())
+
+    def __eq__(self, other):
+        if self.__hash__() == hash(other):
+            return True
+        return False
 
     def __iter__(self) -> Generator[DerivationTree | OracleResult | None, None, None]:
         """
