@@ -1,0 +1,343 @@
+[[Def-Use]]
+
+name = "Def-Use (C)"
+constraint = '''
+forall <?NONTERMINAL> use_ctx in start:
+  forall <?NONTERMINAL> use in use_ctx:
+    exists <?NONTERMINAL> def_ctx="{<?MATCHEXPR(def)>}" in start:
+      (before(def_ctx, use_ctx) and
+      (= use def))
+'''
+
+[[Def-Use]]
+
+name = "Def-Use (reST)"
+constraint = '''
+forall <?NONTERMINAL> use_ctx="{<?MATCHEXPR(use)>}" in start:
+  exists <?NONTERMINAL> def_ctx="{<?MATCHEXPR(def)>}" in start:
+    (different_position(use_ctx, def_ctx) and
+    (= use def))
+'''
+
+[[Def-Use]]
+
+name = "Def-Use (reST Strict)"
+constraint = '''
+forall <?NONTERMINAL> use_ctx="{<?MATCHEXPR(use)>}" in start:
+  exists <?NONTERMINAL> def_ctx="{<?MATCHEXPR(def)>}" in start:
+    (before(def_ctx, use_ctx) and
+    (= use def))
+'''
+
+[[Def-Use]]
+
+name = "Def-Use (reST Strict Reserved Names)"
+constraint = '''
+forall <?NONTERMINAL> use_ctx="{<?MATCHEXPR(use)>}" in start:
+  ((= use <?DSTRINGS>) or
+   (exists <?NONTERMINAL> def_ctx="{<?MATCHEXPR(def)>}" in start:
+     (before(def_ctx, use_ctx) and
+     (= use def))))
+'''
+
+[[Def-Use]]
+
+name = "Def-Use (XML-Attr)"
+constraint = '''
+forall <?NONTERMINAL> attribute="{<?MATCHEXPR(prefix_use)>}" in start:
+  ((= prefix_use <?STRING>) or
+    exists <?NONTERMINAL> outer_tag="{<?MATCHEXPR(cont_attribute)>}" in start:
+      (inside(attribute, outer_tag) and
+       exists <?NONTERMINAL> def_attribute="{<?MATCHEXPR(prefix_def)>}" in cont_attribute:
+         (= prefix_use prefix_def)))
+'''
+
+[[Def-Use]]
+
+name = "Def-Use (XML-Attr Strict)"
+constraint = '''
+forall <?NONTERMINAL> attribute="{<?MATCHEXPR(prefix_use)>}" in start:
+  ((= prefix_use <?STRING>) or
+    exists <?NONTERMINAL> outer_tag="{<?MATCHEXPR(cont_attribute)>}" in start:
+      (inside(attribute, outer_tag) and
+       exists <?NONTERMINAL> def_attribute="{<?MATCHEXPR(ns_prefix, prefix_def)>}" in cont_attribute:
+         ((= ns_prefix <?STRING>) and
+          (= prefix_use prefix_def))))
+'''
+
+[[Def-Use]]
+
+name = "Def-Use (XML-Attr Disjunctive)"
+constraint = '''
+forall <?NONTERMINAL> attribute="{<?MATCHEXPR(prefix_use)>}" in start:
+  ((= prefix_use <?DSTRINGS>) or
+    exists <?NONTERMINAL> outer_tag="{<?MATCHEXPR(cont_attribute)>}" in start:
+      (inside(attribute, outer_tag) and
+       exists <?NONTERMINAL> def_attribute="{<?MATCHEXPR(prefix_def)>}" in cont_attribute:
+         (= prefix_use prefix_def)))
+'''
+
+[[Def-Use]]
+
+name = "Def-Use (XML-Tag)"
+constraint = '''
+forall <?NONTERMINAL> xml_tree="{<?MATCHEXPR(prefix_use)>}" in start:
+  exists <?NONTERMINAL> outer_tag="{<?MATCHEXPR(cont_attribute)>}" in start:
+    (inside(xml_tree, outer_tag) and
+     exists <?NONTERMINAL> def_attribute="{<?MATCHEXPR(prefix_def)>}" in cont_attribute:
+       (= prefix_use prefix_def))
+'''
+
+[[Def-Use]]
+
+name = "Def-Use (XML-Tag Strict)"
+constraint = '''
+forall <?NONTERMINAL> xml_tree="{<?MATCHEXPR(prefix_use)>}" in start:
+  exists <?NONTERMINAL> outer_tag="{<?MATCHEXPR(cont_attribute)>}" in start:
+    (inside(xml_tree, outer_tag) and
+     exists <?NONTERMINAL> def_attribute="{<?MATCHEXPR(ns_prefix, prefix_def)>}" in cont_attribute:
+       ((= ns_prefix <?STRING>) and
+        (= prefix_use prefix_def)))
+'''
+
+[[Types]]
+
+name = "Value Type is Date (TOML)"
+constraint = '''
+forall <?NONTERMINAL> container="{<?MATCHEXPR(key, value)>}" in start:
+  ((= key <?STRING>) implies
+   (str.in_re value (re.++ ((_ re.loop 4 4) (re.range "0" "9"))
+                           (str.to_re "-")
+                           ((_ re.loop 2 2) (re.range "0" "9"))
+                           (str.to_re "-")
+                           ((_ re.loop 2 2) (re.range "0" "9")))))
+'''
+
+[[Types]]
+
+name = "Value Type is Integer (TOML)"
+constraint = '''
+forall <?NONTERMINAL> container="{<?MATCHEXPR(key, value)>}" in start:
+  ((= key <?STRING>) implies
+   (str.in_re value (re.++ (re.opt (str.to_re "-")) (re.+ (re.range "0" "9")))))
+'''
+
+[[Types]]
+
+name = "Value Type is String (TOML)"
+constraint = '''
+forall <?NONTERMINAL> container="{<?MATCHEXPR(key, value)>}" in start:
+  ((= key <?STRING>) implies
+   (str.in_re value (re.++ (str.to_re "\"")
+                           (re.* (re.comp (re.union (str.to_re "\n") (str.to_re "\""))))
+                           (str.to_re "\""))))
+'''
+
+[[Types]]
+
+name = "Value Type is Float (TOML)"
+# [+-]? ( [0-9]+ ([.][0-9]*)? | [.][0-9]+)$
+constraint = '''
+forall <?NONTERMINAL> container="{<?MATCHEXPR(key, value)>}" in start:
+  ((= key <?STRING>) implies
+   (str.in_re value
+     (re.++
+       (re.opt (re.union (str.to_re "+") (str.to_re "-")))
+       (re.union
+         (re.++
+           (re.+ (re.range "0" "9"))
+           (re.++ (str.to_re ".") (re.* (re.range "0" "9"))))
+         (re.++
+           (str.to_re ".")
+           (re.+ (re.range "0" "9")))))))
+'''
+
+[[Types]]
+
+name = "Value Type is Integer (CSV)"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  forall <?NONTERMINAL> row in container:
+    exists <?NONTERMINAL> column in row:
+      (nth(<?STRING>, column, row) and
+        (str.in_re column (re.++ (re.opt (str.to_re "-")) (re.+ (re.range "0" "9")))))
+'''
+
+[[Types]]
+
+name = "Value Type is String (CSV)"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  forall <?NONTERMINAL> row in container:
+    exists <?NONTERMINAL> column in row:
+      (nth(<?STRING>, column, row) and
+        (str.in_re column (re.++ (str.to_re "\"")
+                          (re.* (re.comp (re.union (str.to_re "\n") (str.to_re "\""))))
+                          (str.to_re "\""))))
+'''
+
+[[Types]]
+
+name = "Value Type is Float (CSV)"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  forall <?NONTERMINAL> row in container:
+    exists <?NONTERMINAL> column in row:
+      (nth(<?STRING>, column, row) and
+        (str.in_re column
+          (re.++
+            (re.opt (re.union (str.to_re "+") (str.to_re "-")))
+            (re.union
+              (re.++
+                (re.+ (re.range "0" "9"))
+                (re.++ (str.to_re ".") (re.* (re.range "0" "9"))))
+              (re.++
+                (str.to_re ".")
+                (re.+ (re.range "0" "9")))))))
+'''
+
+[[Types]]
+
+name = "Value Type is Date (CSV)"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  forall <?NONTERMINAL> row in container:
+    exists <?NONTERMINAL> column in row:
+      (nth(<?STRING>, column, row) and
+        (str.in_re column (re.++ ((_ re.loop 4 4) (re.range "0" "9"))
+                          (str.to_re "-")
+                          ((_ re.loop 2 2) (re.range "0" "9"))
+                          (str.to_re "-")
+                          ((_ re.loop 2 2) (re.range "0" "9")))))
+'''
+
+[[Universal]]
+
+name = "String Length Upper Bound"
+constraint = '''
+forall <?NONTERMINAL> elem in start:
+  (<= (str.len elem) (str.to.int <?STRING>))
+'''
+
+[[Universal]]
+
+name = "String Length Lower Bound"
+constraint = '''
+forall <?NONTERMINAL> elem in start:
+  (>= (str.len elem) (str.to.int <?STRING>))
+'''
+
+[[Existential]]
+
+name = "String Existence"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> elem in container:
+    (= elem <?STRING>)
+'''
+
+[[Existential]]
+
+name = "Positioned String Existence (CSV)"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> elem in container:
+    (nth(<?STRING>, elem, container) and
+     (= elem <?STRING>))
+'''
+
+[[Existential]]
+
+name = "Existence String Fixed Length"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> elem in container:
+    (= (str.len elem) (str.to.int <?STRING>))
+'''
+
+[[Existential]]
+
+name = "Existence String Max Length"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> elem in container:
+    (<= (str.len elem) (str.to.int <?STRING>))
+'''
+
+[[Existential]]
+
+name = "Existence Numeric String Smaller Than"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> elem in container:
+    (<= (str.to.int elem) (str.to.int <?STRING>))
+'''
+
+[[Existential]]
+
+name = "Existence Numeric String Larger Than"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> elem in container:
+    (>= (str.to.int elem) (str.to.int <?STRING>))
+'''
+
+[[Existential]]
+
+# NOTE: This pattern is quite expensive to instantiate.
+name = "Existence Strings Relative Order"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> occ_1 in container:
+    exists <?NONTERMINAL> occ_2 in container:
+      (before(occ_1, occ_2) and
+       (= occ_2 <?STRING>) and
+       (= occ_1 <?STRING>))
+'''
+
+[[Existential]]
+
+name = "Existence Length Field"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> length_field in container:
+    (= (str.len container) (str.to.int length_field))
+'''
+
+[[Existential]]
+
+name = "Existence Length Field (Hex)"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> length_field in container:
+    exists int decimal:
+      (hex_to_decimal(length_field, decimal) and
+       (= (div (str.len (str.replace_all container " " "")) 2) (str.to.int decimal)))
+'''
+
+[[Checksums]]
+
+name = "Internet Checksum (RFC 1071)"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> checksum in container:
+    internet_checksum(container, checksum)
+'''
+
+[[Misc]]
+
+name = "Balance"
+constraint = '''
+forall <?NONTERMINAL> container="{<?MATCHEXPR(opid, clid)>}" in start:
+  (= opid clid)
+'''
+
+[[Misc]]
+
+name = "Equal Count"
+constraint = '''
+exists int num:
+  forall <?NONTERMINAL> elem in start:
+    ((>= (str.to.int num) 1) and
+    count(elem, <?NONTERMINAL>, num))
+'''

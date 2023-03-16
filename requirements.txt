@@ -1,0 +1,11 @@
+fuzzingbook>=1.1
+isla-solver>=0.10.10
+islearn>=0.2.10
+shap>=0.41
+lightgbm>=3.3.2
+z3-solver>=4.10.2.0
+pandas~=1.4.4
+numpy~=1.21.6
+scikit-learn~=1.1.2
+# seaborn~=0.12.0
+# matplotlib~=3.5.0
