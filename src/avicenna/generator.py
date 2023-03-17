@@ -19,7 +19,7 @@ class Generator:
         self._prop = prop
 
     def generate_mutation(
-        self, positive_samples: List[DerivationTree | str], negative_samples: List[DerivationTree | str]
+        self, positive_samples: List[DerivationTree | str]
     ) -> Tuple[List[DerivationTree], List[DerivationTree]]:
 
         if not isinstance(positive_samples[0], DerivationTree):
@@ -34,20 +34,11 @@ class Generator:
             positive_trees = positive_samples
 
         validation_inputs = positive_trees
-        negative_validation_inputs = negative_samples  # TODO Handle None if there are no neg_samples
-
-        def reverse_prop(inp):
-            o = self._prop(inp)
-            if isinstance(o, bool):
-                return not o
-            else:
-                return -1
+        negative_validation_inputs = []
 
         # We run two mutation fuzzers and a grammar fuzzer in parallel
         mutation_fuzzer = MutationFuzzer(self._grammar, positive_trees, self._prop, k=3)
-        mutation_fuzzer_negative = MutationFuzzer(self._grammar, negative_validation_inputs, reverse_prop, k=3)
         mutate_fuzz = mutation_fuzzer.run(900, alpha=0.1, yield_negative=True)
-        mutate_fuzz_negative = mutation_fuzzer_negative.run(900, alpha=0.1, yield_negative=True)
 
         grammar_fuzzer = GrammarCoverageFuzzer(self._grammar)
 
@@ -57,24 +48,22 @@ class Generator:
             or len(negative_validation_inputs) < self._max_negative_samples
         ):
             if i % 10 == 0:
-                logging.info(
+                logging.debug(
                     f"Fuzzing: {len(validation_inputs):02} positive / {len(negative_validation_inputs):02} negative "
                     f"inputs"
                 )
+                print(f"Fuzzing: {len(validation_inputs):02} positive / {len(negative_validation_inputs):02} negative "
+                    f"inputs")
 
             fuzzer_inputs = [
                 next(mutate_fuzz),
-                next(mutate_fuzz_negative),
-                # grammar_fuzzer.expand_tree(DerivationTree("<start>", None)),
+                grammar_fuzzer.expand_tree(DerivationTree("<start>", None)),
             ]
 
             for idx, inp in enumerate(fuzzer_inputs):
-                oracle = self._prop(inp)
-                if oracle == -1:
-                    pass
-                elif (
+                if (
                     len(validation_inputs) < self._max_positive_samples
-                    and oracle
+                    and self._prop(inp)
                     and not tree_in(inp, validation_inputs)
                 ):
                     validation_inputs.append(inp)
@@ -82,7 +71,7 @@ class Generator:
                         mutation_fuzzer.population.add(inp)
                 elif (
                     len(negative_validation_inputs) < self._max_negative_samples
-                    and not oracle
+                    and not self._prop(inp)
                     and not tree_in(inp, negative_validation_inputs)
                 ):
                     negative_validation_inputs.append(inp)
