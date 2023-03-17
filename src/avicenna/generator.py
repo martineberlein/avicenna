@@ -1,5 +1,5 @@
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Set, Callable
 
 from fuzzingbook.Parser import EarleyParser
 
@@ -9,6 +9,42 @@ from isla.fuzzer import GrammarCoverageFuzzer
 from isla.language import DerivationTree
 
 from fuzzingbook.Grammars import Grammar
+
+from avicenna.input import Input
+from avicenna.oracle import OracleResult
+
+
+def generate_inputs(test_inputs: Set[Input], grammar: Grammar, prop: Callable[[DerivationTree], bool],  max_positive_samples: int = 100, max_negative_samples: int = 100,) -> Set[Input]:
+    logging.info(f"Generating more inputs.")
+    new_inputs = set()
+
+    positive_trees = []
+    negative_trees = []
+    for inp in test_inputs:
+        if inp.oracle == OracleResult.BUG:
+            positive_trees.append(inp.tree)
+        else:
+            negative_trees.append(inp.tree)
+
+    generator = Generator(
+        max_positive=max_positive_samples,
+        max_negative=max_negative_samples,
+        grammar=grammar,
+        prop=prop
+    )
+    pos_inputs, neg_inputs = generator.generate_mutation(positive_trees)
+    for tree in pos_inputs + neg_inputs:
+        new_inputs.add(
+            Input(
+                tree=tree
+            )
+        )
+    # Can be improved by directly creating new Inputs with BUG or NO_BUG
+    for inp in new_inputs:
+        label = prop(inp.tree)
+        inp.oracle = OracleResult.BUG if label else OracleResult.NO_BUG
+
+    return new_inputs
 
 
 class Generator:
@@ -52,8 +88,6 @@ class Generator:
                     f"Fuzzing: {len(validation_inputs):02} positive / {len(negative_validation_inputs):02} negative "
                     f"inputs"
                 )
-                print(f"Fuzzing: {len(validation_inputs):02} positive / {len(negative_validation_inputs):02} negative "
-                    f"inputs")
 
             fuzzer_inputs = [
                 next(mutate_fuzz),

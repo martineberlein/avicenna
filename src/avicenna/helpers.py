@@ -8,15 +8,18 @@ from islearn.learner import InvariantLearner
 from isla.evaluator import evaluate
 from isla.language import ISLaUnparser
 
+from avicenna.oracle import OracleResult
+from avicenna.input import Input
 
-def constraint_eval(trees, oracle, constraint, grammar):
+
+def constraint_eval(test_inputs: Set[Input], constraint, grammar):
     data = []
-    for tree, o in zip(trees, oracle):
+    for inp in test_inputs:
         data.append(
             {
-                "name": str(tree),
-                "predicted": evaluate(constraint, tree, grammar),
-                "oracle": o,
+                "name": str(inp),
+                "predicted": evaluate(constraint, inp.tree, grammar),
+                "oracle": True if inp.oracle == OracleResult.BUG else False,
             }
         )
 
@@ -86,7 +89,7 @@ def run_islearn(
         min_recall=min_recall,
         pattern_file=pattern_file,
         deactivated_patterns=deactivated_patterns,
-        max_conjunction_size=1,
+        max_conjunction_size=max_conjunction_size,
         # target_number_positive_samples=20,
         # target_number_positive_samples_for_learning=20
     ).learn_invariants()
