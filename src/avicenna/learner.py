@@ -66,11 +66,6 @@ class InputElementLearner:
                 label = self._prop(inp.tree)
                 inp.oracle = OracleResult.BUG if label else OracleResult.NO_BUG
 
-        if self._generate_more_inputs:
-            self._inputs.update(
-                self._generate_inputs()
-            )
-
         num_bug_inputs = len([inp for inp in self._inputs if inp.oracle == OracleResult.BUG])
 
         logging.info(
@@ -169,37 +164,6 @@ class InputElementLearner:
                     )
 
         return extended_relevant_input_elements
-
-    def _generate_inputs(self) -> Set[Input]:
-        logging.info(f"Generating more inputs.")
-        new_inputs = set()
-
-        positive_trees = []
-        negative_trees = []
-        for inp in self._inputs:
-            if inp.oracle == OracleResult.BUG:
-                positive_trees.append(inp.tree)
-            else:
-                negative_trees.append(inp.tree)
-
-        generator = Generator(
-            self._max_positive_samples,
-            self._max_negative_samples,
-            self._grammar,
-            self._prop,
-        )
-        pos_inputs, neg_inputs = generator.generate_mutation(positive_trees)
-        for tree in pos_inputs + neg_inputs:
-            new_inputs.add(
-                Input(
-                    tree=tree
-                )
-            )
-        for inp in new_inputs:
-            label = self._prop(inp.tree)
-            inp.oracle = OracleResult.BUG if label else OracleResult.NO_BUG
-
-        return new_inputs
 
     @staticmethod
     def _get_learning_data(test_inputs: Set[Input]) -> DataFrame:
