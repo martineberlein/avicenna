@@ -1,23 +1,23 @@
 from functools import lru_cache
-from typing import List, Set
+from typing import List, Set, Dict
 
 import numpy
 import pandas
 from fuzzingbook.GrammarFuzzer import is_nonterminal, Grammar
 from isla.language import DerivationTree
 
-from avicenna.features import (
-    Feature,
-    FeatureWrapper,
-    STANDARD_FEATURES,
-    ExistenceFeature,
-)
+from avicenna.features import Feature, FeatureWrapper, STANDARD_FEATURES
+from avicenna.input import Input
 
 
 class Collector:
     def __init__(self, grammar, features=None):
         if features is None:
             features = STANDARD_FEATURES
+        else:
+            for feature in features:
+                assert isinstance(feature, FeatureWrapper)
+
         self._grammar: Grammar = grammar
         self._features: Set[FeatureWrapper] = features
         self.all_features = self.get_all_features()
@@ -33,22 +33,25 @@ class Collector:
         assert len(features) != 0, "Could not extract any features."
         return features
 
-    def collect_features(self, input_list: List[DerivationTree]):
+    def collect_features_from_list(self, test_inputs: Set[Input]) -> pandas.DataFrame:
         data = []
-        for sample in input_list:
-            assert isinstance(
-                sample, DerivationTree
-            ), "Inputs is not a derivation tree."
-            parsed_features = {"input": sample.to_string()}
-            # initiate dictionary
-            for feature in self.all_features:
-                # initialization
-                parsed_features[feature.name] = feature.initialization_value()
-
-            self.feature_collection(sample, parsed_features)
-            data.append(parsed_features)
+        for inp in test_inputs:
+            data.append(self.collect_features(inp))
 
         return pandas.DataFrame.from_records(data)
+
+    def collect_features(self, test_input: Input) -> Dict:
+        assert isinstance(
+            test_input.tree, DerivationTree
+        ), "Inputs is not a derivation tree."
+        parsed_features = {}
+        # initiate dictionary
+        for feature in self.all_features:
+            # initialization
+            parsed_features[feature.name] = feature.initialization_value()
+
+        self.feature_collection(test_input.tree, parsed_features)
+        return parsed_features
 
     def feature_collection(self, tree: DerivationTree, feature_table):
         (node, children) = tree

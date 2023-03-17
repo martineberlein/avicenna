@@ -1,5 +1,6 @@
 from typing import List, Dict, Iterable, Union, Set, Callable, Tuple
 import logging
+import sys
 from time import perf_counter
 import pandas
 from sklearn.metrics import precision_score, recall_score, f1_score
@@ -21,9 +22,11 @@ from avicenna.helpers import (
     run_islearn,
     constraint_eval,
 )
-from avicenna.fuzzer.generator import Generator
+from avicenna.generator import Generator, generate_inputs
 from avicenna.learner import InputElementLearner
 from avicenna_formalizations import get_pattern_file_path
+from avicenna.input import Input
+from avicenna.oracle import OracleResult
 
 ISLA_GENERATOR_TIMEOUT_SECONDS = 10
 
@@ -32,7 +35,7 @@ class Avicenna(Timetable):
     def __init__(
             self,
             grammar: Grammar,
-            evaluation_function: Callable[[DerivationTree], bool],
+            prop: Callable[[DerivationTree], bool],
             initial_inputs: List[str],
             working_dir: Path = Path("/tmp").resolve(),
             activated_patterns: List[str] = None,
@@ -44,19 +47,17 @@ class Avicenna(Timetable):
 
         super().__init__(working_dir)
         self._start_time = None
-        self._grammar: Grammar = grammar
         self._activated_patterns = activated_patterns
-        self._evaluation_function = evaluation_function
+        self._prop = prop
         self._max_iterations: int = max_iterations
         self._max_excluded_features: int = max_excluded_features - 1
+        self._targeted_start_size: int = 10
         self._iteration = 0
         self._timeout: int = 3600  # timeout in seconds
-        self._new_inputs: Union[List[DerivationTree], None] = None
-        self._initial_inputs = initial_inputs
         self._data = None
         self._all_data = None
         self._learned_invariants: Dict[str, List[float]] = {}
-        self._best_candidates: Dict[str, List[float]] = None
+        self._best_candidates: Dict[str, List[float]] = {}
         if pattern_file is not None:
             logging.info(f"Loading pattern file from location: {str(pattern_file)}")
             self._pattern_file = pattern_file
@@ -67,70 +68,57 @@ class Avicenna(Timetable):
         self._infeasible_constraints: Set = set()
         self._max_conjunction_size = max_conjunction_size
 
-        try:
-            assert is_valid_grammar(self._grammar)
-        except TypeError:
-            logging.info("Invalid grammar provided. Exiting.")
-            exit(-1)
+        self._grammar: Grammar = grammar
+        assert is_valid_grammar(self._grammar)
 
-    def _initialize(self):
-        # Initializing Data Frame
-        self._all_data = pandas.DataFrame(columns=["input", "oracle"])
+        self._initial_inputs: List[str] = initial_inputs
+        self._inputs: Set[Input] = set()
+        self._new_inputs: Set[Input] = set()
 
-        derivation_trees = [
-            language.DerivationTree.from_parse_tree(
-                next(EarleyParser(self._grammar).parse(inp))
+    def _execute_input(self, test_input: Input) -> OracleResult:
+        """
+        A wrapper function that wraps the user defined prop (evaluation function). This wrapper returns an OracleResult.
+        :param test_input:
+        :return:
+        """
+        return OracleResult.BUG if self._prop(test_input.tree) else OracleResult.NO_BUG
+
+    def _setup(self):
+        """
+        This function parses the given initial input files and obtains the execution label ("BUG"/"NO_BUG")
+        :return:
+        """
+        for inp in self._initial_inputs:
+            try:
+                self._inputs.add(
+                    Input(
+                        DerivationTree.from_parse_tree(
+                            next(EarleyParser(self._grammar).parse(inp))
+                        )
+                    )
+                )
+            except SyntaxError:
+                logging.error(
+                    "Avicenna: Could not parse initial inputs with given grammar!"
+                )
+                sys.exit(-1)
+
+        for inp in self._inputs:
+            inp.oracle = self._execute_input(inp)
+
+        num_bug_inputs = len([inp for inp in self._inputs if inp.oracle == OracleResult.BUG])
+
+        if num_bug_inputs < self._targeted_start_size:
+            self._inputs.update(
+                generate_inputs(
+                    self._inputs,
+                    grammar=self._grammar,
+                    prop=self._prop,
+                    max_positive_samples=self._targeted_start_size,
+                    max_negative_samples=self._targeted_start_size
+                )
             )
-            for inp in self._initial_inputs
-        ]
 
-        derivation_trees, exec_oracle = self._get_execution_outcome(derivation_trees)
-
-        positive_samples = []
-        negative_samples = []
-        for i, inp in enumerate(derivation_trees):
-            if exec_oracle[i] is True:
-                positive_samples.append(inp)
-            else:
-                negative_samples.append(inp)
-
-        logging.debug(f"Positive samples: {positive_samples}")
-        assert (
-                len(positive_samples) != 0
-        ), "No failure-inducing input hase been given. Exiting"
-        logging.info(
-            f"{len(positive_samples)} failure inducing and {len(negative_samples)} benign inputs given."
-        )
-
-        if exec_oracle.count(True) < 10 or exec_oracle.count(False) < 10:
-            logging.info("Trying to generate additional inputs with mutation fuzzing.")
-            generator = Generator(50, 50, self._grammar, self._evaluation_function)
-            pos_inputs, neg_inputs = generator.generate_mutation(positive_samples, negative_samples)
-            positive_samples += pos_inputs
-            negative_samples += neg_inputs
-
-        logging.info(
-            f"Generated additional {len(positive_samples)} failure inducing and "
-            f"{len(negative_samples)} "
-            "benign inputs given."
-        )
-
-        self._new_inputs = positive_samples + negative_samples
-
-    def generate(self):
-        logging.info("Starting AVICENNA.")
-        register_termination(self._timeout)
-        try:
-            self._start_time = perf_counter()
-            self._initialize()
-            while True:
-                logging.info("Starting Iteration " + str(self._iteration))
-                self._loop()
-                self._iteration = self._iteration + 1
-                yield self._best_candidates
-        except CustomTimeout:
-            logging.exception("Terminate due to timeout")
-        return self._finalize()
 
     @time
     def execute(self):
@@ -138,45 +126,35 @@ class Avicenna(Timetable):
         register_termination(self._timeout)
         try:
             self._start_time = perf_counter()
-            self._initialize()
+            self._setup()
             while self._do_more_iterations():
                 logging.info("Starting Iteration " + str(self._iteration))
-                self._loop()
+                new_inputs = self._loop(self._inputs)
+                self._inputs.update(new_inputs)
                 self._iteration = self._iteration + 1
         except CustomTimeout:
             logging.exception("Terminate due to timeout")
         return self._finalize()
 
     def _do_more_iterations(self):
-        # stop if there are no new samples
-        # if 0 == self.__last_new_samples:
-        #    return False
-        # stop after 10 iterations
-        if -1 == self._max_iterations:
-            return True
         if self._iteration >= self._max_iterations:
             logging.info("Terminate due to maximal iterations reached")
             return False
         return True
 
-    def _loop(self):
-        # Execute inputs samples to obtain the behavior outcome
-        new_inputs, execution_outcome = self._get_execution_outcome(input_samples=self._new_inputs)
-
+    def _loop(self, test_inputs):
         # Combining with the already existing data
-        self._add_new_data(new_inputs, execution_outcome)
+        # self._add_new_data(new_inputs, execution_outcome)
+        assert all(map(lambda x: isinstance(x.oracle, OracleResult), self._inputs))
 
         # Extract the most important non-terminals that are responsible for the program behavior
-        excluded_non_terminals = self._get_exclusion_set(
-            input_samples=self._all_data["input"].tolist(),
-            exec_oracle=execution_outcome,
-        )
+        excluded_non_terminals = self._get_exclusion_set(test_inputs)
 
         # Run islearn to learn new constraints
-        new_constraints = self._learn_new_constraints(excluded_non_terminals)
+        new_constraints = self._learn_new_constraints(test_inputs, excluded_non_terminals)
 
         # Evaluate Invariants
-        current_best_invariants = self._evaluate_constraints(new_constraints)
+        current_best_invariants = self._evaluate_constraints(test_inputs, new_constraints)
 
         # Compare to previous invariants to get the best global invariant
         self._best_candidates = self._get_best_global_invariant(current_best_invariants)
@@ -185,33 +163,39 @@ class Avicenna(Timetable):
         negated_constraints = self._negating_constraints(list(self._best_candidates))
 
         # Generate new input samples form the learned constraints
-        self._new_inputs = self._generate_new_inputs(
+        new_inputs = self._generate_new_inputs(
             negated_constraints + list(self._best_candidates)
         )
 
-    @time
-    def _learn_new_constraints(self, excluded_non_terminals: Set[str]) -> List[str]:
-        logging.info("Learning new failure-constraints.")
-        positive_inputs = self._all_data.loc[
-            self._all_data["oracle"].astype(str) == "True"
-            ]["input"].tolist()
-        negative_inputs = self._all_data.loc[
-            self._all_data["oracle"].astype(str) == "False"
-            ]["input"].tolist()
+        for inp in new_inputs:
+            inp.oracle = self._execute_input(inp)
 
-        assert len(positive_inputs) != 0 and len(negative_inputs) != 0
+        return new_inputs
+
+    @time
+    def _learn_new_constraints(self, test_inputs: Set[Input], excluded_non_terminals: Set[str]) -> List[str]:
+        logging.info("Learning new failure-constraints.")
+        positive_trees = []
+        negative_trees = []
+        for inp in test_inputs:
+            if inp.oracle == OracleResult.BUG:
+                positive_trees.append(inp.tree)
+            else:
+                negative_trees.append(inp.tree)
+
+        assert len(positive_trees) != 0 and len(negative_trees) != 0
 
         new_constraints = list()
         try:
             new_constraints = run_islearn(
                 grammar=self._grammar,
-                prop=self._evaluation_function,
-                positive_trees=positive_inputs,
-                negative_trees=negative_inputs,
+                prop=self._prop,
+                positive_trees=positive_trees,
+                negative_trees=negative_trees,
                 activated_patterns=self._activated_patterns,
                 excluded_features=excluded_non_terminals,
                 pattern_file=self._pattern_file,
-                max_conjunction_size=self._max_conjunction_size,
+                # max_conjunction_size=self._max_conjunction_size,
             )
         except ValueError as e:
             logging.info(e)
@@ -225,9 +209,9 @@ class Avicenna(Timetable):
                 logging.info(f"Retrying with relaxed conditions")
                 new_constraints = run_islearn(
                     grammar=self._grammar,
-                    prop=self._evaluation_function,
-                    positive_trees=positive_inputs,
-                    negative_trees=negative_inputs,
+                    prop=self._prop,
+                    positive_trees=positive_trees,
+                    negative_trees=negative_trees,
                     activated_patterns=self._activated_patterns,
                     pattern_file=self._pattern_file,
                 )
@@ -244,15 +228,14 @@ class Avicenna(Timetable):
 
     @time
     def _get_exclusion_set(
-            self, input_samples: List[DerivationTree], exec_oracle: Iterable[bool]
+            self, test_inputs: Set[Input]
     ) -> Set[str]:
         logging.info("Determining the most important non-terminals.")
 
         learner = InputElementLearner(
             grammar=self._grammar,
-            prop=self._evaluation_function,
-            input_samples=input_samples,
-            generate_more_inputs=False,
+            prop=self._prop,
+            input_samples=test_inputs,
             max_relevant_features=self._max_excluded_features,
         )
         learner.learn()
@@ -271,22 +254,22 @@ class Avicenna(Timetable):
         return negated_constraints
 
     @time
-    def _generate_new_inputs(self, best_constraints: List[str]):
+    def _generate_new_inputs(self, constraints: List[str]):
         logging.info("Generating new inputs to refine constraints.")
 
         # Exclude all infeasible constraints:
-        num_constraints = len(best_constraints)
-        for constraint in best_constraints:
+        num_constraints = len(constraints)
+        for constraint in constraints:
             if constraint in self._infeasible_constraints:
-                best_constraints.remove(constraint)
+                constraints.remove(constraint)
 
         logging.info(
-            f"Using {len(best_constraints)} (of {num_constraints}) constraints to generate new inputs"
+            f"Using {len(constraints)} (of {num_constraints}) constraints to generate new inputs"
         )
 
         inputs: List[DerivationTree] = []
-        for constraint in best_constraints:
-            new_inputs: List[DerivationTree] = []
+        for constraint in constraints:
+            new_input_trees: List[DerivationTree] = []
             try:
                 logging.info(f"Solving: {constraint}")
                 solver = ISLaSolver(
@@ -300,22 +283,30 @@ class Avicenna(Timetable):
 
                 for _ in range(10):
                     gen_inp = solver.solve()
-                    new_inputs.append(gen_inp)
+                    new_input_trees.append(gen_inp)
                     logging.info(f"Generated: {gen_inp}")
 
             except Exception as e:
                 logging.info("Error: " + str(e))
             finally:
-                if len(new_inputs) == 0:
+                if len(new_input_trees) == 0:
                     logging.info("Removing constraint because no new inputs were generated")
                     # Solver was not able to generate inputs:
                     self._add_infeasible_constraints(constraint)
                 else:
-                    inputs = inputs + new_inputs
+                    inputs = inputs + new_input_trees
 
         assert len(inputs) != 0, "No new inputs were generated. Exiting."
         logging.info(f"{len(inputs)} new inputs have been generated.")
-        return inputs
+
+        new_inputs = set()
+        for tree in inputs:
+            new_inputs.add(
+                Input(
+                    tree=tree
+                )
+            )
+        return new_inputs
 
     def _add_infeasible_constraints(self, constraint):
         self._infeasible_constraints.add(constraint)
@@ -374,37 +365,13 @@ class Avicenna(Timetable):
             ).drop_duplicates()
 
     @time
-    def _get_execution_outcome(self, input_samples: List[DerivationTree]) -> Tuple[List[DerivationTree], List[bool]]:
-        logging.info("Executing input samples.")
-
-        new_input_samples = []
-        exec_oracle = []
-        for inp in input_samples:
-            exec_outcome = self._evaluation_function(inp)
-            if isinstance(exec_outcome, bool):
-                new_input_samples.append(inp)
-                exec_oracle.append(exec_outcome)
-
-        return new_input_samples, exec_oracle
-
-    @time
-    def _evaluate_constraints(self, new_constraints):
-        logging.info("Evaluating constraints.")
+    def _evaluate_constraints(self, test_inputs: Set[Input], constraints):
+        logging.info(f"Evaluating {len(constraints)} constraints.")
         eval_data: Dict[str, List[float]] = {}
 
-        # Let's parse all the generated inputs
-        inputs = [inp for inp in self._all_data["input"]]
-        oracle = [inp for inp in self._all_data["oracle"]]
-
-        combined_constraints = list(new_constraints)
-        if self._best_candidates is not None:
-            combined_constraints = chain(self._best_candidates, new_constraints)
-
-        logging.info(f"Checking {len(list(combined_constraints))} constraints.")
-        for constraint in combined_constraints:
-            constraint_data = constraint_eval(
-                inputs,
-                oracle,
+        for constraint in constraints:
+            constraint_data: Dict = constraint_eval(
+                test_inputs,
                 constraint,
                 grammar=self._grammar,
             )
@@ -433,9 +400,7 @@ class Avicenna(Timetable):
             )
 
             logging.debug(f"Results for f{constraint}")
-            logging.debug(f"The constraint achieved a precision of {precision} %")
-            logging.debug(f"The constraint achieved a recall of {recall} %")
-            logging.debug(f"The constraint achieved a f1-score of {round(f1, 3)}")
+            logging.debug(f"The constraint achieved a precision of {precision} %, recall of {recall} % and f1-score of {round(f1, 3)}")
 
             eval_data[constraint] = [precision, recall, f1]
 

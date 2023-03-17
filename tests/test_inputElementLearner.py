@@ -1,26 +1,37 @@
 import unittest
 import logging
 
+from fuzzingbook.Parser import EarleyParser
 from isla.language import DerivationTree
 from isla_formalizations import xml_lang
 
 from avicenna.learner import InputElementLearner
+from avicenna.input import Input
 
-from avicenna_formalizations.calculator import prop as prop_alhazen, CALCULATOR_GRAMMAR
-from avicenna_formalizations.heartbeat import prop as prop_heartbeat, HEARTBLEED
+from avicenna_formalizations.calculator import prop as prop_alhazen, grammar as grammar_calculator
+from avicenna_formalizations.heartbeat import prop_ as prop_heartbeat, grammar as grammar_heartbeat
 
 
 class TestInputElementLearner(unittest.TestCase):
     def test_learner_calculator(self):
+        inputs = ["sqrt(-900)"]
+        test_inputs = set()
+        for inp in inputs:
+            test_inputs.add(
+                Input(
+                    DerivationTree.from_parse_tree(
+                        next(EarleyParser(grammar_calculator).parse(inp))
+                    )
+                )
+            )
 
         result = InputElementLearner(
-            CALCULATOR_GRAMMAR,
-            prop_alhazen,
-            input_samples=["sqrt(-900)"],
+            grammar=grammar_calculator,
+            prop=prop_alhazen,
+            input_samples=test_inputs,
             max_relevant_features=2,
         ).learn()
         non_terminals = [elem[0] for elem in result]
-        print(result)
 
         self.assertTrue(
             all(
@@ -34,15 +45,24 @@ class TestInputElementLearner(unittest.TestCase):
         )
 
     def test_learner_heartbeat(self):
+        inputs = ["8 pasbd xyasd", "2 xy kjsdfh"]
+        test_inputs = set()
+        for inp in inputs:
+            test_inputs.add(
+                Input(
+                    DerivationTree.from_parse_tree(
+                        next(EarleyParser(grammar_heartbeat).parse(inp))
+                    )
+                )
+            )
 
         result = InputElementLearner(
-            HEARTBLEED,
+            grammar_heartbeat,
             prop_heartbeat,
-            input_samples=["8 pasbd xyasd"],
+            input_samples=test_inputs,
             max_relevant_features=2,
         ).learn()
         non_terminals = [elem[0] for elem in result]
-        print(result)
 
         self.assertTrue(
             all([elem in {"<length>", "<payload>"} for elem in non_terminals]),

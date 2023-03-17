@@ -4,7 +4,7 @@ from typing import List, Set
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas
+from pandas import DataFrame
 import shap
 from fuzzingbook.Grammars import Grammar, nonterminals
 from lightgbm import LGBMClassifier
@@ -23,9 +23,9 @@ def get_all_non_terminals(grammar):
 
 
 class Extractor:
-    def __init__(self, complete_data, grammar, max_feature_num: int = 4, features=None):
-        self._data: pandas.DataFrame = complete_data
-        self._X_train = complete_data.drop(["input", "oracle"], axis=1)
+    def __init__(self, complete_data: DataFrame, grammar, max_feature_num: int = 4, features=None):
+        self._data: DataFrame = complete_data
+        self._X_train = complete_data.drop(["oracle"], axis=1)
         self._y_train = complete_data["oracle"].astype(str)
         self._grammar: Grammar = grammar
         if features is None:
@@ -126,17 +126,17 @@ class Extractor:
 
     def _normalize_data(self):
         min_max_scaler = preprocessing.MinMaxScaler()
-        np_array = self._data.drop(["input"], axis=1).to_numpy()
+        np_array = self._data.to_numpy()
         normalized = min_max_scaler.fit_transform(np_array)
-        new_data = pandas.DataFrame(
-            normalized, columns=self._data.drop(["input"], axis=1).columns
+        new_data = DataFrame(
+            normalized, columns=self._data.columns
         )
         # self._data = new_data
         self._X_train = new_data.drop("oracle", axis=1)
         self._y_train = new_data["oracle"]
 
     def _calculate_correlation_matrix(self):
-        corr_data: pandas.Dataframe = self._data.drop("input", axis=1)
+        corr_data: DataFrame = self._data
 
         for col in corr_data.columns:
             if (corr_data[col].values == 1.0).all():

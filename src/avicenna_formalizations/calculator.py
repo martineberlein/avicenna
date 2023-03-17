@@ -5,7 +5,7 @@ from fuzzingbook.Grammars import Grammar
 from isla.language import DerivationTree
 
 
-CALCULATOR_GRAMMAR: Grammar = {
+grammar: Grammar = {
     "<start>": ["<arith_expr>"],
     "<arith_expr>": ["<function>(<number>)"],
     "<function>": ["sqrt", "sin", "cos", "tan"],
@@ -19,7 +19,7 @@ CALCULATOR_GRAMMAR: Grammar = {
 }
 
 
-INITIAL_INPUTS = ["cos(10)", "sqrt(28367)", "tan(-12)", "sqrt(-900)"]
+initial_inputs = ["cos(10)", "sqrt(28367)", "tan(-12)", "sqrt(-900)"]
 
 
 def arith_eval(inp: DerivationTree) -> float:
