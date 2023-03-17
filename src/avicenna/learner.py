@@ -1,14 +1,18 @@
 import logging
-from typing import List, Tuple, Set
+import sys
+from typing import List, Tuple, Set, Callable
+from pandas import DataFrame
 from fuzzingbook.Grammars import Grammar
 from fuzzingbook.Parser import EarleyParser
 from grammar_graph.gg import GrammarGraph
 from isla.language import DerivationTree
 
-from avicenna.fuzzer.generator import Generator
+from avicenna.generator import Generator
 from avicenna.feature_collector import Collector
 from avicenna.feature_extractor import Extractor, get_all_non_terminals
 from avicenna.features import STANDARD_FEATURES, FeatureWrapper, Feature
+from avicenna.input import Input
+from avicenna.oracle import OracleResult
 
 
 class InputElementLearner:
@@ -21,7 +25,7 @@ class InputElementLearner:
         self,
         grammar: Grammar,
         prop,
-        input_samples: List[DerivationTree],
+        input_samples: Set[Input],
         generate_more_inputs: bool = True,
         max_relevant_features: int = 2,
         features: Set[FeatureWrapper] = STANDARD_FEATURES,
@@ -32,11 +36,11 @@ class InputElementLearner:
         mandatory.
         """
         self._grammar = grammar
-        self._prop = prop
-        self._inputs = input_samples
+        self._prop: Callable[[DerivationTree], bool] = prop
+        self._inputs: Set[Input] = input_samples
         self._generate_more_inputs: bool = generate_more_inputs
-        self._max_positive_samples: int = 50
-        self._max_negative_samples: int = 50
+        self._max_positive_samples: int = 100
+        self._max_negative_samples: int = 100
         self._max_relevant_features: int = max_relevant_features
         self._collector = None
         self._extractor = None
@@ -57,77 +61,44 @@ class InputElementLearner:
             self._inputs is not None
         ), "Learner needs at least one failure inducing input."
 
-        exec_oracle = []
-        for inp in self._inputs:
-            exec_oracle.append(self._prop(inp))
+        if not all(map(lambda x: isinstance(x.oracle, OracleResult), self._inputs)):
+            for inp in self._inputs:
+                label = self._prop(inp.tree)
+                inp.oracle = OracleResult.BUG if label else OracleResult.NO_BUG
 
-        positive_samples = []
-        negative_samples = []
-
-        if self._inputs is not None:
-            for i, inp in enumerate(self._inputs):
-                if exec_oracle[i] is True:
-                    positive_samples.append(inp)
-                else:
-                    negative_samples.append(inp)
-
-            logging.info(
-                f"Starting with {len(positive_samples)} failure-inducing and {len(negative_samples)} benign "
-                f"inputs."
+        if self._generate_more_inputs:
+            self._inputs.update(
+                self._generate_inputs()
             )
-        else:
-            #  TODO Use Grammar Fuzzer
-            pass
 
-        if all(isinstance(inp, DerivationTree) for inp in self._inputs):
-            pass
-        else:
-            positive_samples = [
-                DerivationTree.from_parse_tree(
-                    next(EarleyParser(self._grammar).parse(inp))
-                )
-                for inp in positive_samples
-            ]
-
-        if self._generate_more_inputs or self._inputs is None:
-            logging.info(f"Generating more inputs.")
-            generator = Generator(
-                self._max_positive_samples,
-                self._max_negative_samples,
-                self._grammar,
-                self._prop,
-            )
-            pos_inputs, neg_inputs = generator.generate_mutation(positive_samples)
-            positive_samples = pos_inputs
-            negative_samples = neg_inputs
+        num_bug_inputs = len([inp for inp in self._inputs if inp.oracle == OracleResult.BUG])
 
         logging.info(
-            f"Learning with {len(positive_samples)} failure-inducing and {len(negative_samples)} benign "
+            f"Learning with {num_bug_inputs} failure-inducing and {len(self._inputs) - num_bug_inputs} benign "
             f"inputs."
         )
-        input_list = positive_samples + negative_samples
-        self._collector = Collector(self._grammar, self._features)
+
         logging.info(f"Collecting and parsing features.")
+        self._collector = Collector(self._grammar, self._features)
 
-        feature_table = self._collector.collect_features(input_list)
-        oracle_table = [self._prop(inp) for inp in input_list]
+        for inp in self._inputs:
+            inp.features = self._collector.collect_features(inp)
 
-        combined_data = feature_table.copy()
-        combined_data["oracle"] = oracle_table
+        learning_data = self._get_learning_data(self._inputs)
 
         logging.info(f"Learning most relevant input elements.")
         self._extractor = Extractor(
-            combined_data,
+            learning_data,
             self._grammar,
             max_feature_num=self._max_relevant_features,
             features=self._features,
         )
         ex = self._extractor.extract_non_terminals()
+        final_results = self._extractor.get_clean_most_important_features()
 
         if self._show_shap_beeswarm:
             self.show_beeswarm_plot()
 
-        final_results = self._extractor.get_clean_most_important_features()
         relevant_input_elements = []
         for feature in self._extractor.get_clean_most_important_features():
             corr_features: List[Feature] = self._extractor.get_correlating_features(
@@ -198,3 +169,45 @@ class InputElementLearner:
                     )
 
         return extended_relevant_input_elements
+
+    def _generate_inputs(self) -> Set[Input]:
+        logging.info(f"Generating more inputs.")
+        new_inputs = set()
+
+        positive_trees = []
+        negative_trees = []
+        for inp in self._inputs:
+            if inp.oracle == OracleResult.BUG:
+                positive_trees.append(inp.tree)
+            else:
+                negative_trees.append(inp.tree)
+
+        generator = Generator(
+            self._max_positive_samples,
+            self._max_negative_samples,
+            self._grammar,
+            self._prop,
+        )
+        pos_inputs, neg_inputs = generator.generate_mutation(positive_trees)
+        for tree in pos_inputs + neg_inputs:
+            new_inputs.add(
+                Input(
+                    tree=tree
+                )
+            )
+        for inp in new_inputs:
+            label = self._prop(inp.tree)
+            inp.oracle = OracleResult.BUG if label else OracleResult.NO_BUG
+
+        return new_inputs
+
+    @staticmethod
+    def _get_learning_data(test_inputs: Set[Input]) -> DataFrame:
+        data = []
+        for inp in test_inputs:
+            if inp.oracle != OracleResult.UNDEF:
+                learning_data = inp.features  # .drop(["sample"], axis=1)
+                learning_data["oracle"] = True if inp.oracle == OracleResult.BUG else False
+                data.append(learning_data)
+
+        return DataFrame.from_records(data)
