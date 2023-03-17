@@ -5,7 +5,7 @@ from fuzzingbook.Grammars import Grammar
 from isla.language import DerivationTree
 
 
-CALCULATOR_GRAMMAR: Grammar = {
+grammar: Grammar = {
     "<start>": ["<arith_expr>"],
     "<arith_expr>": ["<function>(<number>)"],
     "<function>": ["sqrt", "sin", "cos", "tan"],
