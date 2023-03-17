@@ -19,7 +19,7 @@ grammar: Grammar = {
 }
 
 
-INITIAL_INPUTS = ["cos(10)", "sqrt(28367)", "tan(-12)", "sqrt(-900)"]
+initial_inputs = ["cos(10)", "sqrt(28367)", "tan(-12)", "sqrt(-900)"]
 
 
 def arith_eval(inp: DerivationTree) -> float:

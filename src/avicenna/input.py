@@ -10,10 +10,10 @@ class Input:
     Class describing a test input.
     """
 
-    def __init__(self, tree: DerivationTree):
+    def __init__(self, tree: DerivationTree, oracle: OracleResult = None):
         assert isinstance(tree, DerivationTree)
         self.__tree: DerivationTree = tree
-        self.__oracle: Optional[OracleResult] = None
+        self.__oracle: Optional[OracleResult] = oracle
         self.__features: Optional[Dict] = None
 
     @property
