@@ -22,7 +22,7 @@ from avicenna.helpers import (
     run_islearn,
     constraint_eval,
 )
-from avicenna.fuzzer.generator import Generator
+from avicenna.generator import Generator
 from avicenna.learner import InputElementLearner
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.input import Input
@@ -73,6 +73,7 @@ class Avicenna(Timetable):
 
         self._initial_inputs: List[str] = initial_inputs
         self._inputs: Set[Input] = set()
+        self._new_inputs: Set[Input] = set()
 
     def _execute_input(self, test_input: Input) -> OracleResult:
         """
@@ -153,21 +154,6 @@ class Avicenna(Timetable):
                     )
                 )
 
-    def generate(self):
-        logging.info("Starting AVICENNA.")
-        register_termination(self._timeout)
-        try:
-            self._start_time = perf_counter()
-            self._initialize()
-            while True:
-                logging.info("Starting Iteration " + str(self._iteration))
-                self._loop()
-                self._iteration = self._iteration + 1
-                yield self._best_candidates
-        except CustomTimeout:
-            logging.exception("Terminate due to timeout")
-        return self._finalize()
-
     @time
     def execute(self):
         logging.info("Starting AVICENNA.")
@@ -175,32 +161,24 @@ class Avicenna(Timetable):
         try:
             self._start_time = perf_counter()
             self._initialize()
+            new_inputs = self._inputs
             while self._do_more_iterations():
                 logging.info("Starting Iteration " + str(self._iteration))
-                self._loop()
+                new_inputs = self._loop(new_inputs)
                 self._iteration = self._iteration + 1
         except CustomTimeout:
             logging.exception("Terminate due to timeout")
         return self._finalize()
 
     def _do_more_iterations(self):
-        # stop if there are no new samples
-        # if 0 == self.__last_new_samples:
-        #    return False
-        # stop after 10 iterations
-        if -1 == self._max_iterations:
-            return True
         if self._iteration >= self._max_iterations:
             logging.info("Terminate due to maximal iterations reached")
             return False
         return True
 
-    def _loop(self):
-        # Execute inputs samples to obtain the behavior outcome
-        new_inputs, execution_outcome = self._get_execution_outcome(input_samples=self._new_inputs)
-
+    def _loop(self, test_inputs):
         # Combining with the already existing data
-        self._add_new_data(new_inputs, execution_outcome)
+        # self._add_new_data(new_inputs, execution_outcome)
 
         # Extract the most important non-terminals that are responsible for the program behavior
         excluded_non_terminals = self._get_exclusion_set(
@@ -224,6 +202,9 @@ class Avicenna(Timetable):
         self._new_inputs = self._generate_new_inputs(
             negated_constraints + list(self._best_candidates)
         )
+
+        # Execute inputs samples to obtain the behavior outcome
+        new_inputs, execution_outcome = self._get_execution_outcome(input_samples=self._new_inputs)
 
     @time
     def _learn_new_constraints(self, excluded_non_terminals: Set[str]) -> List[str]:
@@ -280,15 +261,14 @@ class Avicenna(Timetable):
 
     @time
     def _get_exclusion_set(
-            self, input_samples: List[DerivationTree], exec_oracle: Iterable[bool]
+            self, test_inputs: Set[Input]
     ) -> Set[str]:
         logging.info("Determining the most important non-terminals.")
 
         learner = InputElementLearner(
             grammar=self._grammar,
-            prop=self._evaluation_function,
-            input_samples=input_samples,
-            generate_more_inputs=False,
+            prop=self._prop,
+            input_samples=test_inputs,
             max_relevant_features=self._max_excluded_features,
         )
         learner.learn()
