@@ -1,7 +1,6 @@
 from avicenna.performance_evaluator import Evaluator
 from avicenna.avicenna import Avicenna
-from avicenna_formalizations.heartbeat import grammar, prop, initial_inputs
-
+from avicenna_formalizations.calculator import grammar, initial_inputs, prop
 from avicenna_formalizations import get_pattern_file_path
 
 from islearn.learner import InvariantLearner
@@ -23,7 +22,7 @@ def learner_islearn(timeout, max_iterations):
 learner_avicenna = lambda timeout, max_iterations: Avicenna(
     grammar,
     prop,
-    ['8 pasbd xyasd', '4 paaa xyasd'],
+    initial_inputs,
     max_iterations=max_iterations,
     pattern_file=get_pattern_file_path()
 )
