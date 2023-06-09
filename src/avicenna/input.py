@@ -40,7 +40,7 @@ class Input:
         return str(self.__tree)
 
     def __hash__(self):
-        return hash(self.__tree.structural_hash())
+        return self.__tree.structural_hash()
 
     def __eq__(self, other):
         if self.__hash__() == hash(other):
