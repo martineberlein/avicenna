@@ -140,7 +140,9 @@ class Extractor:
 
         for col in corr_data.columns:
             if (corr_data[col].values == 1.0).all():
-                corr_data = corr_data.drop(col, axis=1)
+                # print("Dropping: ", col)
+                # corr_data = corr_data.drop(col, axis=1)
+                pass
 
         corr_matrix = corr_data.corr(method="spearman")
         corr = []

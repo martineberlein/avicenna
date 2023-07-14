@@ -1,7 +1,12 @@
 import string
 import math
+import logging
 
 from fuzzingbook.Grammars import Grammar
+from isla.language import DerivationTree
+
+from avicenna import Avicenna
+from avicenna.oracle import OracleResult
 from avicenna.input import Input
 
 
@@ -18,19 +23,32 @@ grammar: Grammar = {
     "<maybe_frac>": ["", ".<digits>"],
 }
 
-
 initial_inputs = ["cos(10)", "sqrt(28367)", "tan(-12)", "sqrt(-900)"]
 
 
-def arith_eval(inp: str) -> float:
+def arith_eval(inp) -> float:
     return eval(
         str(inp), {"sqrt": math.sqrt, "sin": math.sin, "cos": math.cos, "tan": math.tan}
     )
 
 
-def prop(inp: Input) -> bool:
+def oracle(inp: Input) -> OracleResult:
     try:
-        arith_eval(str(inp))
-        return False
+        arith_eval(inp)
+        return OracleResult.NO_BUG
     except ValueError:
-        return True
+        return OracleResult.BUG
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s:  %(message)s")
+
+    # from avicenna_formalizations.heartbeat import grammar, initial_inputs, prop as oracle
+    avicenna = Avicenna(
+        grammar=grammar,
+        initial_inputs=initial_inputs,
+        oracle=oracle,
+        max_iterations=20,
+    )
+
+    avicenna.execute()

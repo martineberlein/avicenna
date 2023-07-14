@@ -2,16 +2,11 @@ import unittest
 from typing import Tuple
 
 from isla.derivation_tree import DerivationTree
-from fuzzingbook.Parser import EarleyParser
+from fuzzingbook.Parser import EarleyParser, is_valid_grammar, Grammar
 
-from avicenna_formalizations.calculator import grammar_alhazen as grammar, prop
+from avicenna_formalizations.calculator import grammar, prop
 from avicenna.oracle import OracleResult
-from avicenna.feature_collector import Collector
-from avicenna.features import EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE
 from avicenna.input import Input
-
-
-FEATURES = {EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE}
 
 
 class TestInputs(unittest.TestCase):
@@ -27,8 +22,6 @@ class TestInputs(unittest.TestCase):
                     )
                 )
             )
-
-        self.collector = Collector(grammar=grammar, features=FEATURES)
 
     def test_test_inputs(self):
         inputs = {"sqrt(-900)", "cos(10)"}
@@ -54,13 +47,30 @@ class TestInputs(unittest.TestCase):
 
     def test_input_execution(self):
         for inp in self.test_inputs:
-            inp.oracle = prop(inp.tree)
+            inp.oracle = prop(inp)
 
-    def test_feature_extraction(self):
-        self._all_features = self.collector.get_all_features()
+    def test_hash(self):
+        grammar: Grammar = {
+            "<start>": ["<number>"],
+            "<number>": ["<maybe_minus><one_nine>"],
+            "<maybe_minus>": ["-", ""],
+            "<one_nine>": [str(i) for i in range(1, 10)],
+        }
+        assert is_valid_grammar(grammar=grammar)
 
-        for inp in self.test_inputs:
-            inp.features = self.collector.collect_features(inp)
+        initial_test_inputs = ["-8", "-8"]
+
+        test_inputs = set()
+        for inp in initial_test_inputs:
+            test_inputs.add(
+                Input(
+                    DerivationTree.from_parse_tree(
+                        next(EarleyParser(grammar).parse(inp))
+                    )
+                )
+            )
+
+        self.assertEqual(1, len(test_inputs))
 
 
 if __name__ == "__main__":

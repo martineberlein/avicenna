@@ -7,39 +7,13 @@ exists <?NONTERMINAL> container in start:
     (<= (str.len container) (str.to.int length_field))
 '''
 
-[[Universal]]
-
-name = "String Length Upper Bound"
-constraint = '''
-forall <?NONTERMINAL> elem in start:
-  (<= (str.len elem) (str.to.int <?STRING>))
-'''
-
-[[Universal]]
-
-name = "String Length Lower Bound"
-constraint = '''
-forall <?NONTERMINAL> elem in start:
-  (>= (str.len elem) (str.to.int <?STRING>))
-'''
-
 [[Existential]]
 
-name = "String Existence"
+name = "Existence Length Field Smaler"
 constraint = '''
-forall <?NONTERMINAL> container in start:
-  exists <?NONTERMINAL> elem in container:
-    (= elem <?STRING>)
-'''
-
-[[Existential]]
-
-name = "Positioned String Existence (CSV)"
-constraint = '''
-forall <?NONTERMINAL> container in start:
-  exists <?NONTERMINAL> elem in container:
-    (nth(<?STRING>, elem, container) and
-     (= elem <?STRING>))
+exists <?NONTERMINAL> container1 in start:
+  exists <?NONTERMINAL> length_field in start:
+    (< (str.len container1) (str.to.int length_field))
 '''
 
 [[Existential]]
@@ -60,12 +34,36 @@ forall <?NONTERMINAL> container in start:
     (<= (str.len elem) (str.to.int <?STRING>))
 '''
 
+[[Universal]]
+
+name = "String Length Upper Bound"
+constraint = '''
+forall <?NONTERMINAL> elem in start:
+  (<= (str.len elem) (str.to.int <?STRING>))
+'''
+
+[[Universal]]
+
+name = "String Length Lower Bound"
+constraint = '''
+forall <?NONTERMINAL> elem in start:
+  (>= (str.len elem) (str.to.int <?STRING>))
+'''
+
+[[Existential]]
+
+name = "String Existence in Container"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> elem in container:
+    (= elem <?STRING>)
+'''
+
 [[Existential]]
 
 name = "Existence Numeric String Smaller Than"
 constraint = '''
-forall <?NONTERMINAL> container in start:
-  exists <?NONTERMINAL> elem in container:
+forall <?NONTERMINAL> elem in start:
     (<= (str.to.int elem) (str.to.int <?STRING>))
 '''
 
@@ -73,23 +71,13 @@ forall <?NONTERMINAL> container in start:
 
 name = "Existence Numeric String Larger Than"
 constraint = '''
-forall <?NONTERMINAL> container in start:
-  exists <?NONTERMINAL> elem in container:
+forall <?NONTERMINAL> elem in start:
     (>= (str.to.int elem) (str.to.int <?STRING>))
 '''
 
 [[Existential]]
 
-name = "Existence Length Field Old"
-constraint = '''
-exists <?NONTERMINAL> container1 in start:
-  exists <?NONTERMINAL> length_field in start:
-    (< (str.len container1) (str.to.int length_field))
-'''
-
-[[Existential]]
-
-name = "Occurrence"
+name = "Occurrence in Container"
 constraint = '''
 forall <?NONTERMINAL> container in start:
   exists <?NONTERMINAL> elem in container:

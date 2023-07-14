@@ -1,54 +1,57 @@
-from typing import List, Dict, Iterable, Union, Set, Callable, Tuple
 import logging
 import sys
-from time import perf_counter
-import pandas
-from sklearn.metrics import precision_score, recall_score, f1_score
-from itertools import chain
 from pathlib import Path
+from time import perf_counter
+from typing import List, Dict, Set, Callable, Optional
 
-from isla import language
-from isla.language import ISLaUnparser
-from isla.solver import ISLaSolver
-from isla.language import DerivationTree
-from fuzzingbook.Parser import EarleyParser
+import pandas
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
+from fuzzingbook.GrammarFuzzer import GrammarFuzzer
+from fuzzingbook.Parser import EarleyParser
+from grammar_graph.gg import GrammarGraph
+from isla.language import DerivationTree
+from isla.language import ISLaUnparser, Formula
+from isla.solver import ISLaSolver
+from sklearn.metrics import precision_score, recall_score, f1_score
 
+from avicenna.feature_collector import Collector
+from avicenna.features import FeatureWrapper, STANDARD_FEATURES
+from avicenna.generator import generate_inputs
 from avicenna.helpers import (
     Timetable,
     register_termination,
     CustomTimeout,
     time,
-    run_islearn,
+    instantiate_learner,
     constraint_eval,
 )
-from avicenna.generator import Generator, generate_inputs
-from avicenna.learner import InputElementLearner
-from avicenna_formalizations import get_pattern_file_path
 from avicenna.input import Input
+from avicenna.islearn import AvicennaISlearn
+from avicenna.learner import InputElementLearner
 from avicenna.oracle import OracleResult
+from avicenna_formalizations import get_pattern_file_path
+from avicenna.result_table import TruthTable, TruthTableRow
 
 ISLA_GENERATOR_TIMEOUT_SECONDS = 10
 
 
 class Avicenna(Timetable):
     def __init__(
-            self,
-            grammar: Grammar,
-            prop: Callable[[DerivationTree], bool],
-            initial_inputs: List[str],
-            working_dir: Path = Path("/tmp").resolve(),
-            activated_patterns: List[str] = None,
-            max_iterations: int = 10,
-            max_excluded_features: int = 3,
-            pattern_file: Path = None,
-            max_conjunction_size: int = 2,
+        self,
+        grammar: Grammar,
+        oracle: Callable[[Input], OracleResult],
+        initial_inputs: List[str],
+        working_dir: Path = Path("/tmp").resolve(),
+        activated_patterns: List[str] = None,
+        max_iterations: int = 10,
+        max_excluded_features: int = 3,
+        pattern_file: Path = None,
+        max_conjunction_size: int = 2,
     ):
-
         super().__init__(working_dir)
         self._start_time = None
         self._activated_patterns = activated_patterns
-        self._prop = prop
+        self._oracle = oracle
         self._max_iterations: int = max_iterations
         self._max_excluded_features: int = max_excluded_features - 1
         self._targeted_start_size: int = 10
@@ -75,22 +78,46 @@ class Avicenna(Timetable):
         self._inputs: Set[Input] = set()
         self._new_inputs: Set[Input] = set()
 
-    def _execute_input(self, test_input: Input) -> OracleResult:
-        """
-        A wrapper function that wraps the user defined prop (evaluation function). This wrapper returns an OracleResult.
-        :param test_input:
-        :return:
-        """
-        return OracleResult.BUG if self._prop(test_input.tree) else OracleResult.NO_BUG
+        # Syntactic Feature Collection
+        self._syntactic_features: Set[FeatureWrapper] = STANDARD_FEATURES
+        self._collector: Collector = Collector(self._grammar, self._syntactic_features)
+        self._all_features = self._collector.get_all_features()
+        self._feature_names = [f.name for f in self._all_features]
 
-    def _setup(self):
+        # Input Element Learner
+        self._input_element_learner = InputElementLearner(
+            self._grammar, self._oracle, self._max_excluded_features
+        )
+
+        # Islearn
+        self._graph = GrammarGraph.from_grammar(grammar)
+
+        def dummy_oracle(inp_):
+            return True if self._oracle(inp_) == OracleResult.BUG else False
+
+        self._dummy_oracle = dummy_oracle
+        self._islearn: AvicennaISlearn = instantiate_learner(
+            grammar=self._grammar,
+            oracle=dummy_oracle,
+            activated_patterns=self._activated_patterns,
+            pattern_file=self._pattern_file,
+        )
+
+        # TruthTable
+        self.truthTable: TruthTable = TruthTable()
+
+        # All bug triggering inputs
+        self.pathological_inputs = set()
+
+    def _setup(self) -> Set[Input]:
         """
         This function parses the given initial input files and obtains the execution label ("BUG"/"NO_BUG")
         :return:
         """
+        test_inputs: Set[Input] = set()
         for inp in self._initial_inputs:
             try:
-                self._inputs.add(
+                test_inputs.add(
                     Input(
                         DerivationTree.from_parse_tree(
                             next(EarleyParser(self._grammar).parse(inp))
@@ -103,22 +130,21 @@ class Avicenna(Timetable):
                 )
                 sys.exit(-1)
 
-        for inp in self._inputs:
-            inp.oracle = self._execute_input(inp)
+        for inp in test_inputs:
+            inp.oracle = self._oracle(inp)
+            print(inp, inp.oracle)
 
-        num_bug_inputs = len([inp for inp in self._inputs if inp.oracle == OracleResult.BUG])
+        num_bug_inputs = len(
+            [inp for inp in test_inputs if inp.oracle == OracleResult.BUG]
+        )
 
         if num_bug_inputs < self._targeted_start_size:
-            self._inputs.update(
-                generate_inputs(
-                    self._inputs,
-                    grammar=self._grammar,
-                    prop=self._prop,
-                    max_positive_samples=self._targeted_start_size,
-                    max_negative_samples=self._targeted_start_size
+            fuzzer = GrammarFuzzer(grammar=self._grammar)
+            for _ in range(10):
+                test_inputs.add(
+                    Input(DerivationTree.from_parse_tree(fuzzer.fuzz_tree()))
                 )
-            )
-
+        return test_inputs
 
     @time
     def execute(self):
@@ -126,11 +152,10 @@ class Avicenna(Timetable):
         register_termination(self._timeout)
         try:
             self._start_time = perf_counter()
-            self._setup()
+            new_inputs: Set[Input] = self._setup()
             while self._do_more_iterations():
                 logging.info("Starting Iteration " + str(self._iteration))
-                new_inputs = self._loop(self._inputs)
-                self._inputs.update(new_inputs)
+                new_inputs = self._loop(new_inputs)
                 self._iteration = self._iteration + 1
         except CustomTimeout:
             logging.exception("Terminate due to timeout")
@@ -142,116 +167,77 @@ class Avicenna(Timetable):
             return False
         return True
 
-    def _loop(self, test_inputs):
-        # Combining with the already existing data
-        # self._add_new_data(new_inputs, execution_outcome)
-        assert all(map(lambda x: isinstance(x.oracle, OracleResult), self._inputs))
+    def _loop(self, test_inputs: Set[Input]):
+        # obtain labels, execute samples (Initial Step, Activity 5)
+        for inp in test_inputs:
+            label = self._oracle(inp)
+            if label == OracleResult.BUG:
+                self.pathological_inputs.add(inp)
+            inp.oracle = label
+
+        # collect features from the new samples (Activity 1)
+        for inp in test_inputs:
+            inp.features = self._collector.collect_features(inp)
+
+        # add to global list
+        self._inputs.update(test_inputs)
 
         # Extract the most important non-terminals that are responsible for the program behavior
-        excluded_non_terminals = self._get_exclusion_set(test_inputs)
+        excluded_non_terminals: Set[str] = self._get_exclusion_set(self._inputs)
 
         # Run islearn to learn new constraints
-        new_constraints = self._learn_new_constraints(test_inputs, excluded_non_terminals)
-
-        # Evaluate Invariants
-        current_best_invariants = self._evaluate_constraints(test_inputs, new_constraints)
-
-        # Compare to previous invariants to get the best global invariant
-        self._best_candidates = self._get_best_global_invariant(current_best_invariants)
-
-        # best_invariants = self._get_best_invariants(new_constraints)
-        negated_constraints = self._negating_constraints(list(self._best_candidates))
-
-        # Generate new input samples form the learned constraints
-        new_inputs = self._generate_new_inputs(
-            negated_constraints + list(self._best_candidates)
+        new_candidates: List[Formula] = list(
+            self._islearn.learn_failure_invariants(
+                self._inputs, excluded_non_terminals
+            ).keys()
         )
+        for inv in new_candidates:
+            print(ISLaUnparser(inv).unparse())
 
-        for inp in new_inputs:
-            inp.oracle = self._execute_input(inp)
+        # Update old candidates
+        self.truthTable.evaluate(test_inputs, self._graph)
 
-        return new_inputs
-
-    @time
-    def _learn_new_constraints(self, test_inputs: Set[Input], excluded_non_terminals: Set[str]) -> List[str]:
-        logging.info("Learning new failure-constraints.")
-        positive_trees = []
-        negative_trees = []
-        for inp in test_inputs:
-            if inp.oracle == OracleResult.BUG:
-                positive_trees.append(inp.tree)
-            else:
-                negative_trees.append(inp.tree)
-
-        assert len(positive_trees) != 0 and len(negative_trees) != 0
-
-        new_constraints = list()
-        try:
-            new_constraints = run_islearn(
-                grammar=self._grammar,
-                prop=self._prop,
-                positive_trees=positive_trees,
-                negative_trees=negative_trees,
-                activated_patterns=self._activated_patterns,
-                excluded_features=excluded_non_terminals,
-                pattern_file=self._pattern_file,
-                # max_conjunction_size=self._max_conjunction_size,
-            )
-        except ValueError as e:
-            logging.info(e)
-            logging.info(f"Could not learn any constraints")
-
-        if len(new_constraints) == 0:
-            logging.info(f"Could not learn any constraints")
-            if self._best_candidates:
-                new_constraints = self._best_candidates
-            else:
-                logging.info(f"Retrying with relaxed conditions")
-                new_constraints = run_islearn(
-                    grammar=self._grammar,
-                    prop=self._prop,
-                    positive_trees=positive_trees,
-                    negative_trees=negative_trees,
-                    activated_patterns=self._activated_patterns,
-                    pattern_file=self._pattern_file,
+        # Update new Candidates
+        for candidate in new_candidates:
+            if hash(candidate) not in self.truthTable.row_hashes:
+                self.truthTable.append(
+                    TruthTableRow(candidate).evaluate(self._inputs, self._graph)
                 )
-                print(new_constraints)
 
-        assert len(new_constraints) != 0, "No new candidate constraints were learned. Exiting."
-        if len(new_constraints) == 0:
-            new_constraints = self._learn_new_constraints(set())
+        print(self.truthTable)
 
-        for i in new_constraints:
-            logging.info(i)
+        statistics = list()
+        for row in self.truthTable:
+            precision = row.tp / (row.tp + row.fp)
+            recall = row.tp / (row.tp + row.fn)
+            f1 = (2*precision*recall) / (precision + recall)
+            statistics.append((row.formula, precision, recall, f1))
 
-        return new_constraints
+        # negate Constraints
+
+        # Generate new Inputs
+        test_inputs = set()
+        fuzzer = GrammarFuzzer(grammar=self._grammar)
+        for _ in range(10):
+            test_inputs.add(Input(DerivationTree.from_parse_tree(fuzzer.fuzz_tree())))
+        return test_inputs
 
     @time
-    def _get_exclusion_set(
-            self, test_inputs: Set[Input]
-    ) -> Set[str]:
+    def _get_exclusion_set(self, test_inputs: Set[Input]) -> Set[str]:
         logging.info("Determining the most important non-terminals.")
 
         learner = InputElementLearner(
             grammar=self._grammar,
-            prop=self._prop,
-            input_samples=test_inputs,
+            oracle=self._oracle,
             max_relevant_features=self._max_excluded_features,
         )
-        learner.learn()
+        learner.learn(test_inputs)
         relevant, irrelevant = learner.get_exclusion_sets()
 
         logging.info(f"Determined: {relevant} to be the most relevant features.")
         logging.info(f"Excluding: {irrelevant} from candidate consideration.")
 
         return irrelevant
-
-    def _negating_constraints(self, constraints: List):
-        negated_constraints = []
-        for constraint in constraints:
-            negated_constraints.append("not(" + constraint + ")")
-
-        return negated_constraints
 
     @time
     def _generate_new_inputs(self, constraints: List[str]):
@@ -290,7 +276,9 @@ class Avicenna(Timetable):
                 logging.info("Error: " + str(e))
             finally:
                 if len(new_input_trees) == 0:
-                    logging.info("Removing constraint because no new inputs were generated")
+                    logging.info(
+                        "Removing constraint because no new inputs were generated"
+                    )
                     # Solver was not able to generate inputs:
                     self._add_infeasible_constraints(constraint)
                 else:
@@ -301,40 +289,13 @@ class Avicenna(Timetable):
 
         new_inputs = set()
         for tree in inputs:
-            new_inputs.add(
-                Input(
-                    tree=tree
-                )
-            )
+            new_inputs.add(Input(tree=tree))
         return new_inputs
 
     def _add_infeasible_constraints(self, constraint):
         self._infeasible_constraints.add(constraint)
         logging.info("Removing infeasible constraint")
         logging.debug(f"Infeasible constraint: {constraint}")
-
-    def _get_best_invariants(self, new_constraints):
-        # constraints = list(map(lambda p: f"" + ISLaUnparser(p[0]).unparse(), new_constraints.items()))
-
-        logging.info(f"In total, {len(new_constraints)} constraints were learned.\n")
-        logging.info(
-            "\n".join(
-                map(
-                    lambda p: f"{p[1]}: " + ISLaUnparser(p[0]).unparse() + "\n",
-                    new_constraints.items(),
-                )
-            )
-        )
-
-        best_invariant, (specificity, sensitivity) = next(iter(new_constraints.items()))
-        logging.info(
-            f"Best invariant (*estimated* specificity {specificity:.2f}, sensitivity: {sensitivity:.2f}):"
-        )
-        logging.info(ISLaUnparser(best_invariant).unparse())
-
-        self._learned_invariants[best_invariant] = [specificity, sensitivity]
-
-        return best_invariant
 
     def _finalize(self):
         logging.info("Avicenna finished")
@@ -351,98 +312,6 @@ class Avicenna(Timetable):
         logging.info("\n".join(map(lambda p: f"{p[1]}: " + p[0] + "\n", best.items())))
 
         return best
-
-    def _add_new_data(self, inputs: List[DerivationTree], exec_oracle: List[bool]):
-        df = pandas.DataFrame(
-            list(zip(inputs, exec_oracle)), columns=["input", "oracle"]
-        )
-
-        if self._all_data is None:
-            self._all_data = df.drop_duplicates()
-        else:
-            self._all_data = pandas.concat(
-                [self._all_data, df], sort=False
-            ).drop_duplicates()
-
-    @time
-    def _evaluate_constraints(self, test_inputs: Set[Input], constraints):
-        logging.info(f"Evaluating {len(constraints)} constraints.")
-        eval_data: Dict[str, List[float]] = {}
-
-        for constraint in constraints:
-            constraint_data: Dict = constraint_eval(
-                test_inputs,
-                constraint,
-                grammar=self._grammar,
-            )
-
-            precision = precision_score(
-                constraint_data["oracle"].astype(bool),  # TODO Reformat
-                constraint_data["predicted"].astype(bool),
-                pos_label=True,
-                average="binary",
-            )
-            precision = round(precision * 100, 3)
-
-            recall = recall_score(
-                constraint_data["oracle"].astype(bool),
-                constraint_data["predicted"].astype(bool),
-                pos_label=True,
-                average="binary",
-            )
-            recall = round(recall * 100, 3)
-
-            f1 = f1_score(
-                constraint_data["oracle"].astype(bool),
-                constraint_data["predicted"].astype(bool),
-                pos_label=True,
-                average="binary",
-            )
-
-            logging.debug(f"Results for f{constraint}")
-            logging.debug(f"The constraint achieved a precision of {precision} %, recall of {recall} % and f1-score of {round(f1, 3)}")
-
-            eval_data[constraint] = [precision, recall, f1]
-
-        sorted_data = sorted(
-            eval_data.items(), key=lambda item: item[1][2], reverse=True
-        )
-
-        sorted_comp = {}
-        for s in sorted_data:
-            sorted_comp[s[0]] = s[1]
-
-        best_five = list(sorted_comp.keys())[0:4]  # TODO Abstract
-        # for i in best_five:
-        #    print(i)
-
-        # self._best_invariant = list(sorted_comp.keys())[0]  # TODO Select the global best Invariant
-        return sorted_comp
-
-    def _get_best_global_invariant(self, current_best_invariants):
-
-        if self._iteration != 0:
-            combined_data = self._best_candidates | current_best_invariants
-        else:
-            combined_data = current_best_invariants
-
-        sorted_data = sorted(
-            combined_data.items(), key=lambda item: item[1][2], reverse=True
-        )
-        best_global_constraints = {}
-        for i in list(sorted_data)[0:4]:
-            best_global_constraints[i[0]] = combined_data[i[0]]
-
-        logging.info(f"Top five learned constraints:\n")
-        logging.info(
-            "\n".join(
-                map(
-                    lambda p: f"{p[1]}: " + p[0] + "\n", best_global_constraints.items()
-                )
-            )
-        )
-
-        return best_global_constraints
 
     def iteration_identifier_map(self):
         return {"iteration": self._iteration}

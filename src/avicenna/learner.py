@@ -24,10 +24,9 @@ class InputElementLearner:
     def __init__(
         self,
         grammar: Grammar,
-        prop,
-        input_samples: Set[Input],
-        generate_more_inputs: bool = True,
+        oracle,
         max_relevant_features: int = 2,
+        generate_more_inputs: bool = True,
         features: Set[FeatureWrapper] = STANDARD_FEATURES,
         show_shap_beeswarm=False,
     ):
@@ -36,8 +35,7 @@ class InputElementLearner:
         mandatory.
         """
         self._grammar = grammar
-        self._prop: Callable[[DerivationTree], bool] = prop
-        self._inputs: Set[Input] = input_samples
+        self._prop: Callable[[DerivationTree], bool] = oracle
         self._generate_more_inputs: bool = generate_more_inputs
         self._max_positive_samples: int = 100
         self._max_negative_samples: int = 100
@@ -48,7 +46,7 @@ class InputElementLearner:
         self._show_shap_beeswarm = show_shap_beeswarm
         self._relevant_input_elements = None
 
-    def learn(self, use_correlation=True) -> List[Tuple[str, Feature, List[Feature]]]:
+    def learn(self, test_inputs: Set[Input], use_correlation=True) -> List[Tuple[str, Feature, List[Feature]]]:
         """
         Learns and determines the most relevant input elements by (1) parsing the input files into their grammatical
         features; (2) training a machine learning model that associates the input features with the failure/passing
@@ -58,28 +56,29 @@ class InputElementLearner:
         """
 
         assert (
-            self._inputs is not None
+            test_inputs is not None
         ), "Learner needs at least one failure inducing input."
 
-        if not all(map(lambda x: isinstance(x.oracle, OracleResult), self._inputs)):
-            for inp in self._inputs:
+        if not all(map(lambda x: isinstance(x.oracle, OracleResult), test_inputs)):
+            for inp in test_inputs:
                 label = self._prop(inp.tree)
                 inp.oracle = OracleResult.BUG if label else OracleResult.NO_BUG
 
-        num_bug_inputs = len([inp for inp in self._inputs if inp.oracle == OracleResult.BUG])
+        num_bug_inputs = len([inp for inp in test_inputs if inp.oracle == OracleResult.BUG])
 
         logging.info(
-            f"Learning with {num_bug_inputs} failure-inducing and {len(self._inputs) - num_bug_inputs} benign "
+            f"Learning with {num_bug_inputs} failure-inducing and {len(test_inputs) - num_bug_inputs} benign "
             f"inputs."
         )
 
         logging.info(f"Collecting and parsing features.")
         self._collector = Collector(self._grammar, self._features)
 
-        for inp in self._inputs:
-            inp.features = self._collector.collect_features(inp)
+        for inp in test_inputs:
+            if inp.features is None:
+                inp.features = self._collector.collect_features(inp)
 
-        learning_data = self._get_learning_data(self._inputs)
+        learning_data = self._get_learning_data(test_inputs)
 
         logging.info(f"Learning most relevant input elements.")
         self._extractor = Extractor(

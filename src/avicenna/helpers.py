@@ -2,13 +2,13 @@ from time import perf_counter
 import csv
 import signal
 import pandas
-from typing import Dict, Set
+from typing import Set
 
 from islearn.learner import InvariantLearner
 from isla.evaluator import evaluate
-from isla.language import ISLaUnparser
 
 from avicenna.oracle import OracleResult
+from avicenna.islearn import AvicennaISlearn
 from avicenna.input import Input
 
 
@@ -43,25 +43,21 @@ def register_termination(timeout):
         signal.alarm(timeout)
 
 
-def run_islearn(
+def instantiate_learner(
     grammar,
-    prop,
-    positive_trees,
-    negative_trees=None,
+    oracle,
     activated_patterns=None,
-    excluded_features=None,
     pattern_file=None,
     min_recall=0.9,
     min_specificity=0.6,
     deactivated_patterns: Set = None,
     max_conjunction_size=2,
-):
+) -> AvicennaISlearn:
     """
     Helper function that calls ISLearn to learn a set of invariants from a given set of input samples.
+    :param max_conjunction_size:
     :param grammar:
-    :param prop:
-    :param positive_trees:
-    :param negative_trees:
+    :param oracle:
     :param activated_patterns:
     :param excluded_features:
     :param pattern_file:
@@ -73,16 +69,13 @@ def run_islearn(
 
     """
     # Start ISLearn with the InvariantLearner
-    result = InvariantLearner(
+    return AvicennaISlearn(
         grammar,
-        prop,
+        oracle,
         activated_patterns=activated_patterns,
-        positive_examples=positive_trees,
-        negative_examples=negative_trees,
-        exclude_nonterminals=excluded_features,
         reduce_inputs_for_learning=False,
-        # reduce_all_inputs=False,
-        # filter_inputs_for_learning_by_kpaths=False,
+        reduce_all_inputs=False,
+        filter_inputs_for_learning_by_kpaths=False,
         do_generate_more_inputs=False,
         generate_new_learning_samples=False,
         min_specificity=min_specificity,
@@ -91,14 +84,8 @@ def run_islearn(
         deactivated_patterns=deactivated_patterns,
         max_conjunction_size=max_conjunction_size,
         # target_number_positive_samples=20,
-        # target_number_positive_samples_for_learning=20
-    ).learn_invariants()
-
-    constraints = list(
-        map(lambda p: f"" + ISLaUnparser(p[0]).unparse(), result.items())
+        target_number_positive_samples_for_learning=10
     )
-
-    return constraints
 
 
 def time(f):
