@@ -2,7 +2,7 @@ import logging
 import sys
 from pathlib import Path
 from time import perf_counter
-from typing import List, Dict, Set, Callable, Optional
+from typing import List, Dict, Set, Callable, Optional, Tuple
 
 import pandas
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
@@ -146,8 +146,7 @@ class Avicenna(Timetable):
                 )
         return test_inputs
 
-    @time
-    def execute(self):
+    def execute(self) -> List[Tuple[Formula, float, float, float]]:
         logging.info("Starting AVICENNA.")
         register_termination(self._timeout)
         try:
@@ -191,8 +190,8 @@ class Avicenna(Timetable):
                 self._inputs, excluded_non_terminals
             ).keys()
         )
-        for inv in new_candidates:
-            print(ISLaUnparser(inv).unparse())
+        #for inv in new_candidates:
+        #    print(ISLaUnparser(inv).unparse())
 
         # Update old candidates
         self.truthTable.evaluate(test_inputs, self._graph)
@@ -204,8 +203,6 @@ class Avicenna(Timetable):
                     TruthTableRow(candidate).evaluate(self._inputs, self._graph)
                 )
 
-        print(self.truthTable)
-
         statistics = list()
         for row in self.truthTable:
             precision = row.tp / (row.tp + row.fp)
@@ -214,15 +211,20 @@ class Avicenna(Timetable):
             statistics.append((row.formula, precision, recall, f1))
 
         # negate Constraints
+        # TODO
+        # 1. negate Constraints
+        # 1.2 Check for infeasible constraints
+        # 2. safe grammar graph
+        # 3. for candidate in new_candidates:
+        #   Only use top 5 constraints
 
         # Generate new Inputs
         test_inputs = set()
         fuzzer = GrammarFuzzer(grammar=self._grammar)
-        for _ in range(10):
+        for _ in range(20):
             test_inputs.add(Input(DerivationTree.from_parse_tree(fuzzer.fuzz_tree())))
         return test_inputs
 
-    @time
     def _get_exclusion_set(self, test_inputs: Set[Input]) -> Set[str]:
         logging.info("Determining the most important non-terminals.")
 
@@ -297,21 +299,31 @@ class Avicenna(Timetable):
         logging.info("Removing infeasible constraint")
         logging.debug(f"Infeasible constraint: {constraint}")
 
-    def _finalize(self):
+    def _get_best_constraints(self):
+        all_constraints = []
+        for row in self.truthTable:
+            precision = row.tp / (row.tp + row.fp)
+            recall = row.tp / (row.tp + row.fn)
+            f1 = (2*precision*recall) / (precision + recall)
+            all_constraints.append((row.formula, precision, recall, f1 ))
+
+    def _finalize(self) -> List[Tuple[Formula, float, float, float]]:
         logging.info("Avicenna finished")
         logging.info("The best learned failure invariant(s):")
 
-        best = dict()
-        best_f1 = 0
-        for constraint in self._best_candidates.items():
-            p0, p1 = constraint
-            if p1[2] >= best_f1:
-                best_f1 = p1[2]
-                best[p0] = p1
+        all_constraints = []
+        for row in self.truthTable:
+            precision = row.tp / (row.tp + row.fp)
+            recall = row.tp / (row.tp + row.fn)
+            f1 = (2*precision*recall) / (precision + recall)
+            all_constraints.append((row.formula, precision, recall, f1 ))
 
-        logging.info("\n".join(map(lambda p: f"{p[1]}: " + p[0] + "\n", best.items())))
+        all_constraints.sort(key=lambda x: x[3], reverse=True)
 
-        return best
+        logging.info("\n".join(map(
+            lambda p: f"({p[1], p[2], p[3]}): " + ISLaUnparser(p[0]).unparse(),all_constraints[0:10])))
+
+        return all_constraints[0:5]
 
     def iteration_identifier_map(self):
         return {"iteration": self._iteration}
