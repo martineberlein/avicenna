@@ -1,3 +1,11 @@
+[![Python Version](https://img.shields.io/pypi/pyversions/avicenna)](https://pypi.org/project/avicenna/)
+[![GitHub release](https://img.shields.io/github/v/release/martineberlein/avicenna)](https://github.com/martineberlein/avicenna/releases)
+[![PyPI](https://img.shields.io/pypi/v/avicenna)](https://pypi.org/project/avicenna/)
+[![Tests](https://github.com/martineberlein/avicenna/actions/workflows/test_avicenna.yml/badge.svg)](https://github.com/martineberlein/avicenna/actions/workflows/test_avicenna.yml)
+[![Licence](https://img.shields.io/github/license/martineberlein/avicenna)](https://img.shields.io/github/license/martineberlein/avicenna)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+&nbsp;
+
 # Avicenna
 
 This repo contains the code to execute, develop and test our debugging prototype **Avicenna**.
@@ -64,12 +72,13 @@ grammar = {
     "<start>": ["<arith_expr>"],
     "<arith_expr>": ["<function>(<number>)"],
     "<function>": ["sqrt", "sin", "cos", "tan"],
-    "<number>": ["<maybe_minus><onenine><maybe_digits>"],
+    "<number>": ["<maybe_minus><onenine><maybe_digits><maybe_frac>"],
     "<maybe_minus>": ["", "-"],
     "<onenine>": [str(num) for num in range(1, 10)],
-    "<digit>": list(string.digits),
+    "<digit>": [str(num) for num in range(0, 10)],
     "<maybe_digits>": ["", "<digits>"],
     "<digits>": ["<digit>", "<digit><digits>"],
+    "<maybe_frac>": ["", ".<digits>"],
 }
 ```
 The grammar represents the structure of valid inputs that can be given to the Calculator.
