@@ -53,9 +53,10 @@ avicenna.execute()
 The output wil be something like this:
 
 ```
-exists <payload> container1 in start:
-  exists <length> length_field in start:
-    (< (str.len container1) (str.to.int length_field))
+(forall <number> elem in start:
+        (<= (str.to.int elem) (str.to.int "-1")) and
+  exists <function> elem_0 in start:
+        (= elem_0 "sqrt"))
 ```
 
 ## Install, Development, Testing, Build
