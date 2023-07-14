@@ -119,7 +119,7 @@ class AvicennaISlearn(InvariantLearner):
         # Also consider inverted patterns?
         assert not activated_patterns or not deactivated_patterns
         if not patterns:
-            pattern_repo = patterns_from_file(pattern_file or STANDARD_PATTERNS_REPO)
+            pattern_repo = patterns_from_file(pattern_file)
             if activated_patterns:
                 self.patterns = [pattern for name in activated_patterns for pattern in pattern_repo[name]]
             else:
