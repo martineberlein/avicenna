@@ -2,11 +2,9 @@
 [![GitHub release](https://img.shields.io/github/v/release/martineberlein/avicenna)](https://github.com/martineberlein/avicenna/releases)
 [![PyPI](https://img.shields.io/pypi/v/avicenna)](https://pypi.org/project/avicenna/)
 [![Tests](https://github.com/martineberlein/avicenna/actions/workflows/test_avicenna.yml/badge.svg)](https://github.com/martineberlein/avicenna/actions/workflows/test_avicenna.yml)
-[![License](https://img.shields.io/github/license/martineberlein/avicenna)](https://img.shields.io/github/license/martineberlein/avicenna)[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![License](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](https://github.com/Naereen/StrapDown.js/blob/master/LICENSE)[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 &nbsp;
 
-
-https://img.shields.io/github/license/martineberlein/avicenna
 # Avicenna
 
 This repo contains the code to execute, develop and test our debugging prototype **Avicenna**.
