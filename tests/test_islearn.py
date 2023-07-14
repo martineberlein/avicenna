@@ -28,6 +28,8 @@ class TestAvicennaIslearn(unittest.TestCase):
             )
         )
 
+
+        print(get_pattern_file_path())
         islearn = AvicennaISlearn(
             grammar=grammar,
             prop=oracle,

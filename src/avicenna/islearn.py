@@ -67,7 +67,7 @@ class AvicennaISlearn(InvariantLearner):
                  generate_new_learning_samples: bool = True, do_generate_more_inputs: bool = True,
                  filter_inputs_for_learning_by_kpaths: bool = True):
         # We add extended caching certain, crucial functions.
-        super().__init__(grammar, prop, None, None, patterns, pattern_file, activated_patterns, deactivated_patterns, k,
+        super().__init__(grammar, prop, None, None, patterns, None, activated_patterns, deactivated_patterns, k,
                          target_number_positive_samples, target_number_negative_samples,
                          target_number_positive_samples_for_learning, mexpr_expansion_limit, max_nonterminals_in_mexpr,
                          min_recall, min_specificity, max_disjunction_size, max_conjunction_size, None,
@@ -118,6 +118,7 @@ class AvicennaISlearn(InvariantLearner):
 
         # Also consider inverted patterns?
         assert not activated_patterns or not deactivated_patterns
+        self.patterns = []
         if not patterns:
             pattern_repo = patterns_from_file(pattern_file)
             if activated_patterns:
