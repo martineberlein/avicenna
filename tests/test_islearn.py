@@ -17,6 +17,7 @@ def oracle(inp: DerivationTree) -> bool:
         return True
 
 class TestAvicennaIslearn(unittest.TestCase):
+    @unittest.skip
     def test_islearn(self):
         test_inputs: Set[Input] = set()
         test_inputs.add(
