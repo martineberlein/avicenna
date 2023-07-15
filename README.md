@@ -145,7 +145,7 @@ For development, we recommend using Avicenna inside a virtual environment (virtu
 By thing the following steps in a standard shell (bash), one can run the Avicenna tests:
 
 ```
-git clone https://github.com/martineberlein/semantic-debugging.git
+git clone https://github.com/martineberlein/avicenna.git
 cd semantic-debuging/
 
 python3.10 -m venv venv
@@ -160,10 +160,10 @@ python3 -m pytest
 
 ### Build
 
-EvoGFuzz is build locally as follows:
+Avicenna is build locally as follows:
 
 ```
-git clone https://github.com/martineberlein/semantic-debugging.git
+git clone https://github.com/martineberlein/avicenna.git
 cd semantic-debuging/
 
 python3.10 -m venv venv
