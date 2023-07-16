@@ -146,7 +146,7 @@ By thing the following steps in a standard shell (bash), one can run the Avicenn
 
 ```
 git clone https://github.com/martineberlein/avicenna.git
-cd semantic-debuging/
+cd avicenna/
 
 python3.10 -m venv venv
 source venv/bin/activate
@@ -164,7 +164,7 @@ Avicenna is build locally as follows:
 
 ```
 git clone https://github.com/martineberlein/avicenna.git
-cd semantic-debuging/
+cd avicenna/
 
 python3.10 -m venv venv
 source venv/bin/activate
