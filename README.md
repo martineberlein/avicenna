@@ -99,3 +99,10 @@ pip install --upgrade pip
 pip install --upgrade build
 python3 -m build
 ```
+
+Then, you will find the built wheel (*.whl) in the dist/ directory.
+
+This repository includes: 
+* the source code of **AVICENNA** ([src](./src)),
+* the scripts to rerun all experiments ([evaluation](./evaluation)),
+* and the automatically generated evaluation data sets to measure the performance of both **AVICENNA** and _ALHAZEN_ ([data_sets](resources/evaluation_data_sets)).

@@ -20,16 +20,16 @@ class Collector:
 
         self._grammar: Grammar = grammar
         self._features: Set[FeatureWrapper] = features
-        self.all_features = self.get_all_features()
+        self.all_features: List[Feature] = self.get_all_features()
 
-    def get_all_features(self):
+    def get_all_features(self) -> List[Feature]:
         assert len(self._features) != 0
 
         features = []
         for feature_class in self._features:
-            features = features + feature_class.extract_from_grammar(
+            features.extend(feature_class.extract_from_grammar(
                 grammar=self._grammar
-            )
+            ))
         assert len(features) != 0, "Could not extract any features."
         return features
 
