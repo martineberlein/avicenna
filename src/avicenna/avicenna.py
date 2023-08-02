@@ -100,8 +100,7 @@ class Avicenna(Timetable):
             grammar=self._grammar,
             oracle=dummy_oracle,
             activated_patterns=self._activated_patterns,
-            pattern_file=self._pattern_file,
-            max_conjunction_size=self._max_conjunction_size # added max_conj_size
+            pattern_file=self._pattern_file
         )
 
         # TruthTable
