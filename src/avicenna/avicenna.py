@@ -44,7 +44,7 @@ class Avicenna(Timetable):
         working_dir: Path = Path("/tmp").resolve(),
         activated_patterns: List[str] = None,
         max_iterations: int = 10,
-        max_excluded_features: int = 3,
+        max_relevant_features: int = 3,
         pattern_file: Path = None,
         max_conjunction_size: int = 2,
     ):
@@ -53,7 +53,7 @@ class Avicenna(Timetable):
         self._activated_patterns = activated_patterns
         self._oracle = oracle
         self._max_iterations: int = max_iterations
-        self._max_excluded_features: int = max_excluded_features - 1
+        self._max_relevant_features: int = max_relevant_features 
         self._targeted_start_size: int = 10
         self._iteration = 0
         self._timeout: int = 3600  # timeout in seconds
@@ -86,7 +86,7 @@ class Avicenna(Timetable):
 
         # Input Element Learner
         self._input_element_learner = InputElementLearner(
-            self._grammar, self._oracle, self._max_excluded_features
+            self._grammar, self._oracle, self._max_relevant_features
         )
 
         # Islearn
@@ -101,6 +101,7 @@ class Avicenna(Timetable):
             oracle=dummy_oracle,
             activated_patterns=self._activated_patterns,
             pattern_file=self._pattern_file,
+            max_conjunction_size=self._max_conjunction_size # added max_conj_size
         )
 
         # TruthTable
@@ -231,7 +232,7 @@ class Avicenna(Timetable):
         learner = InputElementLearner(
             grammar=self._grammar,
             oracle=self._oracle,
-            max_relevant_features=self._max_excluded_features,
+            max_relevant_features=self._max_relevant_features,
         )
         learner.learn(test_inputs)
         relevant, irrelevant = learner.get_exclusion_sets()
