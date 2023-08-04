@@ -31,6 +31,7 @@ from avicenna.learner import InputElementLearner
 from avicenna.oracle import OracleResult
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.result_table import TruthTable, TruthTableRow
+from avicenna.logger import LOGGER
 from avicenna.helpers import time
 
 ISLA_GENERATOR_TIMEOUT_SECONDS = 10
@@ -93,13 +94,13 @@ class Avicenna(Timetable):
         # Islearn
         self._graph = GrammarGraph.from_grammar(grammar)
 
-        def dummy_oracle(inp_):
-            return True if self._oracle(inp_) == OracleResult.BUG else False
+        def boolean_oracle(inp):
+            return self.map_to_bool(self._oracle(inp))
 
-        self._dummy_oracle = dummy_oracle
+        self._boolean_oracle = boolean_oracle
         self._islearn: AvicennaISlearn = instantiate_learner(
             grammar=self._grammar,
-            oracle=dummy_oracle,
+            oracle=boolean_oracle,
             activated_patterns=self._activated_patterns,
             pattern_file=self._pattern_file,
         )
@@ -109,6 +110,16 @@ class Avicenna(Timetable):
 
         # All bug triggering inputs
         self.pathological_inputs = set()
+
+    @staticmethod
+    def map_to_bool(result: OracleResult) -> bool:
+        match result:
+            case OracleResult.BUG:
+                return True
+            case OracleResult.NO_BUG:
+                return False
+            case _:
+                return False
 
     def _setup(self) -> Set[Input]:
         """
@@ -149,17 +160,17 @@ class Avicenna(Timetable):
 
     @time
     def execute(self) -> List[Tuple[Formula, float, float, float]]:
-        logging.info("Starting AVICENNA.")
+        LOGGER.info("Starting AVICENNA.")
         register_termination(self._timeout)
         try:
             self._start_time = perf_counter()
             new_inputs: Set[Input] = self._setup()
             while self._do_more_iterations():
-                logging.info("Starting Iteration " + str(self._iteration))
+                LOGGER.info("Starting Iteration " + str(self._iteration))
                 new_inputs = self._loop(new_inputs)
                 self._iteration = self._iteration + 1
         except CustomTimeout:
-            logging.exception("Terminate due to timeout")
+            LOGGER.exception("Terminate due to timeout")
         return self._finalize()
 
     def _do_more_iterations(self):
@@ -230,7 +241,7 @@ class Avicenna(Timetable):
 
     @time
     def _get_exclusion_set(self, test_inputs: Set[Input]) -> Set[str]:
-        logging.info("Determining the most important non-terminals.")
+        LOGGER.info("Determining the most important non-terminals.")
 
         learner = InputElementLearner(
             grammar=self._grammar,
@@ -240,8 +251,8 @@ class Avicenna(Timetable):
         learner.learn(test_inputs)
         relevant, irrelevant = learner.get_exclusion_sets()
 
-        logging.info(f"Determined: {relevant} to be the most relevant features.")
-        logging.info(f"Excluding: {irrelevant} from candidate consideration.")
+        LOGGER.info(f"Determined: {relevant} to be the most relevant features.")
+        LOGGER.info(f"Excluding: {irrelevant} from candidate consideration.")
 
         return irrelevant
 
