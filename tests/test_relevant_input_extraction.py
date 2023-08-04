@@ -10,7 +10,10 @@ from islearn.learner import InvariantLearner
 from avicenna.feature_extractor import Extractor
 from avicenna.feature_collector import Collector
 from avicenna.generator import Generator
-from avicenna_formalizations.calculator import prop as prop_alhazen, grammar as CALCULATOR_GRAMMAR
+from avicenna_formalizations.calculator import (
+    prop as prop_alhazen,
+    grammar as CALCULATOR_GRAMMAR,
+)
 from avicenna_formalizations.heartbeat import grammar as HEARTBLEED, prop
 
 MAX_POSITIVE_SAMPLES = 60
@@ -20,7 +23,6 @@ MAX_NEGATIVE_SAMPLES = 60
 class RelevantInputExtraction(unittest.TestCase):
     @unittest.skip
     def test_feature_extraction(self):
-
         assert is_valid_grammar(HEARTBLEED)
 
         g = Generator(MAX_POSITIVE_SAMPLES, MAX_NEGATIVE_SAMPLES, HEARTBLEED, prop)
@@ -134,7 +136,9 @@ class RelevantInputExtraction(unittest.TestCase):
         result = InvariantLearner(
             grammar=HEARTBLEED,
             prop=prop,
-            pattern_file=str(Path("../src/avicenna_formalizations/patterns.toml").resolve()),
+            pattern_file=str(
+                Path("../src/avicenna_formalizations/patterns.toml").resolve()
+            ),
             positive_examples=val,
             negative_examples=neg_val,
             exclude_nonterminals=exclusion_set,

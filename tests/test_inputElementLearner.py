@@ -8,8 +8,14 @@ from isla_formalizations import xml_lang
 from avicenna.learner import InputElementLearner
 from avicenna.input import Input
 
-from avicenna_formalizations.calculator import prop as prop_alhazen, grammar as grammar_calculator
-from avicenna_formalizations.heartbeat import prop_ as prop_heartbeat, grammar as grammar_heartbeat
+from avicenna_formalizations.calculator import (
+    prop as prop_alhazen,
+    grammar as grammar_calculator,
+)
+from avicenna_formalizations.heartbeat import (
+    prop_ as prop_heartbeat,
+    grammar as grammar_heartbeat,
+)
 
 
 class TestInputElementLearner(unittest.TestCase):

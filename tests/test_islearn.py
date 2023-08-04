@@ -9,12 +9,14 @@ from avicenna.islearn import AvicennaISlearn
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
 
+
 def oracle(inp: DerivationTree) -> bool:
     try:
         arith_eval(str(inp))
         return False
     except ValueError:
         return True
+
 
 class TestAvicennaIslearn(unittest.TestCase):
     @unittest.skip
@@ -23,12 +25,11 @@ class TestAvicennaIslearn(unittest.TestCase):
         test_inputs.add(
             Input(
                 DerivationTree.from_parse_tree(
-                    next(EarleyParser(grammar).parse('sqrt(-900)')
-                         )
-                ), OracleResult.BUG
+                    next(EarleyParser(grammar).parse("sqrt(-900)"))
+                ),
+                OracleResult.BUG,
             )
         )
-
 
         print(get_pattern_file_path())
         islearn = AvicennaISlearn(
@@ -37,20 +38,16 @@ class TestAvicennaIslearn(unittest.TestCase):
             pattern_file=str(get_pattern_file_path()),
         )
 
-        result = islearn.learn_failure_invariants(
-            test_inputs=test_inputs
-        )
+        result = islearn.learn_failure_invariants(test_inputs=test_inputs)
         failure_constraints = list(
             map(lambda p: (p[1], ISLaUnparser(p[0]).unparse()), result.items())
         )
 
-        result = islearn.learn_failure_invariants(
-            test_inputs=test_inputs
-        )
+        result = islearn.learn_failure_invariants(test_inputs=test_inputs)
         failure_constraints = list(
             map(lambda p: (p[1], ISLaUnparser(p[0]).unparse()), result.items())
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

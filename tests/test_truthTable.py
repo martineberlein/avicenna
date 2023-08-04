@@ -9,6 +9,7 @@ import z3
 
 from avicenna.result_table import TruthTable, TruthTableRow
 
+
 class MyTestCase(unittest.TestCase):
     def test_something(self):
         start = language.Constant("$start", "<start>")
@@ -24,5 +25,6 @@ class MyTestCase(unittest.TestCase):
         p = TruthTable()
         p.append(TruthTableRow(formula))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
