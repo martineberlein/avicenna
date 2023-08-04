@@ -31,6 +31,7 @@ from avicenna.learner import InputElementLearner
 from avicenna.oracle import OracleResult
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.result_table import TruthTable, TruthTableRow
+from avicenna.helpers import time
 
 ISLA_GENERATOR_TIMEOUT_SECONDS = 10
 
@@ -146,6 +147,7 @@ class Avicenna(Timetable):
                 )
         return test_inputs
 
+    @time
     def execute(self) -> List[Tuple[Formula, float, float, float]]:
         logging.info("Starting AVICENNA.")
         register_termination(self._timeout)
@@ -166,6 +168,7 @@ class Avicenna(Timetable):
             return False
         return True
 
+    @time
     def _loop(self, test_inputs: Set[Input]):
         # obtain labels, execute samples (Initial Step, Activity 5)
         for inp in test_inputs:
@@ -190,7 +193,7 @@ class Avicenna(Timetable):
                 self._inputs, excluded_non_terminals
             ).keys()
         )
-        #for inv in new_candidates:
+        # for inv in new_candidates:
         #    print(ISLaUnparser(inv).unparse())
 
         # Update old candidates
@@ -207,7 +210,7 @@ class Avicenna(Timetable):
         for row in self.truthTable:
             precision = row.tp / (row.tp + row.fp)
             recall = row.tp / (row.tp + row.fn)
-            f1 = (2*precision*recall) / (precision + recall)
+            f1 = (2 * precision * recall) / (precision + recall)
             statistics.append((row.formula, precision, recall, f1))
 
         # negate Constraints
@@ -225,6 +228,7 @@ class Avicenna(Timetable):
             test_inputs.add(Input(DerivationTree.from_parse_tree(fuzzer.fuzz_tree())))
         return test_inputs
 
+    @time
     def _get_exclusion_set(self, test_inputs: Set[Input]) -> Set[str]:
         logging.info("Determining the most important non-terminals.")
 
@@ -299,14 +303,16 @@ class Avicenna(Timetable):
         logging.info("Removing infeasible constraint")
         logging.debug(f"Infeasible constraint: {constraint}")
 
+    @time
     def _get_best_constraints(self):
         all_constraints = []
         for row in self.truthTable:
             precision = row.tp / (row.tp + row.fp)
             recall = row.tp / (row.tp + row.fn)
-            f1 = (2*precision*recall) / (precision + recall)
-            all_constraints.append((row.formula, precision, recall, f1 ))
+            f1 = (2 * precision * recall) / (precision + recall)
+            all_constraints.append((row.formula, precision, recall, f1))
 
+    @time
     def _finalize(self) -> List[Tuple[Formula, float, float, float]]:
         logging.info("Avicenna finished")
         logging.info("The best learned failure invariant(s):")
@@ -315,13 +321,19 @@ class Avicenna(Timetable):
         for row in self.truthTable:
             precision = row.tp / (row.tp + row.fp)
             recall = row.tp / (row.tp + row.fn)
-            f1 = (2*precision*recall) / (precision + recall)
-            all_constraints.append((row.formula, precision, recall, f1 ))
+            f1 = (2 * precision * recall) / (precision + recall)
+            all_constraints.append((row.formula, precision, recall, f1))
 
         all_constraints.sort(key=lambda x: x[3], reverse=True)
 
-        logging.info("\n".join(map(
-            lambda p: f"({p[1], p[2], p[3]}): " + ISLaUnparser(p[0]).unparse(),all_constraints[0:10])))
+        logging.info(
+            "\n".join(
+                map(
+                    lambda p: f"({p[1], p[2], p[3]}): " + ISLaUnparser(p[0]).unparse(),
+                    all_constraints[0:10],
+                )
+            )
+        )
 
         return all_constraints[0:5]
 

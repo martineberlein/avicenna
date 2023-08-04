@@ -110,3 +110,11 @@ exists int num:
     count(elem, <?NONTERMINAL>, num))
 '''
 
+[[Misc]]
+
+name = "Element gt"
+constraint = '''
+forall <?NONTERMINAL> x in start:
+  exists <?NONTERMINAL> y in start:
+    (> (str.to.int x) (str.to.int y))
+'''
