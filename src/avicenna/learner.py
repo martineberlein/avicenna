@@ -46,7 +46,9 @@ class InputElementLearner:
         self._show_shap_beeswarm = show_shap_beeswarm
         self._relevant_input_elements = None
 
-    def learn(self, test_inputs: Set[Input], use_correlation=True) -> List[Tuple[str, Feature, List[Feature]]]:
+    def learn(
+        self, test_inputs: Set[Input], use_correlation=True
+    ) -> List[Tuple[str, Feature, List[Feature]]]:
         """
         Learns and determines the most relevant input elements by (1) parsing the input files into their grammatical
         features; (2) training a machine learning model that associates the input features with the failure/passing
@@ -64,7 +66,9 @@ class InputElementLearner:
                 label = self._prop(inp.tree)
                 inp.oracle = OracleResult.BUG if label else OracleResult.NO_BUG
 
-        num_bug_inputs = len([inp for inp in test_inputs if inp.oracle == OracleResult.BUG])
+        num_bug_inputs = len(
+            [inp for inp in test_inputs if inp.oracle == OracleResult.BUG]
+        )
 
         logging.info(
             f"Learning with {num_bug_inputs} failure-inducing and {len(test_inputs) - num_bug_inputs} benign "
@@ -99,8 +103,10 @@ class InputElementLearner:
                 feature
             )
             relevant_input_elements.append((str(feature.rule), feature, corr_features))
-        logging.info(f"Extracted {len(relevant_input_elements)} {[f[0] for f in relevant_input_elements]} input "
-                     f"elements.")
+        logging.info(
+            f"Extracted {len(relevant_input_elements)} {[f[0] for f in relevant_input_elements]} input "
+            f"elements."
+        )
 
         if use_correlation:
             prev_length = len(relevant_input_elements)
@@ -170,7 +176,9 @@ class InputElementLearner:
         for inp in test_inputs:
             if inp.oracle != OracleResult.UNDEF:
                 learning_data = inp.features  # .drop(["sample"], axis=1)
-                learning_data["oracle"] = True if inp.oracle == OracleResult.BUG else False
+                learning_data["oracle"] = (
+                    True if inp.oracle == OracleResult.BUG else False
+                )
                 data.append(learning_data)
 
         return DataFrame.from_records(data)

@@ -23,7 +23,9 @@ def get_all_non_terminals(grammar):
 
 
 class Extractor:
-    def __init__(self, complete_data: DataFrame, grammar, max_feature_num: int = 4, features=None):
+    def __init__(
+        self, complete_data: DataFrame, grammar, max_feature_num: int = 4, features=None
+    ):
         self._data: DataFrame = complete_data
         self._X_train = complete_data.drop(["oracle"], axis=1)
         self._y_train = complete_data["oracle"].astype(str)
@@ -48,7 +50,6 @@ class Extractor:
     def get_clean_most_important_features(self):
         clean_features = []
         for i in self._most_important_features:
-
             # Stop if nummer of max features is reached
             if len(clean_features) >= self._max_num:
                 break
@@ -80,7 +81,6 @@ class Extractor:
         return corr_features
 
     def extract_non_terminals(self) -> List[str]:
-
         self._normalize_data()
         self._calculate_correlation_matrix()
         self._learn_classifier()
@@ -128,9 +128,7 @@ class Extractor:
         min_max_scaler = preprocessing.MinMaxScaler()
         np_array = self._data.to_numpy()
         normalized = min_max_scaler.fit_transform(np_array)
-        new_data = DataFrame(
-            normalized, columns=self._data.columns
-        )
+        new_data = DataFrame(normalized, columns=self._data.columns)
         # self._data = new_data
         self._X_train = new_data.drop("oracle", axis=1)
         self._y_train = new_data["oracle"]

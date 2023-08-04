@@ -63,16 +63,23 @@ class Evaluator:
             failure_constraints = generator.learn_invariants()
             # failure_constraints = next(iter(failure_constraints.items()))
             failure_constraints = list(
-                map(lambda p: (p[1], ISLaUnparser(p[0]).unparse()), failure_constraints.items())
+                map(
+                    lambda p: (p[1], ISLaUnparser(p[0]).unparse()),
+                    failure_constraints.items(),
+                )
             )
             for i in failure_constraints:
                 print(i)
-            #print("\n".join(map(lambda p: f"{p[1]}:" + ISLaUnparser(p[0]).unparse(), failure_constraints.items())))
+            # print("\n".join(map(lambda p: f"{p[1]}:" + ISLaUnparser(p[0]).unparse(), failure_constraints.items())))
 
         data = {
             "name": job_name,
-            "learnedConstraints": len(failure_constraints) if (failure_constraints is not None) else 0,
-            "best_constraint": list(failure_constraints)[0] if (failure_constraints is not None) else None,
+            "learnedConstraints": len(failure_constraints)
+            if (failure_constraints is not None)
+            else 0,
+            "best_constraint": list(failure_constraints)[0]
+            if (failure_constraints is not None)
+            else None,
         }
 
         return data

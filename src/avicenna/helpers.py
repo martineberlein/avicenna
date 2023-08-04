@@ -54,18 +54,18 @@ def instantiate_learner(
     max_conjunction_size=2,
 ) -> AvicennaISlearn:
     """
-    Helper function that calls ISLearn to learn a set of invariants from a given set of input samples.
-    :param max_conjunction_size:
-    :param grammar:
-    :param oracle:
-    :param activated_patterns:
-    :param excluded_features:
-    :param pattern_file:
-    :param min_recall:
-    :param min_specificity:
-    :param deactivated_patterns: Set = None
-:
-    :return:
+        Helper function that calls ISLearn to learn a set of invariants from a given set of input samples.
+        :param max_conjunction_size:
+        :param grammar:
+        :param oracle:
+        :param activated_patterns:
+        :param excluded_features:
+        :param pattern_file:
+        :param min_recall:
+        :param min_specificity:
+        :param deactivated_patterns: Set = None
+    :
+        :return:
 
     """
     # Start ISLearn with the InvariantLearner
@@ -84,7 +84,7 @@ def instantiate_learner(
         deactivated_patterns=deactivated_patterns,
         max_conjunction_size=max_conjunction_size,
         # target_number_positive_samples=20,
-        target_number_positive_samples_for_learning=10
+        target_number_positive_samples_for_learning=10,
     )
 
 

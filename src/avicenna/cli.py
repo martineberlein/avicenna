@@ -55,18 +55,13 @@ def main(*args: str, stdout=sys.stdout, stderr=sys.stderr):
         sys.exit(0)
 
 
-def parse_grammar(
-        grammar_file, stderr
-) -> Grammar:
+def parse_grammar(grammar_file, stderr) -> Grammar:
     try:
         grammar = {}
         with open(grammar_file, "r") as grammar_file:
             with redirect_stderr(stderr):
                 grammar_file_content = grammar_file.read()
-                grammar |= (
-                    process_python_extension(grammar_file_content, stderr
-                                             )
-                )
+                grammar |= process_python_extension(grammar_file_content, stderr)
 
         if not grammar:
             print(
@@ -90,18 +85,13 @@ def parse_grammar(
     return grammar
 
 
-def parse_prop(
-        prop_file, stderr
-) -> Grammar:
+def parse_prop(prop_file, stderr) -> Grammar:
     try:
         prop = {}
         with open(prop_file, "r") as prop_file:
             with redirect_stderr(stderr):
                 grammar_file_content = prop_file.read()
-                prop |= (
-                    process_python_extension(grammar_file_content, stderr
-                                             )
-                )
+                prop |= process_python_extension(grammar_file_content, stderr)
 
         if not prop:
             print(
@@ -125,9 +115,7 @@ def parse_prop(
     return grammar
 
 
-def process_python_extension(
-        python_file_content: str, stderr
-) -> Grammar:
+def process_python_extension(python_file_content: str, stderr) -> Grammar:
     query_program = """
 try:
     grammar_ = grammar() if callable(grammar) else grammar
@@ -148,16 +136,16 @@ except NameError as err:
 
     def assert_is_valid_grammar(maybe_grammar: Any) -> Grammar:
         if (
-                not isinstance(maybe_grammar, dict)
-                or not all(isinstance(key, str) for key in maybe_grammar)
-                or not all(
-            isinstance(expansions, list) for expansions in maybe_grammar.values()
-        )
-                or not all(
-            isinstance(expansion, str)
-            for expansions in maybe_grammar.values()
-            for expansion in expansions
-        )
+            not isinstance(maybe_grammar, dict)
+            or not all(isinstance(key, str) for key in maybe_grammar)
+            or not all(
+                isinstance(expansions, list) for expansions in maybe_grammar.values()
+            )
+            or not all(
+                isinstance(expansion, str)
+                for expansions in maybe_grammar.values()
+                for expansion in expansions
+            )
         ):
             print(
                 f"avicenna: error: A grammar must be of type "
@@ -200,7 +188,7 @@ def create_parser():
         "--program",
         dest="prop",
         help="The evaluation function, that observes whether the behavior in question occurred."
-             " The evaluation function returns a boolean value - True when the behavior is observed, False otherwise",
+        " The evaluation function returns a boolean value - True when the behavior is observed, False otherwise",
     )
 
     parser.add_argument(
@@ -208,7 +196,7 @@ def create_parser():
         "--inputs",
         dest="initial_inputs",
         help="The initial system inputs that should be used to learn the program's behavior."
-             " The initial inputs need to consist of at least one bug-triggering and at least one benign input.",
+        " The initial inputs need to consist of at least one bug-triggering and at least one benign input.",
     )
 
     parser.add_argument(
@@ -227,7 +215,7 @@ def read_files(grammar_file: TextIOWrapper) -> Dict[str, str]:
 
 
 def ensure_grammar_present(
-        stderr, parser: ArgumentParser, args: Namespace, files: Dict[str, str]
+    stderr, parser: ArgumentParser, args: Namespace, files: Dict[str, str]
 ) -> None:
     if all(not file.endswith(".py") for file in files):
         parser.print_usage(file=stderr)

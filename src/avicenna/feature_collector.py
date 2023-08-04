@@ -27,9 +27,7 @@ class Collector:
 
         features = []
         for feature_class in self._features:
-            features.extend(feature_class.extract_from_grammar(
-                grammar=self._grammar
-            ))
+            features.extend(feature_class.extract_from_grammar(grammar=self._grammar))
         assert len(features) != 0, "Could not extract any features."
         return features
 

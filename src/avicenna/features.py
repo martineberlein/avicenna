@@ -230,7 +230,6 @@ def extract_numeric(grammar: Grammar) -> List[Feature]:
 
     for rule in grammar:
         for expansion in grammar[rule]:
-
             # Remove non-terminal symbols and whitespace from expansion
             terminals = re.sub(RE_NONTERMINAL, "", expansion)  # .replace(' ', '')
 

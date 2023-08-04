@@ -4,6 +4,7 @@ import logging
 
 from fuzzingbook.Grammars import Grammar
 from isla.language import DerivationTree
+from isla.language import ISLaUnparser, Formula
 
 from avicenna import Avicenna
 from avicenna.oracle import OracleResult
@@ -48,7 +49,9 @@ if __name__ == '__main__':
         grammar=grammar,
         initial_inputs=initial_inputs,
         oracle=oracle,
-        max_iterations=20,
+        max_iterations=10,
     )
 
-    avicenna.execute()
+    result = avicenna.execute()
+
+    print(ISLaUnparser(result[0][0]).unparse())
