@@ -114,7 +114,7 @@ exists int num:
 
 name = "Element gt"
 constraint = '''
-forall <?NONTERMINAL> x in start:
-  exists <?NONTERMINAL> y in start:
-    (> (str.to.int x) (str.to.int y))
+forall <?NONTERMINAL> elem_1 in start:
+  exists <?NONTERMINAL> elem_2 in start:
+    (> (str.to.int elem_1) (str.to.int elem_2))
 '''
