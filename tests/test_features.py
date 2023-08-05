@@ -8,7 +8,7 @@ from fuzzingbook.Parser import EarleyParser
 from isla.language import DerivationTree
 
 from avicenna.input import Input
-from avicenna.feature_collector import Collector
+from avicenna.feature_collector import GrammarFeatureCollector
 from avicenna.features import (
     EXISTENCE_FEATURE,
     NUMERIC_INTERPRETATION_FEATURE,
@@ -46,6 +46,20 @@ assert is_valid_grammar(grammar_with_maybe_minus)
 
 
 class FeatureExtraction(unittest.TestCase):
+
+    def test_test(self):
+        from avicenna.feature_collector import FeatureFactory, ExistenceFeature, NumericFeature, LengthFeature
+        grammar: Grammar = {
+            "<start>": ["<string>"],
+            "<string>": ["<A>", "<B>", "!ab!"],
+            "<A>": srange(string.ascii_lowercase),
+            "<B>": srange(string.digits),
+        }
+
+        builder = FeatureFactory(grammar)
+        print(builder.build([ExistenceFeature, NumericFeature, LengthFeature]))
+
+
     def test_extract_features(self):
         expected_feature_list = {
             "num(<B>)",
@@ -151,7 +165,7 @@ class FeatureExtraction(unittest.TestCase):
             "len(<B>)",
         }
 
-        collector = Collector(grammar, features=STANDARD_FEATURES)
+        collector = GrammarFeatureCollector(grammar, features=STANDARD_FEATURES)
         all_features = collector.get_all_features()
 
         all_features_repr = set([f.__repr__() for f in all_features])
@@ -168,7 +182,7 @@ class FeatureExtraction(unittest.TestCase):
             "len(<B>)",
         }
 
-        collector = Collector(grammar, features={LENGTH_FEATURE})
+        collector = GrammarFeatureCollector(grammar, features={LENGTH_FEATURE})
         all_features = collector.get_all_features()
         all_features_to_string = set([str(feature) for feature in all_features])
 
@@ -324,7 +338,7 @@ class FeatureExtraction(unittest.TestCase):
             for inp in input_list
         ]
 
-        collector = Collector(grammar, features={EXISTENCE_FEATURE})
+        collector = GrammarFeatureCollector(grammar, features={EXISTENCE_FEATURE})
 
         for inp, expected in zip(test_inputs, expected_dicts):
             result = collector.collect_features(inp)
@@ -337,7 +351,7 @@ class FeatureExtraction(unittest.TestCase):
             {"num(<B>)": 3.0},
             {"num(<B>)": numpy.NAN},
         ]
-        collector = Collector(grammar, features={NUMERIC_INTERPRETATION_FEATURE})
+        collector = GrammarFeatureCollector(grammar, features={NUMERIC_INTERPRETATION_FEATURE})
         test_inputs = [
             Input(
                 tree=DerivationTree.from_parse_tree(
@@ -366,7 +380,7 @@ class FeatureExtraction(unittest.TestCase):
                 "len(<B>)": numpy.NAN,
             },
         ]
-        collector = Collector(grammar, features={LENGTH_FEATURE})
+        collector = GrammarFeatureCollector(grammar, features={LENGTH_FEATURE})
         test_inputs = [
             Input(
                 tree=DerivationTree.from_parse_tree(
@@ -396,7 +410,7 @@ class FeatureExtraction(unittest.TestCase):
             },
         ]
 
-        collector = Collector(grammar, features={IS_DIGIT_FEATURE})
+        collector = GrammarFeatureCollector(grammar, features={IS_DIGIT_FEATURE})
         test_inputs = [
             Input(
                 tree=DerivationTree.from_parse_tree(
@@ -413,7 +427,7 @@ class FeatureExtraction(unittest.TestCase):
         # We do not expect num(<A>) as this is not a number
         expected_feature_list = {"num(<start>)", "num(<string>)", "num(<B>)"}
 
-        collector = Collector(
+        collector = GrammarFeatureCollector(
             grammar_with_maybe_minus, features={NUMERIC_INTERPRETATION_FEATURE}
         )
         all_features = collector.get_all_features()
@@ -429,7 +443,7 @@ class FeatureExtraction(unittest.TestCase):
             {"num(<start>)": -9.0, "num(<string>)": -9.0, "num(<B>)": 9.0},
         ]
 
-        collector = Collector(
+        collector = GrammarFeatureCollector(
             grammar_with_maybe_minus, features={NUMERIC_INTERPRETATION_FEATURE}
         )
         test_inputs = [
@@ -453,7 +467,7 @@ class FeatureExtraction(unittest.TestCase):
             {"num(<digit>)": numpy.NAN, "num(<B>)": numpy.NAN},
         ]
 
-        collector = Collector(grammar_rec, features={NUMERIC_INTERPRETATION_FEATURE})
+        collector = GrammarFeatureCollector(grammar_rec, features={NUMERIC_INTERPRETATION_FEATURE})
         test_inputs = [
             Input(
                 tree=DerivationTree.from_parse_tree(
@@ -487,7 +501,7 @@ class FeatureExtraction(unittest.TestCase):
             },
         ]
 
-        collector = Collector(grammar_rec, features={LENGTH_FEATURE})
+        collector = GrammarFeatureCollector(grammar_rec, features={LENGTH_FEATURE})
         test_inputs = [
             Input(
                 tree=DerivationTree.from_parse_tree(
