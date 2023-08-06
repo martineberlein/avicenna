@@ -1,8 +1,10 @@
-from typing import Generator, Optional, Dict
+from typing import Generator, Optional
 
 from isla.derivation_tree import DerivationTree
+from fuzzingbook.Parser import EarleyParser
 
 from avicenna.oracle import OracleResult
+from avicenna.features import FeatureVector
 
 
 class Input:
@@ -14,7 +16,7 @@ class Input:
         assert isinstance(tree, DerivationTree)
         self.__tree: DerivationTree = tree
         self.__oracle: Optional[OracleResult] = oracle
-        self.__features: Optional[Dict] = None
+        self.__features: Optional[FeatureVector] = None
 
     @property
     def tree(self) -> DerivationTree:
@@ -25,7 +27,7 @@ class Input:
         return self.__oracle
 
     @property
-    def features(self) -> Dict:
+    def features(self) -> FeatureVector:
         return self.__features
 
     @oracle.setter
@@ -33,7 +35,7 @@ class Input:
         self.__oracle = oracle_
 
     @features.setter
-    def features(self, features_: Dict):
+    def features(self, features_: FeatureVector):
         self.__features = features_
 
     def __str__(self) -> str:
@@ -69,3 +71,9 @@ class Input:
             return self.tree
         else:
             return self.oracle
+
+    @classmethod
+    def from_str(cls, grammar, input_string, oracle: Optional[OracleResult] = None):
+        return cls(
+            DerivationTree.from_parse_tree(next(EarleyParser(grammar).parse(input_string))), oracle
+        )

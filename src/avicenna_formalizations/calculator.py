@@ -1,8 +1,10 @@
 import string
 import math
+from typing import Union
 
 from fuzzingbook.Grammars import Grammar
 from avicenna.input import Input
+from avicenna.oracle import OracleResult
 
 
 grammar: Grammar = {
@@ -34,3 +36,10 @@ def prop(inp: Input) -> bool:
         return False
     except ValueError:
         return True
+
+def oracle(inp: Union[Input, str]) -> OracleResult:
+    try:
+        arith_eval(str(inp))
+        return OracleResult.NO_BUG
+    except ValueError:
+        return OracleResult.BUG

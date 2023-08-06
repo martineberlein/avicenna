@@ -1,176 +1,200 @@
-import logging
-import warnings
-from typing import List, Set
+from typing import List, Set, Type, Optional, Any, Tuple
+from abc import ABC, abstractmethod
 
-import matplotlib.pyplot as plt
 import numpy as np
 from pandas import DataFrame
 import shap
-from fuzzingbook.Grammars import Grammar, nonterminals
+from fuzzingbook.Grammars import Grammar
 from lightgbm import LGBMClassifier
 from sklearn import preprocessing
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 
-from avicenna.features import Feature, FeatureWrapper, STANDARD_FEATURES
-from avicenna.feature_collector import get_all_features_n
+from avicenna.feature_collector import (
+    Feature,
+    ExistenceFeature,
+    NumericFeature,
+    DerivationFeature,
+    LengthFeature,
+    FeatureFactory,
+)
+from avicenna.input import Input
+from avicenna.oracle import OracleResult
 
 
-CORRELATION_THRESHOLD = 0.7
+class RelevantFeatureLearner(ABC):
+    DEFAULT_FEATURE_TYPES = [
+        ExistenceFeature,
+        DerivationFeature,
+        NumericFeature,
+        LengthFeature,
+    ]
 
-
-def get_all_non_terminals(grammar):
-    non_terminals = [n for n in grammar]
-    return non_terminals
-
-
-class Extractor:
     def __init__(
-        self, complete_data: DataFrame, grammar, max_feature_num: int = 4, features=None
+        self,
+        grammar: Grammar,
+        feature_types: Optional[List[Type[Feature]]] = None,
+        top_n: int = 3,
+        threshold: float = 0.01,
     ):
-        self._data: DataFrame = complete_data
-        self._X_train = complete_data.drop(["oracle"], axis=1)
-        self._y_train = complete_data["oracle"].astype(str)
-        self._grammar: Grammar = grammar
-        if features is None:
-            features = STANDARD_FEATURES
-        self._features: Set[FeatureWrapper] = features
-        self._all_features = get_all_features_n(features, grammar)
-        self._clf = None
-        self._shap_values = None
-        self._most_important_features = None
-        self._exclusion_set = None
-        self._max_num = max_feature_num
-        self._classifier = (
-            None  # TODO allow to specify different machine learning models
+        self.grammar = grammar
+        self.features = self.construct_features(
+            feature_types or self.DEFAULT_FEATURE_TYPES
         )
-        self._correlation_matrix = None
+        self.top_n = top_n
+        self.threshold = threshold
 
-    def get_most_important_features(self):
-        return self._most_important_features
+    def construct_features(self, feature_types: List[Type[Feature]]) -> List[Feature]:
+        return FeatureFactory(self.grammar).build(feature_types)
 
-    def get_clean_most_important_features(self):
-        clean_features = []
-        for i in self._most_important_features:
-            # Stop if nummer of max features is reached
-            if len(clean_features) >= self._max_num:
-                break
-            # Only consider those existence features that have a positive influence on the outcome
-            # print(self._data['exists(<maybe_minus>@1)'])
-            for j in self._all_features:
-                if i == j.name:
-                    clean_features.append(j)
+    def learn(
+        self, test_input: Set[Input]
+    ) -> Tuple[Set[Feature], Set[Feature], Set[Feature]]:
+        primary_features = set(self.get_relevant_features(test_input))
+        x_train, _ = self.get_learning_data(test_input)
+        correlated_features = self.find_correlated_features(x_train, primary_features)
 
-        return clean_features
+        return (
+            primary_features,
+            correlated_features - primary_features,
+            set(self.features) - primary_features.union(correlated_features),
+        )
 
-    def get_correlating_features(self, feature: Feature) -> List[Feature]:
-        assert self._correlation_matrix is not None, "No correlation matrix available."
+    @staticmethod
+    def find_correlated_features(
+        x_train: DataFrame, primary_features: Set[Feature]
+    ) -> Set[Feature]:
+        correlation_matrix = x_train.corr(method="spearman")
 
-        corr_features: List[Feature] = []
-        for i in self._correlation_matrix.columns:
-            corr_feature = self._get_feature(i)
+        correlated_features = {
+            feature
+            for primary in primary_features
+            for feature, value in correlation_matrix[primary].items()
+            if abs(value) > 0.7
+        }
+        return correlated_features
 
-            corr_value = self._correlation_matrix[feature.__repr__()][i]
-            if corr_value > CORRELATION_THRESHOLD and feature.__repr__() != i:
-                if corr_feature is not None:
-                    corr_features.append(corr_feature)
-                else:
-                    logging.info(
-                        f"Feature {feature} also correlates with {i}, which is not a feature."
-                    )
-                    # TODO is this a good idea?
-                    corr_features.append(feature)
-        return corr_features
+    @abstractmethod
+    def get_relevant_features(self, test_inputs: Set[Input]) -> List[Feature]:
+        raise NotImplementedError()
 
-    def extract_non_terminals(self) -> List[str]:
-        self._normalize_data()
-        self._calculate_correlation_matrix()
-        self._learn_classifier()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            self._explain_prediction()
-        self._get_exclusion_set()
+    @staticmethod
+    def map_result(result: OracleResult) -> int:
+        match result:
+            case OracleResult.NO_BUG:
+                return 0
+            case OracleResult.BUG:
+                return 1
+            case _:
+                return -1
 
-        return self._exclusion_set
+    def get_learning_data(self, test_inputs: Set[Input]) -> Tuple[DataFrame, List[int]]:
+        records = [
+            {
+                feature: inp.features.get_feature_value(feature)
+                for feature in self.features
+            }
+            for inp in test_inputs
+            if inp.oracle != OracleResult.UNDEF
+        ]
 
-    def _learn_classifier(self):
-        self._clf = LGBMClassifier(max_depth=5, n_estimators=3000, objective="binary")
-        self._clf.fit(self._X_train, self._y_train)
+        df = DataFrame.from_records(records).replace(-np.inf, -(2**32))
+        labels = [
+            self.map_result(inp.oracle)
+            for inp in test_inputs
+            if inp.oracle != OracleResult.UNDEF
+        ]
 
-    def _explain_prediction(self):
-        explainer = shap.TreeExplainer(self._clf)
-        self._shap_values = explainer.shap_values(self._X_train)
-        sv = np.array(self._shap_values)
-        y_bool = self._clf.predict(self._X_train).astype(bool)
-
-    def _get_exclusion_set(self):
-        _features = self._X_train.columns
-
-        idx = np.abs(np.array(self._shap_values[0])).mean(0).argsort()
-        # Two most important non-terminals that are responsible for the failure (according to the classifier)
-        self._most_important_features = list(_features[idx[::-1]])
-
-        excluded_features = set(get_all_non_terminals(self._grammar))
-        clean_features = self.get_clean_most_important_features()
-
-        for i in clean_features:
-            if i.rule in excluded_features:
-                excluded_features.remove(i.rule)
-                for child in nonterminals(i.key):
-                    if child in excluded_features:
-                        excluded_features.remove(child)
-
-        self._exclusion_set = excluded_features
-
-    def show_beeswarm_plot(self):
-        return shap.summary_plot(self._shap_values[1], self._X_train.astype("float"))
-        # return shap.summary_plot(self._shap_values)
-
-    def _normalize_data(self):
-        min_max_scaler = preprocessing.MinMaxScaler()
-        np_array = self._data.to_numpy()
-        normalized = min_max_scaler.fit_transform(np_array)
-        new_data = DataFrame(normalized, columns=self._data.columns)
-        # self._data = new_data
-        self._X_train = new_data.drop("oracle", axis=1)
-        self._y_train = new_data["oracle"]
-
-    def _calculate_correlation_matrix(self):
-        corr_data: DataFrame = self._data
-
-        for col in corr_data.columns:
-            if (corr_data[col].values == 1.0).all():
-                # print("Dropping: ", col)
-                # corr_data = corr_data.drop(col, axis=1)
-                pass
-
-        corr_matrix = corr_data.corr(method="spearman")
-        corr = []
-        for i in corr_matrix.columns:
-            for j in corr_matrix.columns:
-                if abs(corr_matrix[i][j]) > CORRELATION_THRESHOLD and i != j:
-                    corr.append((i, j, corr_matrix[i][j]))
-        self._correlation_matrix = corr_matrix
-
-    def _get_feature(self, feature_name: str) -> Feature:
-        for feature in self._all_features:
-            if feature.__repr__() == feature_name:
-                return feature
+        return df.drop(columns=df.columns[df.nunique() == 1]), labels
 
 
-def show_correlation_heatmap(data, corr_matrix):
-    f = plt.figure(figsize=(19, 15))
-    plt.matshow(corr_matrix, fignum=f.number)
-    plt.xticks(
-        range(data.select_dtypes(["number"]).shape[1]),
-        data.select_dtypes(["number"]).columns,
-        fontsize=14,
-        rotation=45,
-    )
-    plt.yticks(
-        range(data.select_dtypes(["number"]).shape[1]),
-        data.select_dtypes(["number"]).columns,
-        fontsize=14,
-    )
-    cb = plt.colorbar()
-    cb.ax.tick_params(labelsize=14)
-    plt.title("Correlation Matrix", fontsize=16)
-    plt.show()
+class SKLearFeatureRelevanceLearner(RelevantFeatureLearner, ABC):
+    def get_features(self, x_train: DataFrame, classifier) -> List[Feature]:
+        features_with_importance = list(
+            zip(x_train.columns, classifier.feature_importances_)
+        )
+
+        sorted_features = sorted(
+            features_with_importance, key=lambda x: x[1], reverse=True
+        )
+        important_features = [
+            feature
+            for feature, importance in sorted_features
+            if importance >= self.threshold
+        ][: self.top_n]
+
+        return important_features
+
+    @abstractmethod
+    def fit(self, x_train: DataFrame, y_train: List[int]) -> Any:
+        raise NotImplementedError()
+
+    def get_relevant_features(self, test_inputs: Set[Input]) -> List[Feature]:
+        x_train, y_train = self.get_learning_data(test_inputs)
+        classifier = self.fit(x_train, y_train)
+        return self.get_features(x_train, classifier)
+
+
+class DecisionTreeRelevanceLearner(SKLearFeatureRelevanceLearner):
+    def fit(self, x_train: DataFrame, y_train: List[int]) -> Any:
+        classifier = DecisionTreeClassifier(random_state=0)
+        classifier.fit(x_train, y_train)
+        return classifier
+
+
+class RandomForestRelevanceLearner(SKLearFeatureRelevanceLearner):
+    def fit(self, x_train: DataFrame, y_train: List[int]) -> Any:
+        classifier = RandomForestClassifier(n_estimators=10, random_state=0)
+        classifier.fit(x_train, y_train)
+        return classifier
+
+
+class GradientBoostingTreeRelevanceLearner(SKLearFeatureRelevanceLearner):
+    def fit(self, x_train: DataFrame, y_train: List[int]) -> Any:
+        classifier = LGBMClassifier(max_depth=5, n_estimators=3000, objective="binary")
+        classifier.fit(x_train, y_train)
+        return classifier
+
+
+class SHAPRelevanceLearner(RelevantFeatureLearner):
+    def __init__(
+        self,
+        grammar: Grammar,
+        top_n: int = 3,
+        classifier_type: Optional[
+            Type[SKLearFeatureRelevanceLearner]
+        ] = GradientBoostingTreeRelevanceLearner,
+    ):
+        super().__init__(grammar, top_n=top_n)
+        self.classifier = classifier_type(self.grammar)
+
+    def get_relevant_features(self, test_inputs: Set[Input]) -> List[Feature]:
+        x_train, y_train = self.get_learning_data(test_inputs)
+        x_train_normalized = self.normalize_learning_data(x_train)
+        classifier = self.classifier.fit(x_train_normalized, y_train)
+        shap_values = self.get_shap_values(classifier, x_train)
+        return self.get_sorted_features_by_importance(shap_values, x_train)[
+            : self.top_n
+        ]
+
+    @staticmethod
+    def normalize_learning_data(data: DataFrame):
+        normalized = preprocessing.MinMaxScaler().fit_transform(data)
+        return DataFrame(normalized, columns=data.columns)
+
+    @staticmethod
+    def get_shap_values(classifier, x_train):
+        explainer = shap.TreeExplainer(classifier)
+        return explainer.shap_values(x_train)
+
+    @staticmethod
+    def get_sorted_features_by_importance(
+        shap_values, x_train: DataFrame
+    ) -> List[Feature]:
+        mean_shap_values = np.abs(shap_values[1]).mean(axis=0)
+        sorted_indices = mean_shap_values.argsort()[::-1]
+        return x_train.columns[sorted_indices].tolist()
+
+    @staticmethod
+    def show_beeswarm_plot(shap_values, x_train):
+        return shap.summary_plot(shap_values[1], x_train.astype("float"))

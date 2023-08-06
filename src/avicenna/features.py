@@ -1,303 +1,278 @@
-import logging
+from typing import List, Set, Dict, Optional, Any
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Tuple, List, Optional, Any, Callable
 
-import numpy
-from fuzzingbook.GrammarFuzzer import tree_to_string
-from fuzzingbook.Grammars import Grammar
-from fuzzingbook.Grammars import reachable_nonterminals
-from numpy import isnan
+from numpy import inf
+from fuzzingbook.Grammars import is_nonterminal, Grammar, reachable_nonterminals
+from isla.language import DerivationTree
 
-DerivationTree = Tuple[str, Optional[List[Any]]]
-
-
-class FeatureWrapper:
-    def __init__(self, dummy_feature, extract_grammar: Callable):
-        self.feature: Callable = dummy_feature
-        self.extract_from_grammar = extract_grammar
+from avicenna.oracle import OracleResult
 
 
 class Feature(ABC):
-    """
-    The abstract base class for grammar features.
+    def __init__(self, non_terminal: str):
+        self.non_terminal = non_terminal
 
-    Args:
-        name : A unique identifier name for this feature.
-        rule : The production rule (e.g., '<function>' or '<value>').
-        key  : The feature key (e.g., the chosen alternative or rule itself).
-    """
-
-    def __init__(self, name: str, rule: str, key: str) -> None:
-        self.name = name
-        self.rule = rule
-        self.key = key
-        super().__init__()
-
+    @abstractmethod
     def __repr__(self) -> str:
-        """Returns a printable string representation of the feature."""
-        return self.name
+        raise NotImplementedError
+
+    def __hash__(self):
+        return hash(self.__repr__())
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.__hash__() == hash(other)
+        return False
 
     @abstractmethod
-    def __str__(self):
-        pass
+    def default_value(self):
+        raise NotImplementedError
 
     @abstractmethod
-    def initialization_value(self):
-        """
-        Returns the initialization value to instantiate the feature table.
-        """
-        pass
+    def type(self):
+        raise NotImplementedError
 
     @abstractmethod
-    def evaluate(self, derivation_tree, feature_table):
-        """Returns the feature value for a given derivation tree of an input."""
-        pass
+    def evaluate(self, subtree: DerivationTree) -> Any:
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def factory_method(cls, grammar):
+        raise NotImplementedError
 
 
 class ExistenceFeature(Feature):
-    """
-    This class represents existence features of a grammar. Existence features indicate
-    whether a particular production rule was used in the derivation sequence of an input.
-    For a given production rule P -> A | B, a production existence feature for P and
-    alternative existence features for each alternative (i.e., A and B) are defined.
+    def __init__(self, non_terminal: str):
+        super().__init__(non_terminal)
 
-    name : A unique identifier name for this feature.
-    rule : The production rule.
-    key  : The feature key, equal to the rule attribute for production features,
-           or equal to the corresponding alternative for alternative features.
-    """
+    def __repr__(self) -> str:
+        return f"exists({self.non_terminal})"
 
-    def __init__(self, name: str, rule: str, key: str) -> None:
-        super().__init__(name, rule, key)
-
-    def __str__(self):
-        if self.rule == self.key:
-            return f"exists({self.rule})"
-        else:
-            return f"exists({self.rule} == {self.key})"
-
-    def initialization_value(self):
+    @property
+    def default_value(self):
         return 0
 
-    def evaluate(self, derivation_tree, feature_table):
-        (node, children) = derivation_tree
-        # When this feature is called it exists in the tree.
-        if self.rule == node and self.key == node:
-            return 1
-        else:
-            expansion = "".join([child[0] for child in children])
-            if self.key == expansion:
-                return 1
-                #  TODO What happens when A-> A ?? Is this a problem?
-        raise AssertionError(
-            "This state should not be reachable. Feature evaluation does not work."
-        )
+    @property
+    def type(self):
+        return int
+
+    def evaluate(self, subtree: DerivationTree) -> int:
+        current_node, _ = subtree
+        return int(self.non_terminal == current_node)
+
+    @classmethod
+    def factory_method(cls, grammar) -> List[Feature]:
+        return [cls(non_terminal) for non_terminal in grammar]
 
 
-class NumericInterpretation(Feature):
-    """
-    This class represents numeric interpretation features of a grammar. These features
-    are defined for productions that only derive words composed of the characters
-    [0-9], '.', and '-'. The returned feature value corresponds to the maximum
-    floating-point number interpretation of the derived words of a production.
+class DerivationFeature(Feature):
+    def __init__(self, non_terminal: str, expansion: str):
+        super().__init__(non_terminal)
+        self.expansion = expansion
 
-    name : A unique identifier name for this feature. Should not contain Whitespaces.
-           e.g., 'num(<integer>)'
-    rule : The production rule.
-    """
+    def __repr__(self) -> str:
+        return f"exists({self.non_terminal} -> {self.expansion})"
 
-    def __init__(self, name: str, rule: str) -> None:
-        super().__init__(name, rule, rule)
+    @property
+    def default_value(self):
+        return 0
 
-    def __str__(self) -> str:
-        return f"num({self.key})"
+    @property
+    def type(self):
+        return int
 
-    def initialization_value(self):
-        return numpy.NAN
+    def evaluate(self, subtree: DerivationTree) -> int:
+        current_node, children = subtree
 
-    def evaluate(self, derivation_tree, feature_table):
+        expansion = "".join([child[0] for child in children])
+        return int(self.non_terminal == current_node and self.expansion == expansion)
+
+    @classmethod
+    def factory_method(cls, grammar) -> List[Feature]:
+        features = []
+
+        for non_terminal in grammar:
+            for expansion in grammar[non_terminal]:
+                features.append(cls(non_terminal, expansion))
+
+        return features
+
+
+class NumericFeature(Feature):
+    def __repr__(self):
+        return f"num({self.non_terminal})"
+
+    @property
+    def default_value(self):
+        return float('-inf')
+
+    @property
+    def type(self):
+        return float
+
+    def evaluate(self, subtree: DerivationTree) -> Any:
         try:
-            value = float(tree_to_string(derivation_tree))
-            logging.debug(f"{self.name} has feature-value length: {value}")
-            logging.debug(
-                f"Feature table at feature {self.name} has value {feature_table[self.name]}"
-                f" of type {type(feature_table[self.name])}"
-            )
-            if feature_table[self.name] < value or isnan(feature_table[self.name]):
-                logging.debug(
-                    f"Replacing feature-value {feature_table[self.name]} with {value}"
-                )
-                return value
+            value = float(tree_to_string(subtree))
+            return value
         except ValueError:
-            pass
+            return self.default_value
+
+    @classmethod
+    def factory_method(cls, grammar) -> List[Feature]:
+        derivable_chars = cls.get_derivable_chars(grammar)
+        return cls.get_features(derivable_chars)
+
+    @classmethod
+    def get_derivable_chars(cls, grammar: Grammar) -> Dict[str, Set[str]]:
+        """
+        Gets all the derivable characters for each rule in the grammar.
+        :param grammar: The input grammar.
+        :return: A mapping from each rule to a set of derivable characters.
+        """
+        # Regex for non-terminal symbols in expansions
+        re_non_terminal = re.compile(r"(<[^<> ]*>)")
+
+        # Mapping from non-terminals to derivable terminal chars
+        derivable_chars = defaultdict(set)
+
+        # Populate initial derivable_chars
+        for rule, expansions in grammar.items():
+            for expansion in expansions:
+                # Remove non-terminal symbols and whitespace from expansion
+                terminals = re.sub(re_non_terminal, "", expansion)
+                # Add each terminal char to the set of derivable chars
+                for char in terminals:
+                    derivable_chars[rule].add(char)
+
+        # Update derivable_chars until convergence
+        while True:
+            if not cls.update_derivable_chars(grammar, derivable_chars):
+                break
+
+        return derivable_chars
+
+    @classmethod
+    def update_derivable_chars(
+        cls, grammar: Grammar, derivable_chars: Dict[str, Set[str]]
+    ) -> bool:
+        """
+        Update the mapping of derivable characters for each rule.
+        :param grammar: The input grammar.
+        :param derivable_chars: The existing mapping of derivable characters.
+        :return: True if any set of derivable chars was updated, False otherwise.
+        """
+        updated = False
+        for rule in grammar:
+            for reachable_rule in reachable_nonterminals(grammar, rule):
+                before_update = len(derivable_chars[rule])
+                derivable_chars[rule].update(derivable_chars[reachable_rule])
+                after_update = len(derivable_chars[rule])
+
+                # Set of derivable chars was updated
+                if after_update > before_update:
+                    updated = True
+        return updated
+
+    @classmethod
+    def get_features(cls, derivable_chars: Dict[str, Set[str]]) -> List[Feature]:
+        """
+        Gets a list of NumericInterpretation features for each rule that derives only numeric characters.
+        :param derivable_chars: The mapping of derivable characters.
+        :return: A list of NumericInterpretation features.
+        """
+        features = []
+        numeric_chars = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
+        numeric_symbols = {".", "-"}
+
+        for non_terminal, chars in derivable_chars.items():
+            non_numeric_chars = (chars - numeric_chars) - numeric_symbols
+            has_numeric_chars = len(chars.intersection(numeric_chars)) > 0
+
+            # Rule derives only numeric characters and at least one numeric character
+            if len(non_numeric_chars) == 0 and has_numeric_chars:
+                features.append(cls(non_terminal))
+
+        return features
 
 
 class LengthFeature(Feature):
-    def __init__(self, name: str, rule: str) -> None:
-        super().__init__(name, rule, rule)
+    def __repr__(self):
+        return f"len({self.non_terminal})"
 
-    def __str__(self) -> str:
-        return f"len({self.key})"
+    @property
+    def default_value(self):
+        return 0
 
-    def initialization_value(self):
-        return numpy.NAN
+    def type(self):
+        return int
 
-    def evaluate(self, derivation_tree, feature_table):
-        try:
-            value = len(tree_to_string(derivation_tree))
-            logging.debug(
-                f"{self.name} has feature-value length: {len(tree_to_string(derivation_tree))}"
-            )
-            logging.debug(
-                f"Feature table at feature {self.name} has value {feature_table[self.name]}"
-                f" of type {type(feature_table[self.name])}"
-            )
-            if feature_table[self.name] < value or isnan(feature_table[self.name]):
-                logging.debug(
-                    f"Replacing feature-value {feature_table[self.name]} with {value}"
-                )
-                return float(value)
-        except ValueError:
-            pass
+    def evaluate(self, subtree: DerivationTree) -> Any:
+        return len(tree_to_string(subtree))
+
+    @classmethod
+    def factory_method(cls, grammar) -> List[Feature]:
+        features = []
+        for non_terminal in grammar:
+            features.append(cls(non_terminal))
+        return features
 
 
-class IsDigitFeature(Feature):
-    def __init__(self, name: str, rule: str) -> None:
-        super().__init__(name, rule, rule)
+class FeatureFactory:
+    def __init__(self, grammar):
+        self.grammar = grammar
 
-    def __str__(self) -> str:
-        return f"is_digit({self.key})"
+    def build(self, feature_types=None) -> List[Feature]:
+        if feature_types is None:
+            feature_types = [
+                ExistenceFeature,
+                DerivationFeature,
+                NumericFeature,
+                LengthFeature,
+            ]
 
-    def initialization_value(self):
-        return numpy.NAN
-
-    def evaluate(self, derivation_tree, feature_table):
-        logging.debug(
-            f"{self.name} evaluating is_digit for: {tree_to_string(derivation_tree)}"
-        )
-        try:
-            if isinstance(int(tree_to_string(derivation_tree)), int):
-                logging.debug(
-                    f"{self.name} is_digit is true fpr: {int(tree_to_string(derivation_tree))}"
-                )
-                return True
-        except ValueError:
-            pass
-
-        logging.debug(
-            f"{self.name} is not true for: {len(tree_to_string(derivation_tree))}"
-        )
-        return False
+        all_features = list()
+        for feature_type in feature_types:
+            all_features.extend(feature_type.factory_method(self.grammar))
+        return all_features
 
 
-def extract_existence(grammar: Grammar) -> List[Feature]:
-    """
-    Extracts all existence features from the grammar and returns them as a list.
-    grammar : The input grammar.
-    """
+class FeatureVector:
+    def __init__(
+        self,
+        test_input: str,
+        result: Optional[OracleResult] = None,
+    ):
+        self.test_input = test_input
+        self.result = result
+        self.features: Dict[Feature, Any] = dict()
 
-    features = []
+    def get_feature_value(self, feature: Feature) -> Any:
+        if feature in self.features:
+            return self.features[feature]
+        else:
+            return feature.default_value
 
-    for rule in grammar:
-        # add the rule
-        features.append(ExistenceFeature(f"exists({rule})", rule, rule))
-        # add all alternatives
-        for count, expansion in enumerate(grammar[rule]):
-            features.append(
-                ExistenceFeature(f"exists({rule}@{count})", rule, expansion)
-            )
+    def set_feature(self, feature: Feature, value: any):
+        if feature in self.features.keys():
+            self.features[feature] = max(value, self.features[feature])
+        else:
+            self.features[feature] = value
 
-    return features
+    def get_features(self) -> Dict[Feature, Any]:
+        return self.features
 
-
-EXISTENCE_FEATURE = FeatureWrapper(ExistenceFeature, extract_existence)
-
-# Regex for non-terminal symbols in expansions
-RE_NONTERMINAL = re.compile(r"(<[^<> ]*>)")
-
-
-def extract_numeric(grammar: Grammar) -> List[Feature]:
-    """Extracts all numeric interpretation features from the grammar and returns them as a list.
-    grammar : The input grammar.
-    """
-
-    features = []
-
-    # Mapping from non-terminals to derivable terminal chars
-    derivable_chars = defaultdict(set)
-
-    for rule in grammar:
-        for expansion in grammar[rule]:
-            # Remove non-terminal symbols and whitespace from expansion
-            terminals = re.sub(RE_NONTERMINAL, "", expansion)  # .replace(' ', '')
-
-            # Add each terminal char to the set of derivable chars
-            for c in terminals:
-                derivable_chars[rule].add(c)
-
-    # Repeatedly update the mapping until convergence
-    while True:
-        updated = False
-        for rule in grammar:
-            for r in reachable_nonterminals(grammar, rule):
-                before = len(derivable_chars[rule])
-                derivable_chars[rule].update(derivable_chars[r])
-                after = len(derivable_chars[rule])
-
-                # Set of derivable chars was updated
-                if after > before:
-                    updated = True
-
-        if not updated:
-            break
-
-    numeric_chars = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
-    numeric_symbols = {".", "-"}
-
-    for key in derivable_chars:
-        # Check if derivable chars contain only numeric numbers
-        # and check if at least one number is in the set of derivable chars
-        if (
-            len((derivable_chars[key] - numeric_chars) - numeric_symbols) == 0
-            and len(derivable_chars[key].intersection(numeric_chars)) > 0
-        ):
-            features.append(NumericInterpretation(f"num({key})", key))
-
-    return features
+    def __repr__(self):
+        return f"{self.test_input}: {self.features}"
 
 
-NUMERIC_INTERPRETATION_FEATURE = FeatureWrapper(NumericInterpretation, extract_numeric)
 
 
-def extract_length(grammar: Grammar) -> List[Feature]:
-    features = []
-    for rule in grammar:
-        features.append(LengthFeature(f"len({rule})", rule))
-    return features
-
-
-LENGTH_FEATURE = FeatureWrapper(LengthFeature, extract_length)
-
-
-def extract_is_digit(grammar: Grammar) -> List[Feature]:
-    features = []
-    for rule in grammar:
-        features.append(IsDigitFeature(f"is_digit({rule})", rule))
-    return features
-
-
-IS_DIGIT_FEATURE = FeatureWrapper(IsDigitFeature, extract_is_digit)
-
-
-def get_all_features(grammar) -> List[Feature]:
-    return (
-        extract_existence(grammar)
-        + extract_numeric(grammar)
-        + extract_length(grammar)
-        + extract_is_digit(grammar)
-    )
-
-
-STANDARD_FEATURES = {EXISTENCE_FEATURE, NUMERIC_INTERPRETATION_FEATURE, LENGTH_FEATURE}
+def tree_to_string(tree: DerivationTree) -> str:
+    symbol, children, *_ = tree
+    if children:
+        return "".join(tree_to_string(c) for c in children)
+    else:
+        return "" if is_nonterminal(symbol) else symbol
