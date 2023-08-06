@@ -230,10 +230,6 @@ class FeatureExtraction(unittest.TestCase):
             feature_vector = collector.collect_features(test_input)
             self.assertEqual(feature_vector.features, expected_feature_vectors)
 
-    def test_t(self):
-        import numpy
-        print(max(-9, -numpy.inf))
-
     def test_parse_features_numericInterpretation_recursive(self):
         inputs = ["11923", "3341923", "9", "a"]
         test_inputs = [Input.from_str(grammar_rec, inp) for inp in inputs]
