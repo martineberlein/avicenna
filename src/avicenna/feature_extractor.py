@@ -50,8 +50,8 @@ class RelevantFeatureLearner(ABC):
     def learn(
         self, test_input: Set[Input]
     ) -> Tuple[Set[Feature], Set[Feature], Set[Feature]]:
-        primary_features = set(self.get_relevant_features(test_input))
-        x_train, _ = self.get_learning_data(test_input)
+        x_train, y_train = self.get_learning_data(test_input)
+        primary_features = set(self.get_relevant_features(test_input, x_train, y_train))
         correlated_features = self.find_correlated_features(x_train, primary_features)
 
         return (
@@ -75,7 +75,7 @@ class RelevantFeatureLearner(ABC):
         return correlated_features
 
     @abstractmethod
-    def get_relevant_features(self, test_inputs: Set[Input]) -> List[Feature]:
+    def get_relevant_features(self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]) -> List[Feature]:
         raise NotImplementedError()
 
     @staticmethod
@@ -129,8 +129,7 @@ class SKLearFeatureRelevanceLearner(RelevantFeatureLearner, ABC):
     def fit(self, x_train: DataFrame, y_train: List[int]) -> Any:
         raise NotImplementedError()
 
-    def get_relevant_features(self, test_inputs: Set[Input]) -> List[Feature]:
-        x_train, y_train = self.get_learning_data(test_inputs)
+    def get_relevant_features(self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]) -> List[Feature]:
         classifier = self.fit(x_train, y_train)
         return self.get_features(x_train, classifier)
 
@@ -168,8 +167,7 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
         super().__init__(grammar, top_n=top_n)
         self.classifier = classifier_type(self.grammar)
 
-    def get_relevant_features(self, test_inputs: Set[Input]) -> List[Feature]:
-        x_train, y_train = self.get_learning_data(test_inputs)
+    def get_relevant_features(self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]) -> List[Feature]:
         x_train_normalized = self.normalize_learning_data(x_train)
         classifier = self.classifier.fit(x_train_normalized, y_train)
         shap_values = self.get_shap_values(classifier, x_train)

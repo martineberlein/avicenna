@@ -85,4 +85,4 @@ if __name__ == '__main__':
         max_excluded_features=4
     )
 
-    result = avicenna.execute()
+    result = avicenna.explain()
