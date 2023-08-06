@@ -1,34 +1,40 @@
 from functools import lru_cache
-from typing import List, Set, Dict, Optional, Any
+from typing import List, Set, Dict, Optional, Any, Type
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
 
-import numpy
-import pandas
+from numpy import inf
 from fuzzingbook.Grammars import is_nonterminal, Grammar, reachable_nonterminals
 from isla.language import DerivationTree
 
-from avicenna.features import FeatureWrapper, STANDARD_FEATURES
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
 
 
 class Feature(ABC):
-    def __init__(self, non_terminal: str, key: str):
+    def __init__(self, non_terminal: str):
         self.non_terminal = non_terminal
-        self.key = key
 
+    @abstractmethod
     def __repr__(self) -> str:
-        return f"{self.non_terminal} -> {self.key}"
+        raise NotImplementedError
+
+    def __hash__(self):
+        return hash(self.__repr__())
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.__hash__() == hash(other)
+        return False
 
     @abstractmethod
     def default_value(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abstractmethod
     def type(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abstractmethod
     def evaluate(self, subtree: DerivationTree) -> Any:
@@ -41,12 +47,11 @@ class Feature(ABC):
 
 
 class ExistenceFeature(Feature):
+    def __init__(self, non_terminal: str):
+        super().__init__(non_terminal)
+
     def __repr__(self) -> str:
-        return (
-            f"exists({self.non_terminal})"
-            if self.non_terminal == self.key
-            else f"exists({self.non_terminal} -> {self.key})"
-        )
+        return f"exists({self.non_terminal})"
 
     @property
     def default_value(self):
@@ -56,23 +61,42 @@ class ExistenceFeature(Feature):
     def type(self):
         return int
 
-    def evaluate(self, subtree: DerivationTree) -> Any:
+    def evaluate(self, subtree: DerivationTree) -> int:
+        current_node, _ = subtree
+        return int(self.non_terminal == current_node)
+
+    @classmethod
+    def factory_method(cls, grammar) -> List[Feature]:
+        return [cls(non_terminal) for non_terminal in grammar]
+
+
+class DerivationFeature(Feature):
+    def __init__(self, non_terminal: str, expansion: str):
+        super().__init__(non_terminal)
+        self.expansion = expansion
+
+    def __repr__(self) -> str:
+        return f"exists({self.non_terminal} -> {self.expansion})"
+
+    @property
+    def default_value(self):
+        return 0
+
+    @property
+    def type(self):
+        return int
+
+    def evaluate(self, subtree: DerivationTree) -> int:
         current_node, children = subtree
 
-        if self.non_terminal == current_node and self.key == current_node:
-            return 1
-        else:
-            expansion = "".join([child[0] for child in children])
-            if self.key == expansion:
-                return 1
+        expansion = "".join([child[0] for child in children])
+        return int(self.non_terminal == current_node and self.expansion == expansion)
 
     @classmethod
     def factory_method(cls, grammar) -> List[Feature]:
         features = []
 
         for non_terminal in grammar:
-            features.append(cls(non_terminal, non_terminal))
-            # add all alternatives
             for expansion in grammar[non_terminal]:
                 features.append(cls(non_terminal, expansion))
 
@@ -85,7 +109,7 @@ class NumericFeature(Feature):
 
     @property
     def default_value(self):
-        return numpy.NAN
+        return -inf
 
     @property
     def type(self):
@@ -96,7 +120,7 @@ class NumericFeature(Feature):
             value = float(tree_to_string(subtree))
             return value
         except ValueError:
-            return self.default_value()
+            return self.default_value
 
     @classmethod
     def factory_method(cls, grammar) -> List[Feature]:
@@ -165,24 +189,24 @@ class NumericFeature(Feature):
         numeric_chars = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
         numeric_symbols = {".", "-"}
 
-        for rule, chars in derivable_chars.items():
+        for non_terminal, chars in derivable_chars.items():
             non_numeric_chars = (chars - numeric_chars) - numeric_symbols
             has_numeric_chars = len(chars.intersection(numeric_chars)) > 0
 
             # Rule derives only numeric characters and at least one numeric character
             if len(non_numeric_chars) == 0 and has_numeric_chars:
-                features.append(cls(f"num({rule})", rule))
+                features.append(cls(non_terminal))
 
         return features
 
 
 class LengthFeature(Feature):
     def __repr__(self):
-        return f"len({self.key})"
+        return f"len({self.non_terminal})"
 
     @property
     def default_value(self):
-        return numpy.NAN
+        return 0
 
     def type(self):
         return int
@@ -194,7 +218,7 @@ class LengthFeature(Feature):
     def factory_method(cls, grammar) -> List[Feature]:
         features = []
         for non_terminal in grammar:
-            features.append(cls(non_terminal, non_terminal))
+            features.append(cls(non_terminal))
         return features
 
 
@@ -204,7 +228,12 @@ class FeatureFactory:
 
     def build(self, feature_types=None) -> List[Feature]:
         if feature_types is None:
-            feature_types = [ExistenceFeature, NumericFeature]
+            feature_types = [
+                ExistenceFeature,
+                DerivationFeature,
+                NumericFeature,
+                LengthFeature,
+            ]
 
         all_features = list()
         for feature_type in feature_types:
@@ -215,8 +244,10 @@ class FeatureFactory:
 class FeatureVector:
     def __init__(
         self,
+        test_input: str,
         result: Optional[OracleResult] = None,
     ):
+        self.test_input = test_input
         self.result = result
         self.features: Dict[Feature, Any] = dict()
 
@@ -227,31 +258,31 @@ class FeatureVector:
             return feature.default_value
 
     def set_feature(self, feature: Feature, value: any):
-        self.features[feature] = max(value, self.features[feature])
+        if feature in self.features.keys():
+            self.features[feature] = max(value, self.features[feature])
+        else:
+            self.features[feature] = value
 
     def get_features(self) -> Dict[Feature, Any]:
         return self.features
 
     def __repr__(self):
-        return f"{self.result.name}{self.features}"
-
-    def __str__(self):
-        return f"{self.result.name}{self.features}"
+        return f"{self.test_input}: {self.features}"
 
 
 class FeatureCollector(ABC):
-    def __init__(
-        self, grammar: Grammar, feature_types: Set[FeatureWrapper] = STANDARD_FEATURES
-    ):
+    def __init__(self, grammar: Grammar, feature_types: Optional[List[Type[Feature]]]):
         self.grammar = grammar
+        feature_types = feature_types if feature_types else self.default_feature_types()
         self.features = self.construct_features(feature_types)
 
-    def construct_features(self, feature_types: Set[FeatureWrapper]) -> List[Feature]:
-        return [
-            feature
-            for feature_class in feature_types
-            for feature in feature_class.extract_from_grammar(grammar=self.grammar)
-        ]
+    @staticmethod
+    def default_feature_types():
+        return [ExistenceFeature, DerivationFeature, NumericFeature, LengthFeature]
+
+    def construct_features(self, feature_types: List[Type[Feature]]) -> List[Feature]:
+        factory = FeatureFactory(self.grammar)
+        return factory.build(feature_types)
 
     @abstractmethod
     def collect_features(self, test_input: Input) -> Dict[str, Any]:
@@ -259,19 +290,20 @@ class FeatureCollector(ABC):
 
 
 class GrammarFeatureCollector(FeatureCollector):
-    def collect_features_from_list(self, test_inputs: Set[Input]) -> pandas.DataFrame:
-        data = [self.collect_features(inp) for inp in test_inputs]
-        return pandas.DataFrame.from_records(data)
 
     def collect_features(self, test_input: Input) -> FeatureVector:
-        feature_vector = FeatureVector(test_input.oracle)
+        feature_vector = FeatureVector(str(test_input))
+
+        for feature in self.features:
+            feature_vector.set_feature(feature, feature.default_value)
+
         self.set_features(test_input.tree, feature_vector)
         return feature_vector
 
     def set_features(self, tree: DerivationTree, feature_vector: FeatureVector):
         (node, children) = tree
 
-        corresponding_features_1d = self.get_corresponding_feature(tree)
+        corresponding_features_1d = self.get_corresponding_feature(node)
 
         for corresponding_feature in corresponding_features_1d:
             value = corresponding_feature.evaluate(tree)
@@ -282,17 +314,11 @@ class GrammarFeatureCollector(FeatureCollector):
                 self.set_features(child, feature_vector)
 
     @lru_cache
-    def get_corresponding_feature(self, tree: DerivationTree) -> List[Feature]:
-        current_node, children = tree
-        expansion = "".join(child[0] for child in children)
-
+    def get_corresponding_feature(self, current_node: str) -> List[Feature]:
         return [
             feature
             for feature in self.features
-            if (
-                feature.non_terminal == current_node
-                and (feature.key == current_node or feature.key == expansion)
-            )
+            if (feature.non_terminal == current_node)
         ]
 
 
