@@ -8,11 +8,16 @@ from grammar_graph.gg import GrammarGraph
 from isla.language import DerivationTree
 
 from avicenna.generator import Generator
-from avicenna.feature_collector import Collector
-from avicenna.feature_extractor import Extractor, get_all_non_terminals
-from avicenna.features import STANDARD_FEATURES, FeatureWrapper, Feature
+from avicenna.feature_collector import GrammarFeatureCollector as Collector
+from avicenna.feature_extractor import SHAPRelevanceLearner
+# from avicenna.features import STANDARD_FEATURES, FeatureWrapper, Feature
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
+from avicenna.features import Feature
+
+
+def get_all_non_terminals():
+    pass
 
 
 class InputElementLearner:
@@ -27,7 +32,7 @@ class InputElementLearner:
         oracle,
         max_relevant_features: int = 2,
         generate_more_inputs: bool = True,
-        features: Set[FeatureWrapper] = STANDARD_FEATURES,
+        features = None,
         show_shap_beeswarm=False,
     ):
         """
@@ -85,7 +90,7 @@ class InputElementLearner:
         learning_data = self._get_learning_data(test_inputs)
 
         logging.info(f"Learning most relevant input elements.")
-        self._extractor = Extractor(
+        self._extractor = SHAPRelevanceLearner(
             learning_data,
             self._grammar,
             max_feature_num=self._max_relevant_features,
