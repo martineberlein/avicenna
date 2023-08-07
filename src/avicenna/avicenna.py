@@ -28,10 +28,10 @@ from avicenna.islearn import AvicennaISlearn
 from avicenna.oracle import OracleResult
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.result_table import TruthTable, TruthTableRow
-from avicenna.logger import LOGGER
 from avicenna.helpers import time
 from avicenna.execution_handler import SingleExecutionHandler, BatchExecutionHandler
 from avicenna.report import SingleFailureReport, MultipleFailureReport
+from avicenna.logger import LOGGER
 
 ISLA_GENERATOR_TIMEOUT_SECONDS = 10
 
@@ -65,18 +65,14 @@ class Avicenna(Timetable):
         self._learned_invariants: Dict[str, List[float]] = {}
         self._best_candidates: Dict[str, List[float]] = {}
 
-        self._feature_table = None
         self._infeasible_constraints: Set = set()
         self._max_conjunction_size = max_conjunction_size
 
         self.grammar: Grammar = grammar
         assert is_valid_grammar(self.grammar)
 
-        self._inputs: Set[Input] = set()
-
         self.collector = GrammarFeatureCollector(self.grammar)
-        self.feature_learner = feature_extractor.DecisionTreeRelevanceLearner(self.grammar)
-
+        self.feature_learner = feature_extractor.SHAPRelevanceLearner(self.grammar, classifier_type=feature_extractor.RandomForestRelevanceLearner)
 
         self._pattern_file = (
             pattern_file
@@ -132,6 +128,7 @@ class Avicenna(Timetable):
                 )
                 sys.exit(-1)
 
+        self.all_inputs: Set[Input] = test_inputs
         self.execution_handler.label(test_inputs, self.report)
 
     @staticmethod
@@ -154,7 +151,7 @@ class Avicenna(Timetable):
         filler_inputs: Set[Input] = set()
         generator = SimpleGenerator(self.grammar)
         if num_failing_inputs < self._targeted_start_size:
-            for _ in range(10):
+            for _ in range(50):
                 inp = generator.generate()
                 filler_inputs.add(inp)
 
@@ -166,7 +163,9 @@ class Avicenna(Timetable):
         register_termination(self._timeout)
         try:
             self._start_time = perf_counter()
-            new_inputs: Set[Input] = self._setup()
+            new_inputs: Set[Input] = self.all_inputs.union(self._setup())
+            for inp in new_inputs:
+                print(inp, inp.oracle)
             while self._do_more_iterations():
                 LOGGER.info("Starting Iteration " + str(self._iteration))
                 new_inputs = self._loop(new_inputs)
@@ -191,30 +190,35 @@ class Avicenna(Timetable):
             inp.features = self.collector.collect_features(inp)
 
         # add to global list
-        self._inputs.update(test_inputs)
+        self.all_inputs.update(test_inputs)
 
-        _ , _ , excluded_features = self.feature_learner.learn(self._inputs)
+        prom, corr, excluded_features = self.feature_learner.learn(self.all_inputs)
 
-        excluded_non_terminals: Set[str] = set([feature.non_terminal for feature in excluded_features])
-        print(excluded_non_terminals)
+        combined_prominent_non_terminals: Set[str] = set([feature.non_terminal for feature in prom.union(corr)])
+        exclusion_non_terminals = [non_terminal for non_terminal in self.grammar if non_terminal not in combined_prominent_non_terminals ]
+        print(combined_prominent_non_terminals)
+        print(exclusion_non_terminals)
 
         # Run islearn to learn new constraints
         new_candidates: List[Formula] = list(
             self._islearn.learn_failure_invariants(
-                self._inputs, excluded_non_terminals
+                self.all_inputs, exclusion_non_terminals
             ).keys()
         )
-        # for inv in new_candidates:
-        #    print(ISLaUnparser(inv).unparse())
+        for inv in new_candidates:
+            # print(ISLaUnparser(inv).unparse())
+            pass
 
+        LOGGER.info("Eval old stuff")
         # Update old candidates
         self.truthTable.evaluate(test_inputs, self._graph)
 
+        LOGGER.info("Eval new stuff")
         # Update new Candidates
         for candidate in new_candidates:
             if hash(candidate) not in self.truthTable.row_hashes:
                 self.truthTable.append(
-                    TruthTableRow(candidate).evaluate(self._inputs, self._graph)
+                    TruthTableRow(candidate).evaluate(self.all_inputs, self._graph)
                 )
 
         statistics = list()
@@ -238,59 +242,6 @@ class Avicenna(Timetable):
         for _ in range(20):
             test_inputs.add(Input(DerivationTree.from_parse_tree(fuzzer.fuzz_tree())))
         return test_inputs
-
-    @time
-    def _generate_new_inputs(self, constraints: List[str]):
-        logging.info("Generating new inputs to refine constraints.")
-
-        # Exclude all infeasible constraints:
-        num_constraints = len(constraints)
-        for constraint in constraints:
-            if constraint in self._infeasible_constraints:
-                constraints.remove(constraint)
-
-        logging.info(
-            f"Using {len(constraints)} (of {num_constraints}) constraints to generate new inputs"
-        )
-
-        inputs: List[DerivationTree] = []
-        for constraint in constraints:
-            new_input_trees: List[DerivationTree] = []
-            try:
-                logging.info(f"Solving: {constraint}")
-                solver = ISLaSolver(
-                    grammar=self.grammar,
-                    formula=constraint,
-                    max_number_free_instantiations=10,
-                    max_number_smt_instantiations=10,
-                    enable_optimized_z3_queries=True,
-                    timeout_seconds=ISLA_GENERATOR_TIMEOUT_SECONDS,
-                )
-
-                for _ in range(10):
-                    gen_inp = solver.solve()
-                    new_input_trees.append(gen_inp)
-                    logging.info(f"Generated: {gen_inp}")
-
-            except Exception as e:
-                logging.info("Error: " + str(e))
-            finally:
-                if len(new_input_trees) == 0:
-                    logging.info(
-                        "Removing constraint because no new inputs were generated"
-                    )
-                    # Solver was not able to generate inputs:
-                    self._add_infeasible_constraints(constraint)
-                else:
-                    inputs = inputs + new_input_trees
-
-        assert len(inputs) != 0, "No new inputs were generated. Exiting."
-        logging.info(f"{len(inputs)} new inputs have been generated.")
-
-        new_inputs = set()
-        for tree in inputs:
-            new_inputs.add(Input(tree=tree))
-        return new_inputs
 
     def _add_infeasible_constraints(self, constraint):
         self._infeasible_constraints.add(constraint)

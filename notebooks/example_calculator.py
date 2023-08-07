@@ -1,10 +1,8 @@
 import string
 import math
-import logging
 
 from fuzzingbook.Grammars import Grammar
-from isla.language import DerivationTree
-from isla.language import ISLaUnparser, Formula
+from isla.language import ISLaUnparser
 
 from avicenna import Avicenna
 from avicenna.oracle import OracleResult
@@ -41,10 +39,7 @@ def oracle(inp: Input) -> OracleResult:
         return OracleResult.BUG
 
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s:  %(message)s")
-
-    # from avicenna_formalizations.heartbeat import grammar, initial_inputs, prop as oracle
+if __name__ == "__main__":
     avicenna = Avicenna(
         grammar=grammar,
         initial_inputs=initial_inputs,
@@ -52,6 +47,7 @@ if __name__ == '__main__':
         max_iterations=10,
     )
 
-    result = avicenna.execute()
+    diagnoses = avicenna.explain()
 
-    print(ISLaUnparser(result[0][0]).unparse())
+    for diagnosis in diagnoses:
+        print(ISLaUnparser(diagnosis[0]).unparse())
