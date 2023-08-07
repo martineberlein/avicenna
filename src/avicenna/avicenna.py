@@ -12,27 +12,26 @@ from grammar_graph.gg import GrammarGraph
 from isla.language import DerivationTree
 from isla.language import ISLaUnparser, Formula
 from isla.solver import ISLaSolver
-from sklearn.metrics import precision_score, recall_score, f1_score
+# from sklearn.metrics import precision_score, recall_score, f1_score
 
-from avicenna.feature_collector import Collector
-from avicenna.features import FeatureWrapper, STANDARD_FEATURES
-from avicenna.generator import generate_inputs
+from avicenna import feature_extractor
+from avicenna.feature_collector import GrammarFeatureCollector
+from avicenna.generator import SimpleGenerator
 from avicenna.helpers import (
     Timetable,
     register_termination,
     CustomTimeout,
-    time,
     instantiate_learner,
-    constraint_eval,
 )
 from avicenna.input import Input
 from avicenna.islearn import AvicennaISlearn
-from avicenna.learner import InputElementLearner
 from avicenna.oracle import OracleResult
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.result_table import TruthTable, TruthTableRow
 from avicenna.logger import LOGGER
 from avicenna.helpers import time
+from avicenna.execution_handler import SingleExecutionHandler, BatchExecutionHandler
+from avicenna.report import SingleFailureReport, MultipleFailureReport
 
 ISLA_GENERATOR_TIMEOUT_SECONDS = 10
 
@@ -49,6 +48,8 @@ class Avicenna(Timetable):
         max_excluded_features: int = 3,
         pattern_file: Path = None,
         max_conjunction_size: int = 2,
+        use_multi_failure_report: bool = True,
+        use_batch_execution: bool = False,
     ):
         super().__init__(working_dir)
         self._start_time = None
@@ -63,43 +64,35 @@ class Avicenna(Timetable):
         self._all_data = None
         self._learned_invariants: Dict[str, List[float]] = {}
         self._best_candidates: Dict[str, List[float]] = {}
-        if pattern_file is not None:
-            logging.info(f"Loading pattern file from location: {str(pattern_file)}")
-            self._pattern_file = pattern_file
-        else:
-            logging.info(f"Loading default pattern file: {get_pattern_file_path()}")
-            self._pattern_file = get_pattern_file_path()
+
         self._feature_table = None
         self._infeasible_constraints: Set = set()
         self._max_conjunction_size = max_conjunction_size
 
-        self._grammar: Grammar = grammar
-        assert is_valid_grammar(self._grammar)
+        self.grammar: Grammar = grammar
+        assert is_valid_grammar(self.grammar)
 
-        self._initial_inputs: List[str] = initial_inputs
         self._inputs: Set[Input] = set()
-        self._new_inputs: Set[Input] = set()
 
-        # Syntactic Feature Collection
-        self._syntactic_features: Set[FeatureWrapper] = STANDARD_FEATURES
-        self._collector: Collector = Collector(self._grammar, self._syntactic_features)
-        self._all_features = self._collector.get_all_features()
-        self._feature_names = [f.name for f in self._all_features]
+        self.collector = GrammarFeatureCollector(self.grammar)
+        self.feature_learner = feature_extractor.DecisionTreeRelevanceLearner(self.grammar)
 
-        # Input Element Learner
-        self._input_element_learner = InputElementLearner(
-            self._grammar, self._oracle, self._max_excluded_features
+
+        self._pattern_file = (
+            pattern_file
+            if pattern_file
+            else get_pattern_file_path()
         )
 
         # Islearn
         self._graph = GrammarGraph.from_grammar(grammar)
 
-        def boolean_oracle(inp):
-            return self.map_to_bool(self._oracle(inp))
+        def boolean_oracle(inp_):
+            return self.map_to_bool(self._oracle(inp_))
 
         self._boolean_oracle = boolean_oracle
         self._islearn: AvicennaISlearn = instantiate_learner(
-            grammar=self._grammar,
+            grammar=self.grammar,
             oracle=boolean_oracle,
             activated_patterns=self._activated_patterns,
             pattern_file=self._pattern_file,
@@ -110,6 +103,36 @@ class Avicenna(Timetable):
 
         # All bug triggering inputs
         self.pathological_inputs = set()
+
+        self.report = (
+            MultipleFailureReport()
+            if use_multi_failure_report
+            else SingleFailureReport()
+        )
+
+        self.execution_handler = (
+            BatchExecutionHandler(self._oracle)
+            if use_batch_execution
+            else SingleExecutionHandler(self._oracle)
+        )
+
+        test_inputs: Set[Input] = set()
+        for inp in initial_inputs:
+            try:
+                test_inputs.add(
+                    Input(
+                        DerivationTree.from_parse_tree(
+                            next(EarleyParser(self.grammar).parse(inp))
+                        )
+                    )
+                )
+            except SyntaxError:
+                logging.error(
+                    "Avicenna: Could not parse initial inputs with given grammar!"
+                )
+                sys.exit(-1)
+
+        self.execution_handler.label(test_inputs, self.report)
 
     @staticmethod
     def map_to_bool(result: OracleResult) -> bool:
@@ -126,41 +149,20 @@ class Avicenna(Timetable):
         This function parses the given initial input files and obtains the execution label ("BUG"/"NO_BUG")
         :return:
         """
-        test_inputs: Set[Input] = set()
-        for inp in self._initial_inputs:
-            try:
-                test_inputs.add(
-                    Input(
-                        DerivationTree.from_parse_tree(
-                            next(EarleyParser(self._grammar).parse(inp))
-                        )
-                    )
-                )
-            except SyntaxError:
-                logging.error(
-                    "Avicenna: Could not parse initial inputs with given grammar!"
-                )
-                sys.exit(-1)
+        num_failing_inputs = len(self.report.get_all_failing_inputs())
 
-        for inp in test_inputs:
-            inp.oracle = self._oracle(inp)
-            print(inp, inp.oracle)
-
-        num_bug_inputs = len(
-            [inp for inp in test_inputs if inp.oracle == OracleResult.BUG]
-        )
-
-        if num_bug_inputs < self._targeted_start_size:
-            fuzzer = GrammarFuzzer(grammar=self._grammar)
+        filler_inputs: Set[Input] = set()
+        generator = SimpleGenerator(self.grammar)
+        if num_failing_inputs < self._targeted_start_size:
             for _ in range(10):
-                test_inputs.add(
-                    Input(DerivationTree.from_parse_tree(fuzzer.fuzz_tree()))
-                )
-        return test_inputs
+                inp = generator.generate()
+                filler_inputs.add(inp)
+
+        return filler_inputs
 
     @time
-    def execute(self) -> List[Tuple[Formula, float, float, float]]:
-        LOGGER.info("Starting AVICENNA.")
+    def explain(self) -> List[Tuple[Formula, float, float, float]]:
+        LOGGER.info("Starting Avicenna.")
         register_termination(self._timeout)
         try:
             self._start_time = perf_counter()
@@ -182,21 +184,19 @@ class Avicenna(Timetable):
     @time
     def _loop(self, test_inputs: Set[Input]):
         # obtain labels, execute samples (Initial Step, Activity 5)
-        for inp in test_inputs:
-            label = self._oracle(inp)
-            if label == OracleResult.BUG:
-                self.pathological_inputs.add(inp)
-            inp.oracle = label
+        self.execution_handler.label(test_inputs, self.report)
 
         # collect features from the new samples (Activity 1)
         for inp in test_inputs:
-            inp.features = self._collector.collect_features(inp)
+            inp.features = self.collector.collect_features(inp)
 
         # add to global list
         self._inputs.update(test_inputs)
 
-        # Extract the most important non-terminals that are responsible for the program behavior
-        excluded_non_terminals: Set[str] = self._get_exclusion_set(self._inputs)
+        _ , _ , excluded_features = self.feature_learner.learn(self._inputs)
+
+        excluded_non_terminals: Set[str] = set([feature.non_terminal for feature in excluded_features])
+        print(excluded_non_terminals)
 
         # Run islearn to learn new constraints
         new_candidates: List[Formula] = list(
@@ -234,27 +234,10 @@ class Avicenna(Timetable):
 
         # Generate new Inputs
         test_inputs = set()
-        fuzzer = GrammarFuzzer(grammar=self._grammar)
+        fuzzer = GrammarFuzzer(grammar=self.grammar)
         for _ in range(20):
             test_inputs.add(Input(DerivationTree.from_parse_tree(fuzzer.fuzz_tree())))
         return test_inputs
-
-    @time
-    def _get_exclusion_set(self, test_inputs: Set[Input]) -> Set[str]:
-        LOGGER.info("Determining the most important non-terminals.")
-
-        learner = InputElementLearner(
-            grammar=self._grammar,
-            oracle=self._oracle,
-            max_relevant_features=self._max_excluded_features,
-        )
-        learner.learn(test_inputs)
-        relevant, irrelevant = learner.get_exclusion_sets()
-
-        LOGGER.info(f"Determined: {relevant} to be the most relevant features.")
-        LOGGER.info(f"Excluding: {irrelevant} from candidate consideration.")
-
-        return irrelevant
 
     @time
     def _generate_new_inputs(self, constraints: List[str]):
@@ -276,7 +259,7 @@ class Avicenna(Timetable):
             try:
                 logging.info(f"Solving: {constraint}")
                 solver = ISLaSolver(
-                    grammar=self._grammar,
+                    grammar=self.grammar,
                     formula=constraint,
                     max_number_free_instantiations=10,
                     max_number_smt_instantiations=10,

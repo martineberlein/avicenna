@@ -1,17 +1,39 @@
 import logging
 from typing import List, Tuple, Set, Callable
+from abc import ABC, abstractmethod
 
 from fuzzingbook.Parser import EarleyParser
 
 from islearn.mutation import MutationFuzzer
 from islearn.helpers import tree_in
-from isla.fuzzer import GrammarCoverageFuzzer
+from isla.fuzzer import GrammarCoverageFuzzer, GrammarFuzzer
 from isla.language import DerivationTree
-
 from fuzzingbook.Grammars import Grammar
 
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
+
+
+class Generator(ABC):
+
+    def __init__(self, grammar: Grammar):
+        self.grammar = grammar
+
+    @abstractmethod
+    def generate(self) -> Input:
+        raise NotImplementedError
+
+
+class SimpleGenerator(Generator):
+
+    def __init__(self, grammar: Grammar):
+        super().__init__(grammar)
+
+    def generate(self) -> Input:
+        fuzzer = GrammarFuzzer(self.grammar)
+        return Input(
+            tree=fuzzer.fuzz_tree()
+        )
 
 
 def generate_inputs(
@@ -32,7 +54,7 @@ def generate_inputs(
         else:
             negative_trees.append(inp.tree)
 
-    generator = Generator(
+    generator = MutationGenerator(
         max_positive=max_positive_samples,
         max_negative=max_negative_samples,
         grammar=grammar,
@@ -49,7 +71,7 @@ def generate_inputs(
     return new_inputs
 
 
-class Generator:
+class MutationGenerator:
     def __init__(self, max_positive, max_negative, grammar: Grammar, prop):
         self._max_positive_samples = max_positive
         self._max_negative_samples = max_negative
