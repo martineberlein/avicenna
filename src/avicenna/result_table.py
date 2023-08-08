@@ -1,5 +1,5 @@
 import copy
-from typing import Iterable, Set
+from typing import Iterable, Set, List
 
 from grammar_graph import gg
 from isla import language
@@ -31,6 +31,8 @@ class TruthTableRow:
         tn: int = 0,
     ):
         self.formula = formula
+        # self.precision_results: List[bool]
+        # self.recall_results: [bool]
         self.n = n
         self.tp = tp
         self.fp = fp
@@ -70,6 +72,15 @@ class TruthTableRow:
     def eval_result(self):
         assert self.n == (self.tp + self.tn + self.fn + self.fp)
         return self.n, self.tp, self.fp, self.fn, self.tn
+
+    def set_results(self, n, tp, fp, fn, tn) -> "TruthTableRow":
+        self.n = n
+        self.tp = tp
+        self.fp = fp
+        self.fn = fn
+        self.tn = tn
+
+        return self
 
     def __repr__(self):
         return f"TruthTableRow({repr(self.formula)})"

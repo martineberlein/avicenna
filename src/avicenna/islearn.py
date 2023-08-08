@@ -5,9 +5,11 @@ from typing import List, Tuple, Set, Dict, Optional, cast, Callable, Iterable, S
 
 import isla.fuzzer
 from isla import language, isla_predicates
+from isla.language import DerivationTree
 from isla.helpers import RE_NONTERMINAL
 from isla.language import ensure_unique_bound_variables, Formula
 from islearn.reducer import InputReducer
+from islearn.learner import weighted_geometric_mean
 
 
 import inspect
@@ -34,7 +36,7 @@ logger = logging.getLogger("learner")
 
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
-from avicenna.result_table import TruthTable, TruthTableRow
+# from avicenna.result_table import TruthTable, TruthTableRow
 
 
 class AviIslearn(InvariantLearner):
@@ -80,6 +82,7 @@ class AviIslearn(InvariantLearner):
         self.positive_examples: Set[Input] = set()
         self.negative_examples: Set[Input] = set()
         self.positive_examples_for_learning: List[language.DerivationTree] = []
+        # self.exclude_nonterminals = ["<digits>", "<maybe_digits>", "<onenine>", "<arith_expr>", "<start>", "<digit>"]
 
     def learn_failure_invariants(
         self,
@@ -89,7 +92,7 @@ class AviIslearn(InvariantLearner):
         exclude_non_terminals: Optional[Iterable[str]] = None,
     ) -> Dict[language.Formula, Tuple[float, float]]:
         positive_inputs = set(
-            [inp.tree for inp in test_inputs if inp.oracle == OracleResult.BUG]
+            [inp for inp in test_inputs if inp.oracle == OracleResult.BUG]
         ) or set([])
         negative_inputs = set(
             [inp.tree for inp in test_inputs if inp.oracle == OracleResult.NO_BUG]
@@ -97,25 +100,35 @@ class AviIslearn(InvariantLearner):
 
         self.exclude_non_terminals = exclude_non_terminals or set([])
 
-        self._learn_invariants(positive_inputs, negative_inputs, recall_truth_table)
+        self._learn_invariants(positive_inputs, negative_inputs, precision_truth_table,recall_truth_table)
+
+        print("x", positive_inputs)
 
         return dict()
 
     def _learn_invariants(
-        self, positive_inputs: Set[Input], negative_inputs: Set[Input], precision_truth_table:TruthTable, recall_truth_table: TruthTable, max_number_positive_inputs_for_learning=10
+        self, positive_inputs: Set[Input], negative_inputs: Set[Input], precision_truth_table: TruthTable, recall_truth_table: TruthTable, max_number_positive_inputs_for_learning=10
     ):
-        positive_inputs_for_learning = self._sort_inputs(
-            self.original_positive_examples,
+        sorted_positive_inputs = self._sort_inputs(
+            positive_inputs,
             self.filter_inputs_for_learning_by_kpaths,
             more_paths_weight=1.7,
             smaller_inputs_weight=1.0,
-        )[:max_number_positive_inputs_for_learning]
+        )
+        positive_inputs_for_learning = sorted_positive_inputs[:max_number_positive_inputs_for_learning]
 
+        for inp in positive_inputs_for_learning:
+            print(str(inp))
+
+        self.exclude_nonterminals = ["<digits>", "<maybe_digits>", "<onenine>", "<arith_expr>", "<start>", "<digit>"]
         candidates = self.generate_candidates(
-            self.patterns, positive_inputs_for_learning
+            self.patterns, [inp.tree for inp in positive_inputs_for_learning]
         )
 
         logger.info("Found %d invariant candidates.", len(candidates))
+
+        for candidate in candidates:
+            print(language.ISLaUnparser(candidate).unparse())
 
         recall_truth_table.evaluate(positive_inputs, self.graph)
 
@@ -135,6 +148,61 @@ class AviIslearn(InvariantLearner):
 
 
         pass
+
+    def _sort_inputs(
+            self,
+            inputs: Iterable[Input],
+            filter_inputs_for_learning_by_kpaths: bool,
+            more_paths_weight: float = 1.0,
+            smaller_inputs_weight: float = 0.0) -> List[Input]:
+        assert more_paths_weight or smaller_inputs_weight
+        # inputs = set(inputs)
+        result: List[Input] = []
+
+        tree_paths = {
+            inp: {
+                path for path in self.graph.k_paths_in_tree(inp.tree.to_parse_tree(), self.k)
+                if (not isinstance(path[-1], gg.TerminalNode) or
+                    (not isinstance(path[-1], gg.TerminalNode) and len(path[-1].symbol) > 1))
+            } for inp in inputs}
+
+        covered_paths: Set[Tuple[gg.Node, ...]] = set([])
+        max_len_input = max(len(inp.tree) for inp in inputs)
+
+        def uncovered_paths(inp: Input) -> Set[Tuple[gg.Node, ...]]:
+            return {path for path in tree_paths[inp] if path not in covered_paths}
+
+        def sort_by_paths_key(inp: Input) -> float:
+            return len(uncovered_paths(inp))
+
+        def sort_by_length_key(inp: Input) -> float:
+            return len(inp.tree)
+
+        def sort_by_paths_and_length_key(inp: Input) -> float:
+            return weighted_geometric_mean(
+                [len(uncovered_paths(inp)), max_len_input - len(inp.tree)],
+                [more_paths_weight, smaller_inputs_weight])
+
+        if not more_paths_weight:
+            key = sort_by_length_key
+        elif not smaller_inputs_weight:
+            key = sort_by_paths_key
+        else:
+            key = sort_by_paths_and_length_key
+
+        while inputs:
+            inp = sorted(inputs, key=key, reverse=True)[0]
+            inputs.remove(inp)
+            uncovered = uncovered_paths(inp)
+
+            if filter_inputs_for_learning_by_kpaths and not uncovered:
+                continue
+
+            covered_paths.update(uncovered)
+            result.append(inp)
+
+        return result
+
 
     def reduce_inputs(
         self, test_inputs: Set[Input], negative_inputs: Set[Input]
@@ -281,7 +349,7 @@ class AvicennaISlearn(InvariantLearner):
         self,
         test_inputs: Optional[Iterable[Input]] = None,
         exclude_non_terminals: Optional[Iterable[str]] = None,
-    ) -> Dict[language.Formula, Tuple[float, float]]:
+    ) -> Tuple[Dict[language.Formula, Tuple[float, float]], TruthTable, TruthTable]:
         self.positive_examples = [
             inp.tree for inp in test_inputs if inp.oracle == OracleResult.BUG
         ] or []
@@ -306,7 +374,7 @@ class AvicennaISlearn(InvariantLearner):
 
     def learn_invariants(
         self, ensure_unique_var_names: bool = True
-    ) -> Dict[language.Formula, Tuple[float, float]]:
+    ) -> Tuple[Dict[language.Formula, Tuple[float, float]], TruthTable, TruthTable]:
         if self.prop and self.do_generate_more_inputs:
             self._generate_more_inputs()
             assert (
@@ -606,7 +674,9 @@ class AvicennaISlearn(InvariantLearner):
             for rows_with_indices in itertools.combinations(
                 enumerate(precision_truth_table), level
             ):
+                # print(rows_with_indices)
                 precision_table_rows = [row for (_, row) in rows_with_indices]
+                #print(precision_table_rows)
 
                 # Only consider combinations where all rows meet minimum recall requirement.
                 # Recall doesn't get better by forming conjunctions!
@@ -621,6 +691,9 @@ class AvicennaISlearn(InvariantLearner):
                 conjunction = functools.reduce(
                     TruthTableRow.__and__, precision_table_rows
                 )
+
+                conjunction.formula = language.ensure_unique_bound_variables(conjunction.formula)
+
                 # if conjunction.formula in self.previously_seen_invariants:
                 #    print("--------------------")
                 #    continue
@@ -637,6 +710,7 @@ class AvicennaISlearn(InvariantLearner):
                     recall_truth_table[idx] for idx, _ in rows_with_indices
                 ]
                 conjunction = functools.reduce(TruthTableRow.__and__, recall_table_rows)
+                conjunction.formula = language.ensure_unique_bound_variables(conjunction.formula)
                 recall_truth_table.append(conjunction)
 
         precision_truth_table = conjunctive_precision_truthtable
@@ -647,9 +721,7 @@ class AvicennaISlearn(InvariantLearner):
         #            if row.eval_result() == 0)
 
         result: Dict[language.Formula, Tuple[float, float]] = {
-            precision_row.formula
-            if not ensure_unique_var_names
-            else language.ensure_unique_bound_variables(precision_row.formula): (
+            precision_row.formula: (
                 1 - precision_row.eval_result(),
                 recall_truth_table[idx].eval_result(),
             )
@@ -677,9 +749,9 @@ class AvicennaISlearn(InvariantLearner):
         # for cond in result.keys():
         #    self.previously_seen_invariants.add(cond)
 
-        return dict(
+        return (dict(
             cast(
                 List[Tuple[language.Formula, Tuple[float, float]]],
                 sorted(result.items(), key=lambda p: (p[1], -len(p[0])), reverse=True),
             )
-        )
+        ), precision_truth_table, recall_truth_table)

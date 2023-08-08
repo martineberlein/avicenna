@@ -4,6 +4,7 @@ from pathlib import Path
 from time import perf_counter
 from typing import List, Dict, Set, Callable, Optional, Tuple
 
+import islearn.learner
 import pandas
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
 from fuzzingbook.GrammarFuzzer import GrammarFuzzer
@@ -12,6 +13,8 @@ from grammar_graph.gg import GrammarGraph
 from isla.language import DerivationTree
 from isla.language import ISLaUnparser, Formula
 from isla.solver import ISLaSolver
+from islearn.learner import TruthTable as IslearnTruthTable
+
 # from sklearn.metrics import precision_score, recall_score, f1_score
 
 from avicenna import feature_extractor
@@ -72,13 +75,11 @@ class Avicenna(Timetable):
         assert is_valid_grammar(self.grammar)
 
         self.collector = GrammarFeatureCollector(self.grammar)
-        self.feature_learner = feature_extractor.SHAPRelevanceLearner(self.grammar, classifier_type=feature_extractor.RandomForestRelevanceLearner)
-
-        self._pattern_file = (
-            pattern_file
-            if pattern_file
-            else get_pattern_file_path()
+        self.feature_learner = feature_extractor.SHAPRelevanceLearner(
+            self.grammar, classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner
         )
+
+        self._pattern_file = pattern_file if pattern_file else get_pattern_file_path()
 
         # Islearn
         self._graph = GrammarGraph.from_grammar(grammar)
@@ -151,7 +152,7 @@ class Avicenna(Timetable):
         filler_inputs: Set[Input] = set()
         generator = SimpleGenerator(self.grammar)
         if num_failing_inputs < self._targeted_start_size:
-            for _ in range(50):
+            for _ in range(10):
                 inp = generator.generate()
                 filler_inputs.add(inp)
 
@@ -194,39 +195,39 @@ class Avicenna(Timetable):
 
         prom, corr, excluded_features = self.feature_learner.learn(self.all_inputs)
 
-        combined_prominent_non_terminals: Set[str] = set([feature.non_terminal for feature in prom.union(corr)])
-        exclusion_non_terminals = [non_terminal for non_terminal in self.grammar if non_terminal not in combined_prominent_non_terminals ]
+        combined_prominent_non_terminals: Set[str] = set(
+            [feature.non_terminal for feature in prom.union(corr)]
+        )
+        exclusion_non_terminals = [
+            non_terminal
+            for non_terminal in self.grammar
+            if non_terminal not in combined_prominent_non_terminals
+        ]
         print(combined_prominent_non_terminals)
         print(exclusion_non_terminals)
 
-        # Run islearn to learn new constraints
-        new_candidates: List[Formula] = list(
-            self._islearn.learn_failure_invariants(
-                self.all_inputs, exclusion_non_terminals
-            ).keys()
+        new_candidates, precision_truth_table, recall_truth_table = self._islearn.learn_failure_invariants(
+            self.all_inputs, exclusion_non_terminals
         )
-        for inv in new_candidates:
-            # print(ISLaUnparser(inv).unparse())
-            pass
 
-        LOGGER.info("Eval old stuff")
-        # Update old candidates
-        self.truthTable.evaluate(test_inputs, self._graph)
+        new_candidates = new_candidates.keys()
 
         LOGGER.info("Eval new stuff")
         # Update new Candidates
         for candidate in new_candidates:
             if hash(candidate) not in self.truthTable.row_hashes:
-                self.truthTable.append(
-                    TruthTableRow(candidate).evaluate(self.all_inputs, self._graph)
-                )
+                self.truthTable.append(TruthTableRow(candidate).set_results(*self.get_statistics(candidate, precision_truth_table, recall_truth_table)))
+            else:
+                self.truthTable[candidate].evaluate(test_inputs, self._graph)
 
-        statistics = list()
+        untouched_formulas = [row.formula for row in self.truthTable if row.formula not in set(new_candidates)]
+        for formula in untouched_formulas:
+            self.truthTable[formula].evaluate(test_inputs, self._graph)
+
         for row in self.truthTable:
-            precision = row.tp / (row.tp + row.fp)
-            recall = row.tp / (row.tp + row.fn)
-            f1 = (2 * precision * recall) / (precision + recall)
-            statistics.append((row.formula, precision, recall, f1))
+            _, tp, fp, fn, _ = row.eval_result()
+            if (tp/(tp + fp) < 0.6) or tp/(tp + fn) < 0.9:
+                self.truthTable.remove(row)
 
         # negate Constraints
         # TODO
@@ -242,6 +243,24 @@ class Avicenna(Timetable):
         for _ in range(20):
             test_inputs.add(Input(DerivationTree.from_parse_tree(fuzzer.fuzz_tree())))
         return test_inputs
+
+    @staticmethod
+    def get_statistics(
+        formula: Formula,
+        precision_truth_table: IslearnTruthTable,
+        recall_truth_table: IslearnTruthTable,
+    ) -> Tuple[int, float, float, float, float]:
+        recall_results = recall_truth_table[formula].eval_results
+        precision_results = precision_truth_table[formula].eval_results
+        tp = sum(int(r) for r in recall_results)
+        fp = sum(int(r) for r in precision_results)
+        return (
+            len(precision_results) + len(recall_results),
+            tp,
+            fp,
+            len(recall_results) - tp,
+            len(precision_results) - fp,
+        )
 
     def _add_infeasible_constraints(self, constraint):
         self._infeasible_constraints.add(constraint)
@@ -275,7 +294,7 @@ class Avicenna(Timetable):
             "\n".join(
                 map(
                     lambda p: f"({p[1], p[2], p[3]}): " + ISLaUnparser(p[0]).unparse(),
-                    all_constraints[0:10],
+                    all_constraints[0:30],
                 )
             )
         )
