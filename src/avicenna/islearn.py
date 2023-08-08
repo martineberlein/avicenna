@@ -300,7 +300,7 @@ class AvicennaISlearn(InvariantLearner):
             not self.prop(example) for example in self.negative_examples
         )
 
-        self.exclude_non_terminals = exclude_non_terminals or set([])
+        self.exclude_nonterminals = exclude_non_terminals or set([])
 
         return self.learn_invariants()
 
