@@ -27,7 +27,7 @@ from avicenna.helpers import (
     instantiate_learner,
 )
 from avicenna.input import Input
-from avicenna.islearn import AvicennaISlearn
+from avicenna.islearn import AvicennaISlearn, AvicennaTruthTable, AvicennaTruthTableRow, AviIslearn
 from avicenna.oracle import OracleResult
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.result_table import TruthTable, TruthTableRow
@@ -59,7 +59,7 @@ class Avicenna(Timetable):
         self._activated_patterns = activated_patterns
         self._oracle = oracle
         self._max_iterations: int = max_iterations
-        self._max_excluded_features: int = max_excluded_features - 1
+        self._top_n: int = max_excluded_features -1
         self._targeted_start_size: int = 10
         self._iteration = 0
         self._timeout: int = 3600  # timeout in seconds
@@ -76,7 +76,7 @@ class Avicenna(Timetable):
 
         self.collector = GrammarFeatureCollector(self.grammar)
         self.feature_learner = feature_extractor.SHAPRelevanceLearner(
-            self.grammar, classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner
+            self.grammar, top_n=self._top_n, classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner
         )
 
         self._pattern_file = pattern_file if pattern_file else get_pattern_file_path()
@@ -95,8 +95,15 @@ class Avicenna(Timetable):
             pattern_file=self._pattern_file,
         )
 
+        self.pattern_learner = AviIslearn(
+            grammar,
+            pattern_file=str(self._pattern_file)
+        )
+
         # TruthTable
         self.truthTable: TruthTable = TruthTable()
+        self.precision_truth_table = AvicennaTruthTable()
+        self.recall_truth_table = AvicennaTruthTable()
 
         # All bug triggering inputs
         self.pathological_inputs = set()
@@ -152,7 +159,7 @@ class Avicenna(Timetable):
         filler_inputs: Set[Input] = set()
         generator = SimpleGenerator(self.grammar)
         if num_failing_inputs < self._targeted_start_size:
-            for _ in range(10):
+            for _ in range(100):
                 inp = generator.generate()
                 filler_inputs.add(inp)
 
@@ -165,8 +172,6 @@ class Avicenna(Timetable):
         try:
             self._start_time = perf_counter()
             new_inputs: Set[Input] = self.all_inputs.union(self._setup())
-            for inp in new_inputs:
-                print(inp, inp.oracle)
             while self._do_more_iterations():
                 LOGGER.info("Starting Iteration " + str(self._iteration))
                 new_inputs = self._loop(new_inputs)
@@ -206,8 +211,11 @@ class Avicenna(Timetable):
         print(combined_prominent_non_terminals)
         print(exclusion_non_terminals)
 
-        new_candidates, precision_truth_table, recall_truth_table = self._islearn.learn_failure_invariants(
-            self.all_inputs, exclusion_non_terminals
+        # new_candidates, precision_truth_table, recall_truth_table = self._islearn.learn_failure_invariants(
+        #     self.all_inputs, exclusion_non_terminals
+        #)
+        new_candidates, self.precision_truth_table, self.recall_truth_table = self.pattern_learner.learn_failure_invariants(
+            test_inputs, self.precision_truth_table, self.recall_truth_table, exclusion_non_terminals
         )
 
         new_candidates = new_candidates.keys()
@@ -216,7 +224,7 @@ class Avicenna(Timetable):
         # Update new Candidates
         for candidate in new_candidates:
             if hash(candidate) not in self.truthTable.row_hashes:
-                self.truthTable.append(TruthTableRow(candidate).set_results(*self.get_statistics(candidate, precision_truth_table, recall_truth_table)))
+                self.truthTable.append(TruthTableRow(candidate).set_results(*self.get_statistics(candidate, self.precision_truth_table, self.recall_truth_table)))
             else:
                 self.truthTable[candidate].evaluate(test_inputs, self._graph)
 

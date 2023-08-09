@@ -194,75 +194,31 @@ class AvicennaTruthTable:
 
         return self
 
-    def evaluate(
-            self,
-            graph: gg.GrammarGraph,
-            columns_parallel: bool = False,
-            rows_parallel: bool = False,
-            lazy: bool = False,
-            result_threshold: float = .9) -> 'AvicennaTruthTable':
-        """If lazy is True, then column evaluation stops as soon as result_threshold can no longer be
-        reached. E.g., if result_threshold is .9 and there are 100 inputs, then after more than
-        10 negative results, 90% positive results is no longer possible."""
-
-        return self
-
-
-
 
 class AviIslearn(InvariantLearner):
     def __init__(
         self,
         grammar: Grammar,
-        prop: Optional[Callable[[Input], OracleResult]] = None,
         patterns: Optional[List[language.Formula | str]] = None,
         pattern_file: Optional[str] = None,
         activated_patterns: Optional[Iterable[str]] = None,
         deactivated_patterns: Optional[Iterable[str]] = None,
     ):
-        super().__init__(grammar)
-        self.all_negative_inputs = None
-        self.all_positive_inputs = None
-        self.grammar = grammar
-        self.canonical_grammar = canonical(grammar)
+        super().__init__(grammar, patterns=patterns, pattern_file=pattern_file, activated_patterns=activated_patterns, deactivated_patterns=deactivated_patterns)
+        self.all_negative_inputs: Set[Input] = set()
+        self.all_positive_inputs: Set[Input] = set()
         self.graph = gg.GrammarGraph.from_grammar(grammar)
-        self.prop = prop
-
-        assert not activated_patterns or not deactivated_patterns
-        self.patterns = []
-        if not patterns:
-            pattern_repo = patterns_from_file(pattern_file)
-            if activated_patterns:
-                self.patterns = [
-                    pattern
-                    for name in activated_patterns
-                    for pattern in pattern_repo[name]
-                ]
-            else:
-                self.patterns = list(
-                    pattern_repo.get_all(but=deactivated_patterns or [])
-                )
-        else:
-            self.patterns = [
-                pattern
-                if isinstance(pattern, language.Formula)
-                else parse_abstract_isla(pattern, grammar)
-                for pattern in patterns
-            ]
 
         # Set later
-        self.exclude_non_terminals: Set[str] = set([])
-        self.positive_examples: Set[Input] = set()
-        self.negative_examples: Set[Input] = set()
+        self.exclude_nonterminals: Set[str] = set([])
         self.positive_examples_for_learning: List[language.DerivationTree] = []
 
     def learn_failure_invariants(
         self,
         test_inputs: Set[Input],
-        all_test_inputs: Set[Input],
         precision_truth_table: AvicennaTruthTable,
         recall_truth_table: AvicennaTruthTable,
-        exclude_non_terminals: Optional[Iterable[str]] = None,
+        exclude_nonterminals: Optional[Iterable[str]] = None,
     ) -> [Dict[language.Formula, Tuple[float, float]], AvicennaTruthTable, AvicennaTruthTable]:
         positive_inputs = set(
             [inp for inp in test_inputs if inp.oracle == OracleResult.BUG]
@@ -271,22 +227,16 @@ class AviIslearn(InvariantLearner):
             [inp for inp in test_inputs if inp.oracle == OracleResult.NO_BUG]
         ) or set([])
 
-        self.all_positive_inputs = set(
-            [inp for inp in all_test_inputs if inp.oracle == OracleResult.BUG]
-        ) or set([])
-        self.all_negative_inputs = set(
-            [inp for inp in all_test_inputs if inp.oracle == OracleResult.NO_BUG]
-        ) or set([])
-
         self.all_positive_inputs.update(positive_inputs)
         self.all_negative_inputs.update(negative_inputs)
 
-        self.exclude_non_terminals = exclude_non_terminals or set([])
+        self.exclude_nonterminals = exclude_nonterminals or set([])
         return self._learn_invariants(positive_inputs, negative_inputs, precision_truth_table,recall_truth_table)
 
     def _learn_invariants(
         self, positive_inputs: Set[Input], negative_inputs: Set[Input], precision_truth_table: AvicennaTruthTable, recall_truth_table: AvicennaTruthTable, max_number_positive_inputs_for_learning=10
     ):
+
         p_dummy = copy.deepcopy(self.all_positive_inputs)
         sorted_positive_inputs = self._sort_inputs(
             p_dummy,
@@ -299,7 +249,6 @@ class AviIslearn(InvariantLearner):
         for inp in positive_inputs_for_learning:
             print(str(inp))
 
-        self.exclude_nonterminals = ["<digits>", "<maybe_digits>", "<onenine>", "<arith_expr>", "<start>", "<digit>"]
         candidates = self.generate_candidates(
             self.patterns, [inp.tree for inp in positive_inputs_for_learning]
         )
@@ -308,21 +257,16 @@ class AviIslearn(InvariantLearner):
 
         for candidate in candidates.union(set([row.formula for row in recall_truth_table])):
             if len(recall_truth_table) > 0 and AvicennaTruthTableRow(candidate) in recall_truth_table:
-                #print(f"Found Existing Formula! Type = {type(recall_truth_table[candidate].formula)}")
-                print("Before: ", len(recall_truth_table[candidate].inputs),
+                logger.debug("Before: ", len(recall_truth_table[candidate].inputs),
                       len(recall_truth_table[candidate].eval_results))
                 recall_truth_table[candidate].evaluate(positive_inputs, self.graph)
-                #print("After: ", len(recall_truth_table[candidate].inputs), len(recall_truth_table[candidate].eval_results))
             else:
-                #print("Complete Eval Recall")
                 new_row = AvicennaTruthTableRow(candidate)
                 new_row.evaluate(self.all_positive_inputs, self.graph, lazy=False)
                 recall_truth_table.append(
                     new_row
                 )
-                # print("Should: ", len(recall_truth_table[candidate].inputs), len(recall_truth_table[candidate].eval_results))
 
-        print(len(recall_truth_table))
         # Deleting throws away all calculated evals so far == bad -> maybe only pass TruthTableRows >= self.min_recall?
         rows_to_remove = [row for row in recall_truth_table if row.eval_result() < self.min_recall or isinstance(row.formula, ConjunctiveFormula)]
         if self.max_disjunction_size < 2:
@@ -330,6 +274,7 @@ class AviIslearn(InvariantLearner):
                 recall_truth_table.remove(row)
                 precision_truth_table.remove(row)
 
+        logger.info("Evaluating precision.")
         for row in recall_truth_table:
             if len(recall_truth_table) > 0 and row in precision_truth_table:
                 precision_truth_table[row.formula].evaluate(negative_inputs, self.graph)
@@ -374,6 +319,8 @@ class AviIslearn(InvariantLearner):
         ), precision_truth_table, recall_truth_table)
 
     def get_conjunctions(self, precision_truth_table, recall_truth_table):
+        logger.info("Calculating precision of Boolean combinations.")
+
         for level in range(2, self.max_conjunction_size + 1):
             logger.debug(f"Conjunction size: {level}")
             assert len(recall_truth_table) == len(precision_truth_table)
@@ -568,7 +515,7 @@ class AvicennaISlearn(InvariantLearner):
         self.filter_inputs_for_learning_by_kpaths = filter_inputs_for_learning_by_kpaths
 
         # Set later
-        self.exclude_non_terminals = set([])
+        # self.exclude_nonterminals = set([])
         self.positive_examples: List[language.DerivationTree] = list()
         self.original_positive_examples: List[language.DerivationTree] = list(
             self.positive_examples
@@ -619,7 +566,7 @@ class AvicennaISlearn(InvariantLearner):
     def learn_failure_invariants(
         self,
         test_inputs: Optional[Iterable[Input]] = None,
-        exclude_non_terminals: Optional[Iterable[str]] = None,
+        exclude_nonterminals: Optional[Iterable[str]] = None,
     ) -> Tuple[Dict[language.Formula, Tuple[float, float]], TruthTable, TruthTable]:
         self.positive_examples = [
             inp.tree for inp in test_inputs if inp.oracle == OracleResult.BUG
@@ -639,7 +586,7 @@ class AvicennaISlearn(InvariantLearner):
             not self.prop(example) for example in self.negative_examples
         )
 
-        self.exclude_nonterminals = exclude_non_terminals or set([])
+        self.exclude_nonterminals = exclude_nonterminals or set([])
 
         return self.learn_invariants()
 
