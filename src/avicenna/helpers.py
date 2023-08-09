@@ -8,7 +8,6 @@ from islearn.learner import InvariantLearner
 from isla.evaluator import evaluate
 
 from avicenna.oracle import OracleResult
-from avicenna.islearn import AvicennaISlearn
 from avicenna.input import Input
 
 
@@ -41,51 +40,6 @@ def register_termination(timeout):
         # signal.signal(signal.SIGTERM, alhazen_timeout)
         # signal.signal(signal.SIGINT, alhazen_timeout)
         signal.alarm(timeout)
-
-
-def instantiate_learner(
-    grammar,
-    oracle,
-    activated_patterns=None,
-    pattern_file=None,
-    min_recall=0.9,
-    min_specificity=0.6,
-    deactivated_patterns: Set = None,
-    max_conjunction_size=2,
-) -> AvicennaISlearn:
-    """
-        Helper function that calls ISLearn to learn a set of invariants from a given set of input samples.
-        :param max_conjunction_size:
-        :param grammar:
-        :param oracle:
-        :param activated_patterns:
-        :param excluded_features:
-        :param pattern_file:
-        :param min_recall:
-        :param min_specificity:
-        :param deactivated_patterns: Set = None
-    :
-        :return:
-
-    """
-    # Start ISLearn with the InvariantLearner
-    return AvicennaISlearn(
-        grammar,
-        oracle,
-        activated_patterns=activated_patterns,
-        reduce_inputs_for_learning=False,
-        reduce_all_inputs=False,
-        filter_inputs_for_learning_by_kpaths=False,
-        do_generate_more_inputs=False,
-        generate_new_learning_samples=False,
-        min_specificity=min_specificity,
-        min_recall=min_recall,
-        pattern_file=pattern_file,
-        deactivated_patterns=deactivated_patterns,
-        max_conjunction_size=max_conjunction_size,
-        # target_number_positive_samples=20,
-        target_number_positive_samples_for_learning=10,
-    )
 
 
 def time(f):

@@ -24,11 +24,9 @@ from avicenna.helpers import (
     Timetable,
     register_termination,
     CustomTimeout,
-    instantiate_learner,
 )
 from avicenna.input import Input
 from avicenna.islearn import (
-    AvicennaISlearn,
     AvicennaTruthTable,
     AvicennaTruthTableRow,
     AviIslearn,
@@ -95,12 +93,6 @@ class Avicenna(Timetable):
             return self.map_to_bool(self._oracle(inp_))
 
         self._boolean_oracle = boolean_oracle
-        self._islearn: AvicennaISlearn = instantiate_learner(
-            grammar=self.grammar,
-            oracle=boolean_oracle,
-            activated_patterns=self._activated_patterns,
-            pattern_file=self._pattern_file,
-        )
 
         self.pattern_learner = AviIslearn(grammar, pattern_file=str(self._pattern_file))
 

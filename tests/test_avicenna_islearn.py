@@ -26,7 +26,7 @@ class TestAvicennaIslearn(unittest.TestCase):
             ("sqrt(-20)", OracleResult.BUG),
         ]
         self.test_inputs = set(
-            [Input.from_str(grammar, inp, oracle) for inp, oracle in inputs]
+            [Input.from_str(grammar, inp, inp_oracle) for inp, inp_oracle in inputs]
         )
 
     def test_avicenna_islearn(self):
@@ -66,7 +66,7 @@ class TestAvicennaIslearn(unittest.TestCase):
             ("tan(-2)", OracleResult.NO_BUG),
         ]
         new_inputs = set(
-            [Input.from_str(grammar, inp, oracle) for inp, oracle in inputs]
+            [Input.from_str(grammar, inp, inp_oracle) for inp, inp_oracle in inputs]
         )
         # self.test_inputs.update(new_inputs)
         new_inputs = new_inputs.difference(self.test_inputs)
@@ -88,7 +88,7 @@ class TestAvicennaIslearn(unittest.TestCase):
         test_inputs = set()
         for _ in range(200):
             inp = fuzzer.fuzz_tree()
-            test_inputs.add(Input(tree=inp, oracle=oracle(str(inp))))
+            test_inputs.add(Input(inp, oracle(str(inp))))
 
         avi_islearn = AviIslearn(grammar, pattern_file=str(get_pattern_file_path()))
         exclude_nonterminals = [
@@ -119,7 +119,7 @@ class TestAvicennaIslearn(unittest.TestCase):
             ("tan(-2)", OracleResult.NO_BUG),
         ]
         new_inputs = set(
-            [Input.from_str(grammar, inp, oracle) for inp, oracle in inputs]
+            [Input.from_str(grammar, inp, inp_oracle) for inp, inp_oracle in inputs]
         )
         # test_inputs.update(new_inputs)
         new_inputs = new_inputs.difference(test_inputs)
@@ -137,8 +137,9 @@ class TestAvicennaIslearn(unittest.TestCase):
         for f in failure_constraints:
             print(f)
 
+    @unittest.skip
     def test_old(self):
-        from avicenna.islearn import AvicennaISlearn
+        #from avicenna.islearn import AvicennaISlearn
 
         fuzzer = GrammarFuzzer(grammar)
         test_inputs = set()

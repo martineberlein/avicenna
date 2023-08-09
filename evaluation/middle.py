@@ -82,7 +82,8 @@ if __name__ == '__main__':
         grammar=grammar,
         initial_inputs=["3, 1, 4", "3, 2, 1"],
         oracle=oracle,
-        max_excluded_features=4
+        max_excluded_features=4,
+        max_iterations=10
     )
 
     result = avicenna.explain()
