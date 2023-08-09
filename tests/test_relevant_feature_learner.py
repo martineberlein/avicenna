@@ -81,8 +81,6 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         print(len([inp for inp in test_inputs if inp.oracle == OracleResult.BUG]))
         print(len([inp for inp in test_inputs if inp.oracle == OracleResult.NO_BUG]))
 
-
-
     def test_learner_xml(self):
         from isla.derivation_tree import DerivationTree
         from isla_formalizations import xml_lang

@@ -49,8 +49,10 @@ class Report(ABC):
 
     def __repr__(self):
         report = f"Report for {self.name}\n"
-        report += f"Found {len(self.get_all_failing_inputs())} failure-inducing" \
-                  f" inputs ({len(self.failures.keys())} Exceptions):\n"
+        report += (
+            f"Found {len(self.get_all_failing_inputs())} failure-inducing"
+            f" inputs ({len(self.failures.keys())} Exceptions):\n"
+        )
         report += "\n".join(
             f"{failure}: {len(self.failures[failure])}" for failure in self.failures
         )

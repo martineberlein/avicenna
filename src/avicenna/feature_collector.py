@@ -6,11 +6,21 @@ from fuzzingbook.Grammars import is_nonterminal, Grammar
 from isla.language import DerivationTree
 
 from avicenna.input import Input
-from avicenna.features import ExistenceFeature, DerivationFeature, NumericFeature, LengthFeature, Feature, FeatureVector, FeatureFactory
+from avicenna.features import (
+    ExistenceFeature,
+    DerivationFeature,
+    NumericFeature,
+    LengthFeature,
+    Feature,
+    FeatureVector,
+    FeatureFactory,
+)
 
 
 class FeatureCollector(ABC):
-    def __init__(self, grammar: Grammar, feature_types: Optional[List[Type[Feature]]]=None):
+    def __init__(
+        self, grammar: Grammar, feature_types: Optional[List[Type[Feature]]] = None
+    ):
         self.grammar = grammar
         feature_types = feature_types if feature_types else self.default_feature_types()
         self.features = self.construct_features(feature_types)
@@ -34,7 +44,6 @@ class FeatureCollector(ABC):
 
 
 class GrammarFeatureCollector(FeatureCollector):
-
     def collect_features(self, test_input: Input) -> FeatureVector:
         feature_vector = FeatureVector(str(test_input))
 

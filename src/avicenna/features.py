@@ -107,7 +107,7 @@ class NumericFeature(Feature):
 
     @property
     def default_value(self):
-        return float('-inf')
+        return float("-inf")
 
     @property
     def type(self):
@@ -266,8 +266,6 @@ class FeatureVector:
 
     def __repr__(self):
         return f"{self.test_input}: {self.features}"
-
-
 
 
 def tree_to_string(tree: DerivationTree) -> str:

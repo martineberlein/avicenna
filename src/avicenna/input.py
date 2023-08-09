@@ -75,5 +75,8 @@ class Input:
     @classmethod
     def from_str(cls, grammar, input_string, oracle: Optional[OracleResult] = None):
         return cls(
-            DerivationTree.from_parse_tree(next(EarleyParser(grammar).parse(input_string))), oracle
+            DerivationTree.from_parse_tree(
+                next(EarleyParser(grammar).parse(input_string))
+            ),
+            oracle,
         )

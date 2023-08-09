@@ -27,7 +27,12 @@ from avicenna.helpers import (
     instantiate_learner,
 )
 from avicenna.input import Input
-from avicenna.islearn import AvicennaISlearn, AvicennaTruthTable, AvicennaTruthTableRow, AviIslearn
+from avicenna.islearn import (
+    AvicennaISlearn,
+    AvicennaTruthTable,
+    AvicennaTruthTableRow,
+    AviIslearn,
+)
 from avicenna.oracle import OracleResult
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.result_table import TruthTable, TruthTableRow
@@ -59,7 +64,7 @@ class Avicenna(Timetable):
         self._activated_patterns = activated_patterns
         self._oracle = oracle
         self._max_iterations: int = max_iterations
-        self._top_n: int = max_excluded_features -1
+        self._top_n: int = max_excluded_features - 1
         self._targeted_start_size: int = 10
         self._iteration = 0
         self._timeout: int = 3600  # timeout in seconds
@@ -76,7 +81,9 @@ class Avicenna(Timetable):
 
         self.collector = GrammarFeatureCollector(self.grammar)
         self.feature_learner = feature_extractor.SHAPRelevanceLearner(
-            self.grammar, top_n=self._top_n, classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner
+            self.grammar,
+            top_n=self._top_n,
+            classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
         )
 
         self._pattern_file = pattern_file if pattern_file else get_pattern_file_path()
@@ -95,10 +102,7 @@ class Avicenna(Timetable):
             pattern_file=self._pattern_file,
         )
 
-        self.pattern_learner = AviIslearn(
-            grammar,
-            pattern_file=str(self._pattern_file)
-        )
+        self.pattern_learner = AviIslearn(grammar, pattern_file=str(self._pattern_file))
 
         # TruthTable
         self.truthTable: TruthTable = TruthTable()
@@ -213,9 +217,16 @@ class Avicenna(Timetable):
 
         # new_candidates, precision_truth_table, recall_truth_table = self._islearn.learn_failure_invariants(
         #     self.all_inputs, exclusion_non_terminals
-        #)
-        new_candidates, self.precision_truth_table, self.recall_truth_table = self.pattern_learner.learn_failure_invariants(
-            test_inputs, self.precision_truth_table, self.recall_truth_table, exclusion_non_terminals
+        # )
+        (
+            new_candidates,
+            self.precision_truth_table,
+            self.recall_truth_table,
+        ) = self.pattern_learner.learn_failure_invariants(
+            test_inputs,
+            self.precision_truth_table,
+            self.recall_truth_table,
+            exclusion_non_terminals,
         )
 
         new_candidates = new_candidates.keys()
@@ -224,17 +235,29 @@ class Avicenna(Timetable):
         # Update new Candidates
         for candidate in new_candidates:
             if hash(candidate) not in self.truthTable.row_hashes:
-                self.truthTable.append(TruthTableRow(candidate).set_results(*self.get_statistics(candidate, self.precision_truth_table, self.recall_truth_table)))
+                self.truthTable.append(
+                    TruthTableRow(candidate).set_results(
+                        *self.get_statistics(
+                            candidate,
+                            self.precision_truth_table,
+                            self.recall_truth_table,
+                        )
+                    )
+                )
             else:
                 self.truthTable[candidate].evaluate(test_inputs, self._graph)
 
-        untouched_formulas = [row.formula for row in self.truthTable if row.formula not in set(new_candidates)]
+        untouched_formulas = [
+            row.formula
+            for row in self.truthTable
+            if row.formula not in set(new_candidates)
+        ]
         for formula in untouched_formulas:
             self.truthTable[formula].evaluate(test_inputs, self._graph)
 
         for row in self.truthTable:
             _, tp, fp, fn, _ = row.eval_result()
-            if (tp/(tp + fp) < 0.6) or tp/(tp + fn) < 0.9:
+            if (tp / (tp + fp) < 0.6) or tp / (tp + fn) < 0.9:
                 self.truthTable.remove(row)
 
         # negate Constraints

@@ -5,12 +5,12 @@ from avicenna.input import Input
 
 
 grammar: Grammar = {
-    "<start>": ['<x>, <y>, <z>'],
+    "<start>": ["<x>, <y>, <z>"],
     "<x>": ["<integer>"],
     "<y>": ["<integer>"],
     "<z>": ["<integer>"],
     "<integer>": ["<digit>", "<digit><integer>"],
-    "<digit>": [str(num) for num in range(1, 10)]
+    "<digit>": [str(num) for num in range(1, 10)],
 }
 assert is_valid_grammar(grammar)
 
@@ -49,14 +49,15 @@ def _test_dummy(inp: str) -> OracleResult:
         sorted_list = sorted([x, y, z])
         return sorted_list[1]
 
-    x, y , z = eval(str(inp))
-    truth = oracle(x,y,z)
-    return _test_middle(x,y,z, expected=truth)
+    x, y, z = eval(str(inp))
+    truth = oracle(x, y, z)
+    return _test_middle(x, y, z, expected=truth)
+
 
 def oracle(inp: Input | str) -> OracleResult:
     return _test_dummy(str(inp))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     assert _test_dummy("3, 1, 4") == OracleResult.BUG
     assert _test_dummy("3, 2, 1") == OracleResult.NO_BUG

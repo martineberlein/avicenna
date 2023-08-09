@@ -37,6 +37,7 @@ def prop(inp: Input) -> bool:
     except ValueError:
         return True
 
+
 def oracle(inp: Union[Input, str]) -> OracleResult:
     try:
         arith_eval(str(inp))

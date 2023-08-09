@@ -280,7 +280,7 @@ class FeatureExtraction(unittest.TestCase):
                 LengthFeature("<chars>"): 1,
                 LengthFeature("<B>"): 0,
                 LengthFeature("<digit>"): 0,
-            }
+            },
         ]
 
         collector = GrammarFeatureCollector(grammar_rec, [LengthFeature])

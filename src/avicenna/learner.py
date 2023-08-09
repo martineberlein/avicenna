@@ -10,6 +10,7 @@ from isla.language import DerivationTree
 from avicenna.generator import Generator
 from avicenna.feature_collector import GrammarFeatureCollector as Collector
 from avicenna.feature_extractor import SHAPRelevanceLearner
+
 # from avicenna.features import STANDARD_FEATURES, FeatureWrapper, Feature
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
@@ -32,7 +33,7 @@ class InputElementLearner:
         oracle,
         max_relevant_features: int = 2,
         generate_more_inputs: bool = True,
-        features = None,
+        features=None,
         show_shap_beeswarm=False,
     ):
         """

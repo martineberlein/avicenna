@@ -10,7 +10,14 @@ from typing import List, Optional, Tuple
 from fuzzingbook.Grammars import Grammar, is_valid_grammar, srange
 from isla.derivation_tree import DerivationTree
 
-from avicenna_formalizations.t4p_common import Environment, HARNESS_FILE, API, ExpectErrAPI, TestResult, GrammarVisitor
+from avicenna_formalizations.t4p_common import (
+    Environment,
+    HARNESS_FILE,
+    API,
+    ExpectErrAPI,
+    TestResult,
+    GrammarVisitor,
+)
 
 
 class FastAPI1API(ExpectErrAPI):

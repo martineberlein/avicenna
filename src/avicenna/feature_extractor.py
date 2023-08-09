@@ -75,7 +75,9 @@ class RelevantFeatureLearner(ABC):
         return correlated_features
 
     @abstractmethod
-    def get_relevant_features(self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]) -> List[Feature]:
+    def get_relevant_features(
+        self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]
+    ) -> List[Feature]:
         raise NotImplementedError()
 
     @staticmethod
@@ -129,7 +131,9 @@ class SKLearFeatureRelevanceLearner(RelevantFeatureLearner, ABC):
     def fit(self, x_train: DataFrame, y_train: List[int]) -> Any:
         raise NotImplementedError()
 
-    def get_relevant_features(self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]) -> List[Feature]:
+    def get_relevant_features(
+        self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]
+    ) -> List[Feature]:
         classifier = self.fit(x_train, y_train)
         return self.get_features(x_train, classifier)
 
@@ -167,7 +171,9 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
         super().__init__(grammar, top_n=top_n)
         self.classifier = classifier_type(self.grammar)
 
-    def get_relevant_features(self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]) -> List[Feature]:
+    def get_relevant_features(
+        self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]
+    ) -> List[Feature]:
         x_train_normalized = self.normalize_learning_data(x_train)
         classifier = self.classifier.fit(x_train_normalized, y_train)
         shap_values = self.get_shap_values(classifier, x_train)

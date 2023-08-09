@@ -15,7 +15,6 @@ from avicenna.oracle import OracleResult
 
 
 class Generator(ABC):
-
     def __init__(self, grammar: Grammar):
         self.grammar = grammar
 
@@ -25,15 +24,12 @@ class Generator(ABC):
 
 
 class SimpleGenerator(Generator):
-
     def __init__(self, grammar: Grammar):
         super().__init__(grammar)
 
     def generate(self) -> Input:
         fuzzer = GrammarFuzzer(self.grammar)
-        return Input(
-            tree=fuzzer.fuzz_tree()
-        )
+        return Input(tree=fuzzer.fuzz_tree())
 
 
 def generate_inputs(
