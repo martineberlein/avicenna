@@ -230,7 +230,7 @@ class AviIslearn(InvariantLearner):
         precision_truth_table: AvicennaTruthTable,
         recall_truth_table: AvicennaTruthTable,
         exclude_nonterminals: Optional[Iterable[str]] = None,
-    ) -> [
+    ) -> Tuple[
         Dict[language.Formula, Tuple[float, float]],
         AvicennaTruthTable,
         AvicennaTruthTable,
