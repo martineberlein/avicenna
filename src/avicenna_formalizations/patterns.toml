@@ -16,7 +16,7 @@ exists <?NONTERMINAL> container1 in start:
     (< (str.len container1) (str.to.int length_field))
 '''
 
-[[Existential]]
+[[Length]]
 
 name = "Existence String Fixed Length"
 constraint = '''
@@ -25,7 +25,7 @@ forall <?NONTERMINAL> container in start:
     (= (str.len elem) (str.to.int <?STRING>))
 '''
 
-[[Existential]]
+[[Length]]
 
 name = "Existence String Max Length"
 constraint = '''
@@ -34,21 +34,21 @@ forall <?NONTERMINAL> container in start:
     (<= (str.len elem) (str.to.int <?STRING>))
 '''
 
-[[Universal]]
-
-name = "String Length Upper Bound"
-constraint = '''
-forall <?NONTERMINAL> elem in start:
-  (<= (str.len elem) (str.to.int <?STRING>))
-'''
-
-[[Universal]]
-
-name = "String Length Lower Bound"
-constraint = '''
-forall <?NONTERMINAL> elem in start:
-  (>= (str.len elem) (str.to.int <?STRING>))
-'''
+#[[Length]]
+#
+#name = "String Length Upper Bound"
+#constraint = '''
+#forall <?NONTERMINAL> elem in start:
+#  (<= (str.len elem) (str.to.int <?STRING>))
+#'''
+#
+#[[Length]]
+#
+#name = "String Length Lower Bound"
+#constraint = '''
+#forall <?NONTERMINAL> elem in start:
+#  (>= (str.len elem) (str.to.int <?STRING>))
+#'''
 
 [[Existential]]
 
