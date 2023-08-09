@@ -1,21 +1,20 @@
 import copy
+import inspect
+import logging
 import functools
+from functools import lru_cache
+from typing import List, Tuple, Dict, Optional, Callable, Iterable, Sequence, Set, cast
 import itertools
-from typing import List, Tuple, Set, Dict, Optional, cast, Callable, Iterable, Sequence
+from pathos import multiprocessing as pmp
 
 import isla.fuzzer
 from isla import language, isla_predicates
+from isla.evaluator import evaluate
 from isla.language import DerivationTree
 from isla.helpers import RE_NONTERMINAL
-from isla.language import ensure_unique_bound_variables, Formula
+from isla.language import ensure_unique_bound_variables, Formula, ConjunctiveFormula
 from islearn.reducer import InputReducer
 from islearn.learner import weighted_geometric_mean
-
-
-import inspect
-import logging
-from functools import lru_cache
-from typing import List, Tuple, Dict, Optional, Callable, Iterable
 
 import isla.fuzzer
 from grammar_graph import gg
@@ -27,29 +26,203 @@ from isla.helpers import (
 from isla.type_defs import Grammar
 from isla.z3_helpers import evaluate_z3_expression
 from islearn.language import parse_abstract_isla
-from islearn.learner import InvariantLearner, TruthTable, TruthTableRow
 from islearn.learner import patterns_from_file
 from islearn.learner import InvariantLearner
+from islearn.learner import TruthTable, TruthTableRow
 
 STANDARD_PATTERNS_REPO = "patterns.toml"
 logger = logging.getLogger("learner")
 
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
-# from avicenna.result_table import TruthTable, TruthTableRow
+
+
+class AvicennaTruthTableRow:
+    def __init__(
+            self,
+            formula: language.Formula,
+            inputs: Set[Input] = None,
+            eval_results: Sequence[bool] = (),
+            comb: Dict[Input, bool] = None,
+    ):
+        self.formula = formula
+        self.inputs = inputs or set()
+        self.eval_results: List[bool] = list(eval_results)
+        self.comb: Dict[Input, bool] = comb or {}
+
+    def __copy__(self):
+        return AvicennaTruthTableRow(self.formula, self.inputs, self.eval_results, self.comb)
+
+    def evaluate(
+            self,
+            test_inputs: Set[Input],
+            graph: gg.GrammarGraph,
+            lazy: bool = False,
+            result_threshold: float = .9):
+        """If lazy is True, then the evaluation stops as soon as result_threshold can no longer be
+        reached. E.g., if result_threshold is .9 and there are 100 inputs, then after more than
+        10 negative results, 90% positive results is no longer possible."""
+        # self.eval_results = []
+        negative_results = 0
+
+        new_inputs = test_inputs - self.inputs
+
+        for inp in new_inputs:
+            if lazy and negative_results > len(self.inputs) * (1 - result_threshold):
+                 self.eval_results += [False for _ in range(len(self.inputs) - len(self.eval_results))]
+                 break
+
+            eval_result = evaluate(self.formula, inp.tree, graph.grammar, graph=graph).is_true()
+            # if not eval_result:
+            #     negative_results += 1
+            self.eval_results.append(eval_result)
+            self.comb[inp] = eval_result
+
+        self.inputs.update(new_inputs)
+
+    def eval_result(self) -> float:
+        assert len(self.inputs) > 0
+        assert len(self.eval_results) == len(self.inputs)
+        assert all(isinstance(entry, bool) for entry in self.eval_results)
+        return sum(int(entry) for entry in self.eval_results) / len(self.eval_results)
+
+    def __repr__(self):
+        return f"TruthTableRow({repr(self.formula)}, {repr(self.inputs)}, {repr(self.eval_results)}, {len(self.inputs)}, {len(self.comb)}, {len(self.comb.keys())})"
+
+    def __str__(self):
+        return f"{self.formula}: {', '.join(map(str, self.eval_results))}, {len(self.inputs)},{self.comb}, {len(self.comb.keys())}"
+
+    def __eq__(self, other):
+        return (isinstance(other, AvicennaTruthTableRow) and
+                self.formula == other.formula)
+
+    def __len__(self):
+        return len(self.eval_results)
+
+    def __hash__(self):
+        return hash(self.formula)
+
+    def __neg__(self):
+        comb = {}
+        for inp in self.comb.keys():
+            comb[inp] = not self.comb[inp]
+
+        return AvicennaTruthTableRow(
+            -self.formula,
+            self.inputs,
+            [not eval_result for eval_result in self.eval_results],
+            comb
+        )
+
+    def __and__(self, other: 'AvicennaTruthTableRow') -> 'AvicennaTruthTableRow':
+        assert len(self.inputs) == len(other.inputs)
+        assert len(self.eval_results) == len(other.eval_results)
+        assert self.comb.keys() == other.comb.keys()
+
+        eval_result = []
+        comb = {}
+        for inp in self.comb.keys():
+            r = self.comb[inp] and other.comb[inp]
+            eval_result.append(r)
+            comb[inp] = r
+
+        inputs = copy.copy(self.inputs)
+
+        return AvicennaTruthTableRow(
+            self.formula & other.formula,
+            inputs,
+            eval_result,
+            comb
+        )
+
+    def __or__(self, other: 'AvicennaTruthTableRow') -> 'AvicennaTruthTableRow':
+        raise NotImplementedError()
+
+
+class AvicennaTruthTable:
+    def __init__(self, rows: Iterable[AvicennaTruthTableRow] = ()):
+        self.row_hashes = set()
+        self.rows = []
+        for row in rows:
+            row_hash = hash(row)
+            if row_hash not in self.row_hashes:
+                self.row_hashes.add(row_hash)
+                self.rows.append(row)
+
+    def __deepcopy__(self, memodict=None):
+        return AvicennaTruthTable([copy.copy(row) for row in self.rows])
+
+    def __repr__(self):
+        return f"TruthTable({repr(self.rows)})"
+
+    def __str__(self):
+        return "\n".join(map(str, self.rows))
+
+    def __getitem__(self, item: int | language.Formula) -> AvicennaTruthTableRow:
+        if isinstance(item, int):
+            return self.rows[item]
+
+        assert isinstance(item, language.Formula)
+        try:
+            return next(row for row in self.rows if row.formula == item)
+        except StopIteration:
+            raise KeyError(item)
+
+    def __len__(self):
+        return len(self.rows)
+
+    def __iter__(self):
+        return iter(self.rows)
+
+    def append(self, row: AvicennaTruthTableRow):
+        row_hash = hash(row)
+        if row_hash not in self.row_hashes:
+            self.row_hashes.add(row_hash)
+            self.rows.append(row)
+
+    def remove(self, row: AvicennaTruthTableRow):
+        if hash(row) in self.row_hashes:
+            self.rows.remove(row)
+            self.row_hashes.remove(hash(row))
+
+    def __add__(self, other: 'AvicennaTruthTable') -> 'AvicennaTruthTable':
+        return AvicennaTruthTable(self.rows + other.rows)
+
+    def __iadd__(self, other: 'AvicennaTruthTable') -> 'AvicennaTruthTable':
+        for row in other.rows:
+            self.append(row)
+
+        return self
+
+    def evaluate(
+            self,
+            graph: gg.GrammarGraph,
+            columns_parallel: bool = False,
+            rows_parallel: bool = False,
+            lazy: bool = False,
+            result_threshold: float = .9) -> 'AvicennaTruthTable':
+        """If lazy is True, then column evaluation stops as soon as result_threshold can no longer be
+        reached. E.g., if result_threshold is .9 and there are 100 inputs, then after more than
+        10 negative results, 90% positive results is no longer possible."""
+
+        return self
+
+
 
 
 class AviIslearn(InvariantLearner):
     def __init__(
         self,
         grammar: Grammar,
-        prop: Optional[Callable[[language.DerivationTree], OracleResult]] = None,
+        prop: Optional[Callable[[Input], OracleResult]] = None,
         patterns: Optional[List[language.Formula | str]] = None,
         pattern_file: Optional[str] = None,
         activated_patterns: Optional[Iterable[str]] = None,
         deactivated_patterns: Optional[Iterable[str]] = None,
     ):
         super().__init__(grammar)
+        self.all_negative_inputs = None
+        self.all_positive_inputs = None
         self.grammar = grammar
         self.canonical_grammar = canonical(grammar)
         self.graph = gg.GrammarGraph.from_grammar(grammar)
@@ -82,35 +255,41 @@ class AviIslearn(InvariantLearner):
         self.positive_examples: Set[Input] = set()
         self.negative_examples: Set[Input] = set()
         self.positive_examples_for_learning: List[language.DerivationTree] = []
-        # self.exclude_nonterminals = ["<digits>", "<maybe_digits>", "<onenine>", "<arith_expr>", "<start>", "<digit>"]
 
     def learn_failure_invariants(
         self,
         test_inputs: Set[Input],
-        precision_truth_table: TruthTable,
-        recall_truth_table: TruthTable,
+        all_test_inputs: Set[Input],
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
         exclude_non_terminals: Optional[Iterable[str]] = None,
-    ) -> Dict[language.Formula, Tuple[float, float]]:
+    ) -> [Dict[language.Formula, Tuple[float, float]], AvicennaTruthTable, AvicennaTruthTable]:
         positive_inputs = set(
             [inp for inp in test_inputs if inp.oracle == OracleResult.BUG]
         ) or set([])
         negative_inputs = set(
-            [inp.tree for inp in test_inputs if inp.oracle == OracleResult.NO_BUG]
+            [inp for inp in test_inputs if inp.oracle == OracleResult.NO_BUG]
         ) or set([])
 
+        self.all_positive_inputs = set(
+            [inp for inp in all_test_inputs if inp.oracle == OracleResult.BUG]
+        ) or set([])
+        self.all_negative_inputs = set(
+            [inp for inp in all_test_inputs if inp.oracle == OracleResult.NO_BUG]
+        ) or set([])
+
+        self.all_positive_inputs.update(positive_inputs)
+        self.all_negative_inputs.update(negative_inputs)
+
         self.exclude_non_terminals = exclude_non_terminals or set([])
-
-        self._learn_invariants(positive_inputs, negative_inputs, precision_truth_table,recall_truth_table)
-
-        print("x", positive_inputs)
-
-        return dict()
+        return self._learn_invariants(positive_inputs, negative_inputs, precision_truth_table,recall_truth_table)
 
     def _learn_invariants(
-        self, positive_inputs: Set[Input], negative_inputs: Set[Input], precision_truth_table: TruthTable, recall_truth_table: TruthTable, max_number_positive_inputs_for_learning=10
+        self, positive_inputs: Set[Input], negative_inputs: Set[Input], precision_truth_table: AvicennaTruthTable, recall_truth_table: AvicennaTruthTable, max_number_positive_inputs_for_learning=10
     ):
+        p_dummy = copy.deepcopy(self.all_positive_inputs)
         sorted_positive_inputs = self._sort_inputs(
-            positive_inputs,
+            p_dummy,
             self.filter_inputs_for_learning_by_kpaths,
             more_paths_weight=1.7,
             smaller_inputs_weight=1.0,
@@ -127,31 +306,123 @@ class AviIslearn(InvariantLearner):
 
         logger.info("Found %d invariant candidates.", len(candidates))
 
-        for candidate in candidates:
-            print(language.ISLaUnparser(candidate).unparse())
+        for candidate in candidates.union(set([row.formula for row in recall_truth_table])):
+            if len(recall_truth_table) > 0 and AvicennaTruthTableRow(candidate) in recall_truth_table:
+                #print(f"Found Existing Formula! Type = {type(recall_truth_table[candidate].formula)}")
+                print("Before: ", len(recall_truth_table[candidate].inputs),
+                      len(recall_truth_table[candidate].eval_results))
+                recall_truth_table[candidate].evaluate(positive_inputs, self.graph)
+                #print("After: ", len(recall_truth_table[candidate].inputs), len(recall_truth_table[candidate].eval_results))
+            else:
+                #print("Complete Eval Recall")
+                new_row = AvicennaTruthTableRow(candidate)
+                new_row.evaluate(self.all_positive_inputs, self.graph, lazy=False)
+                recall_truth_table.append(
+                    new_row
+                )
+                # print("Should: ", len(recall_truth_table[candidate].inputs), len(recall_truth_table[candidate].eval_results))
 
-        recall_truth_table.evaluate(positive_inputs, self.graph)
+        print(len(recall_truth_table))
+        # Deleting throws away all calculated evals so far == bad -> maybe only pass TruthTableRows >= self.min_recall?
+        rows_to_remove = [row for row in recall_truth_table if row.eval_result() < self.min_recall or isinstance(row.formula, ConjunctiveFormula)]
+        if self.max_disjunction_size < 2:
+            for row in rows_to_remove:
+                recall_truth_table.remove(row)
+                precision_truth_table.remove(row)
 
-        # Update new Candidates
-        for candidate in candidates:
-            if hash(candidate) not in recall_truth_table.row_hashes:
-                self.truthTable.append(
-                    TruthTableRow(candidate).evaluate(self.all_inputs, self._graph)
+        for row in recall_truth_table:
+            if len(recall_truth_table) > 0 and row in precision_truth_table:
+                precision_truth_table[row.formula].evaluate(negative_inputs, self.graph)
+            else:
+                #print("Complete Eval Precision")
+                new_row = AvicennaTruthTableRow(row.formula)
+                new_row.evaluate(self.all_negative_inputs, self.graph, lazy=False)
+                precision_truth_table.append(
+                    new_row
                 )
 
-        # Deleting throws away all calculated evals so far == bad -> maybe only pass TruthTableRows >= self.min_recall?
-        if self.max_disjunction_size < 2:
-            for row in recall_truth_table:
-                if row.eval_result() < self.min_recall:
-                    recall_truth_table.remove(row)
+        assert len(precision_truth_table) == len(recall_truth_table)
 
+        self.get_conjunctions(precision_truth_table, recall_truth_table)
 
+        # print(recall_truth_table)
+        #print(precision_truth_table)
 
-        pass
+        result: Dict[language.Formula, Tuple[float, float]] = {
+            precision_row.formula: (
+                1 - precision_row.eval_result(),
+                recall_truth_table[idx].eval_result(),
+            )
+            for idx, precision_row in enumerate(precision_truth_table)
+            if (
+                1 - precision_row.eval_result() >= self.min_specificity
+                and recall_truth_table[idx].eval_result() >= self.min_recall
+            )
+        }
+
+        logger.info(
+            "Found %d invariants with precision >= %d%%.",
+            len([p for p in result.values() if p[0] >= self.min_specificity]),
+            int(self.min_specificity * 100),
+        )
+
+        return (dict(
+            cast(
+                List[Tuple[language.Formula, Tuple[float, float]]],
+                sorted(result.items(), key=lambda p: (p[1], -len(p[0])), reverse=True),
+            )
+        ), precision_truth_table, recall_truth_table)
+
+    def get_conjunctions(self, precision_truth_table, recall_truth_table):
+        for level in range(2, self.max_conjunction_size + 1):
+            logger.debug(f"Conjunction size: {level}")
+            assert len(recall_truth_table) == len(precision_truth_table)
+            for rows_with_indices in itertools.combinations(
+                    enumerate(precision_truth_table), level
+            ):
+                # print(rows_with_indices)
+                precision_table_rows = [row for (_, row) in rows_with_indices]
+                # print(precision_table_rows)
+
+                # Only consider combinations where all rows meet minimum recall requirement.
+                # Recall doesn't get better by forming conjunctions!
+                if any(
+                        recall_truth_table[idx].eval_result() < self.min_recall
+                        for idx, _ in rows_with_indices
+                ):
+                    continue
+
+                # Compute precision of conjunction, add if above threshold and
+                # an improvement over all participants of the conjunction
+                conjunction = functools.reduce(
+                    AvicennaTruthTableRow.__and__, precision_table_rows
+                )
+
+                # print(conjunction)
+                conjunction.formula = language.ensure_unique_bound_variables(conjunction.formula)
+
+                # if conjunction.formula in self.previously_seen_invariants:
+                #    print("--------------------")
+                #    continue
+                new_precision = 1 - conjunction.eval_result()
+                if new_precision < self.min_specificity or not all(
+                        new_precision > 1 - row.eval_result()
+                        for row in precision_table_rows
+                ):
+                    continue
+
+                precision_truth_table.append(conjunction)
+
+                recall_table_rows = [
+                    recall_truth_table[idx] for idx, _ in rows_with_indices
+                ]
+                conjunction = functools.reduce(AvicennaTruthTableRow.__and__, recall_table_rows)
+                conjunction.formula = language.ensure_unique_bound_variables(conjunction.formula)
+                recall_truth_table.append(conjunction)
 
     def _sort_inputs(
             self,
-            inputs: Iterable[Input],
+            inputs: Set[Input],
             filter_inputs_for_learning_by_kpaths: bool,
             more_paths_weight: float = 1.0,
             smaller_inputs_weight: float = 0.0) -> List[Input]:
