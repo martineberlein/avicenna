@@ -26,9 +26,8 @@ from avicenna.helpers import (
     CustomTimeout,
 )
 from avicenna.input import Input
-from avicenna.islearn import (
+from avicenna.pattern_learner import (
     AvicennaTruthTable,
-    AvicennaTruthTableRow,
     AviIslearn,
 )
 from avicenna.oracle import OracleResult

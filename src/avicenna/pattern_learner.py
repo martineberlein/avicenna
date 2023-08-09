@@ -37,42 +37,41 @@ class AvicennaTruthTableRow:
             self.formula, self.inputs, self.eval_results, self.comb
         )
 
-    def evaluate(
-        self,
-        test_inputs: Set[Input],
-        graph: gg.GrammarGraph,
-        lazy: bool = False,
-        result_threshold: float = 0.9,
-    ):
-        """If lazy is True, then the evaluation stops as soon as result_threshold can no longer be
-        reached. E.g., if result_threshold is .9 and there are 100 inputs, then after more than
-        10 negative results, 90% positive results is no longer possible."""
+    def evaluate(self, test_inputs: Set[Input], graph: gg.GrammarGraph, lazy: bool = False,
+                 result_threshold: float = 0.9):
         negative_results = 0
-
         new_inputs = test_inputs - self.inputs
 
         for inp in new_inputs:
-            if lazy and negative_results > len(self.inputs) * (1 - result_threshold):
-                self.eval_results += [
-                    False for _ in range(len(self.inputs) - len(self.eval_results))
-                ]
+            if self.should_stop_evaluation(negative_results, lazy, result_threshold):
+                self.extend_eval_results_with_false()
                 break
-
-            eval_result = evaluate(
-                self.formula, inp.tree, graph.grammar, graph=graph
-            ).is_true()
-            # if not eval_result:
-            #     negative_results += 1
-            self.eval_results.append(eval_result)
-            self.comb[inp] = eval_result
+            eval_result = self.evaluate_formula_for_input(self.formula, inp, graph)
+            self.update_eval_results_and_combination(eval_result, inp)
 
         self.inputs.update(new_inputs)
 
+    def should_stop_evaluation(self, negative_results: int, lazy: bool, result_threshold: float) -> bool:
+        return lazy and negative_results > len(self.inputs) * (1 - result_threshold)
+
+    def extend_eval_results_with_false(self):
+        self.eval_results += [False for _ in range(len(self.inputs) - len(self.eval_results))]
+
+    @staticmethod
+    def evaluate_formula_for_input(formula: language.Formula, inp: Input, graph: gg.GrammarGraph) -> bool:
+        return evaluate(formula, inp.tree, graph.grammar, graph=graph).is_true()
+
+    def update_eval_results_and_combination(self, eval_result: bool, inp: Input):
+        self.eval_results.append(eval_result)
+        self.comb[inp] = eval_result
+
     def eval_result(self) -> float:
-        assert len(self.inputs) > 0
-        assert len(self.eval_results) == len(self.inputs)
-        assert all(isinstance(entry, bool) for entry in self.eval_results)
+        assert self.inputs_are_valid()
         return sum(int(entry) for entry in self.eval_results) / len(self.eval_results)
+
+    def inputs_are_valid(self) -> bool:
+        return 0 < len(self.inputs) == len(self.eval_results) and all(
+            isinstance(entry, bool) for entry in self.eval_results)
 
     def __repr__(self):
         return f"TruthTableRow({repr(self.formula)}, {repr(self.inputs)}, {repr(self.eval_results)}, {len(self.inputs)}, {len(self.comb)}, {len(self.comb.keys())})"

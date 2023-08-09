@@ -11,7 +11,7 @@ from avicenna_formalizations.calculator import (
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
-from avicenna.islearn import AviIslearn, AvicennaTruthTable
+from avicenna.pattern_learner import AviIslearn, AvicennaTruthTable
 
 
 class TestAvicennaIslearn(unittest.TestCase):
