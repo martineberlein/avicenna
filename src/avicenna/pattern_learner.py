@@ -1,7 +1,7 @@
 import copy
 import logging
 import functools
-from typing import List, Tuple, Dict, Optional, Iterable, Sequence, Set, cast
+from typing import List, Tuple, Dict, Optional, Iterable, Sequence, Set
 import itertools
 
 from isla.evaluator import evaluate
@@ -227,7 +227,7 @@ class AviIslearn(InvariantLearner):
         positive_inputs, negative_inputs = self.categorize_inputs(test_inputs)
         self.update_inputs(positive_inputs, negative_inputs)
         self.exclude_nonterminals = exclude_nonterminals or set()
-        return self._learn_invariants_new(
+        return self._learn_invariants(
             positive_inputs, negative_inputs, precision_truth_table, recall_truth_table
         )
 
@@ -243,7 +243,7 @@ class AviIslearn(InvariantLearner):
         self.all_positive_inputs.update(positive_inputs)
         self.all_negative_inputs.update(negative_inputs)
 
-    def _learn_invariants_new(
+    def _learn_invariants(
         self,
         positive_inputs: Set[Input],
         negative_inputs: Set[Input],
@@ -335,27 +335,21 @@ class AviIslearn(InvariantLearner):
 
         assert len(precision_truth_table) == len(recall_truth_table)
 
-    def get_result_dict(
-        self, precision_truth_table, recall_truth_table
-    ) -> Dict[Formula, Tuple[float, float]]:
-        result: Dict[Formula, Tuple[float, float]] = {
-            precision_row.formula: (
-                1 - precision_row.eval_result(),
-                recall_truth_table[idx].eval_result(),
-            )
-            for idx, precision_row in enumerate(precision_truth_table)
-            if (
-                1 - precision_row.eval_result() >= self.min_specificity
-                and recall_truth_table[idx].eval_result() >= self.min_recall
-            )
-        }
+    def get_result_dict(self, precision_truth_table, recall_truth_table) -> Dict[Formula, Tuple[float, float]]:
+        def meets_criteria(precision_value_, recall_value_):
+            return precision_value_ >= self.min_specificity and recall_value_ >= self.min_recall
 
-        return dict(
-            cast(
-                List[Tuple[language.Formula, Tuple[float, float]]],
-                sorted(result.items(), key=lambda p: (p[1], -len(p[0])), reverse=True),
-            )
-        )
+        result = {}
+        for idx, precision_row in enumerate(precision_truth_table):
+            precision_value = 1 - precision_row.eval_result()
+            recall_value = recall_truth_table[idx].eval_result()
+
+            if meets_criteria(precision_value, recall_value):
+                result[precision_row.formula] = (precision_value, recall_value)
+
+        sorted_result = dict(sorted(result.items(), key=lambda p: (p[1], -len(p[0])), reverse=True))
+
+        return sorted_result
 
     def get_disjunctions(self):
         pass
