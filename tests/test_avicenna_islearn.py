@@ -1,6 +1,5 @@
 import unittest
 
-from islearn.learner import TruthTable, TruthTableRow
 from isla.language import ISLaUnparser
 from isla.fuzzer import GrammarFuzzer
 
@@ -133,65 +132,6 @@ class TestAvicennaIslearn(unittest.TestCase):
 
         failure_constraints = list(
             map(lambda p: (p[1], ISLaUnparser(p[0]).unparse()), result.items())
-        )
-        for f in failure_constraints:
-            print(f)
-
-    @unittest.skip
-    def test_old(self):
-        #from avicenna.islearn import AvicennaISlearn
-
-        fuzzer = GrammarFuzzer(grammar)
-        test_inputs = set()
-        for _ in range(200):
-            inp = fuzzer.fuzz_tree()
-            test_inputs.add(Input(tree=inp, oracle=oracle(str(inp))))
-
-        def map_to_bool(result: OracleResult) -> bool:
-            match result:
-                case OracleResult.BUG:
-                    return True
-                case OracleResult.NO_BUG:
-                    return False
-                case _:
-                    return False
-
-        def boolean_oracle(inp_):
-            return map_to_bool(oracle(inp_))
-
-        boolean_oracle = boolean_oracle
-        islearn: AvicennaISlearn = AvicennaISlearn(
-            grammar=grammar,
-            prop=boolean_oracle,
-            reduce_inputs_for_learning=False,
-            reduce_all_inputs=False,
-            filter_inputs_for_learning_by_kpaths=False,
-            do_generate_more_inputs=False,
-            generate_new_learning_samples=False,
-            pattern_file=str(get_pattern_file_path()),
-        )
-
-        exclude_nonterminals = [
-            "<digits>",
-            "<maybe_digits>",
-            "<onenine>",
-            "<arith_expr>",
-            "<start>",
-            "<digit>",
-        ]
-        (
-            new_candidates,
-            precision_truth_table,
-            recall_truth_table,
-        ) = islearn.learn_failure_invariants(test_inputs, exclude_nonterminals)
-        (
-            new_candidates,
-            precision_truth_table,
-            recall_truth_table,
-        ) = islearn.learn_failure_invariants(test_inputs, exclude_nonterminals)
-
-        failure_constraints = list(
-            map(lambda p: (p[1], ISLaUnparser(p[0]).unparse()), new_candidates.items())
         )
         for f in failure_constraints:
             print(f)

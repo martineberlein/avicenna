@@ -155,12 +155,13 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
         self,
         grammar: Grammar,
         top_n: int = 3,
+        feature_types: Optional[List[Type[Feature]]] = None,
         classifier_type: Optional[
             Type[SKLearFeatureRelevanceLearner]
         ] = GradientBoostingTreeRelevanceLearner,
         show_beeswarm_plot: bool = False,
     ):
-        super().__init__(grammar, top_n=top_n)
+        super().__init__(grammar, top_n=top_n, feature_types=feature_types)
         self.classifier = classifier_type(self.grammar)
         self.show_beeswarm_plot = show_beeswarm_plot
 
