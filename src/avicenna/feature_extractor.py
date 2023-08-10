@@ -162,11 +162,13 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
         classifier_type: Optional[
             Type[SKLearFeatureRelevanceLearner]
         ] = GradientBoostingTreeRelevanceLearner,
+        normalize_data = False,
         show_beeswarm_plot: bool = False,
     ):
         super().__init__(grammar, top_n=top_n, feature_types=feature_types)
         self.classifier = classifier_type(self.grammar)
         self.show_beeswarm_plot = show_beeswarm_plot
+        self.normalize_data = normalize_data
 
     def get_relevant_features(
         self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]
@@ -180,10 +182,13 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
             : self.top_n
         ]
 
-    @staticmethod
-    def normalize_learning_data(data: DataFrame):
-        normalized = preprocessing.MinMaxScaler().fit_transform(data)
-        return DataFrame(normalized, columns=data.columns)
+
+    def normalize_learning_data(self, data: DataFrame):
+        if self.normalize_data:
+            normalized = preprocessing.MinMaxScaler().fit_transform(data)
+            return DataFrame(normalized, columns=data.columns)
+        else:
+            return data
 
     @staticmethod
     def get_shap_values(classifier, x_train):
