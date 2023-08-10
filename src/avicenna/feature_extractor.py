@@ -1,3 +1,4 @@
+import logging
 from typing import List, Set, Type, Optional, Any, Tuple
 from abc import ABC, abstractmethod
 
@@ -43,6 +44,7 @@ class RelevantFeatureLearner(ABC):
     ) -> Tuple[Set[Feature], Set[Feature], Set[Feature]]:
         x_train, y_train = self.get_learning_data(test_input)
         primary_features = set(self.get_relevant_features(test_input, x_train, y_train))
+        logging.info(f"Determined {primary_features} as most relevant.")
         correlated_features = self.find_correlated_features(x_train, primary_features)
 
         return (
@@ -63,6 +65,7 @@ class RelevantFeatureLearner(ABC):
             for feature, value in correlation_matrix[primary].items()
             if abs(value) > 0.7
         }
+        logging.info(f"Added Features: {correlated_features} due to high correlation.")
         return correlated_features
 
     @abstractmethod
