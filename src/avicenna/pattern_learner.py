@@ -251,9 +251,7 @@ class AviIslearn(InvariantLearner):
         recall_truth_table: AvicennaTruthTable,
     ):
         sorted_positive_inputs = self.sort_and_filter_inputs(self.all_positive_inputs)
-        candidates = self.generate_candidates(
-            self.patterns, [inp.tree for inp in sorted_positive_inputs]
-        )
+        candidates = self.get_candidates(sorted_positive_inputs)
 
         self.evaluate_recall(candidates, recall_truth_table, positive_inputs)
         self.filter_candidates(precision_truth_table, recall_truth_table)
@@ -265,6 +263,13 @@ class AviIslearn(InvariantLearner):
 
         result = self.get_result_dict(precision_truth_table, recall_truth_table)
         return result, precision_truth_table, recall_truth_table
+
+    def get_candidates(self, sorted_positive_inputs):
+        candidates = self.generate_candidates(
+            self.patterns, [inp.tree for inp in sorted_positive_inputs]
+        )
+        logger.info("Found %d invariant candidates.", len(candidates))
+        return candidates
 
     def sort_and_filter_inputs(
         self,
@@ -278,11 +283,16 @@ class AviIslearn(InvariantLearner):
             more_paths_weight=1.7,
             smaller_inputs_weight=1.0,
         )
+        logger.info(
+            "Keeping %d positive examples for candidate generation.",
+            len(sorted_positive_inputs[:max_number_positive_inputs_for_learning]))
+
         return sorted_positive_inputs[:max_number_positive_inputs_for_learning]
 
     def evaluate_recall(
         self, candidates, recall_truth_table: AvicennaTruthTable, positive_inputs
     ):
+        logger.info("Evaluating Recall.")
         for candidate in candidates.union(
             set([row.formula for row in recall_truth_table])
         ):
@@ -290,11 +300,6 @@ class AviIslearn(InvariantLearner):
                 len(recall_truth_table) > 0
                 and AvicennaTruthTableRow(candidate) in recall_truth_table
             ):
-                logger.debug(
-                    "Before: ",
-                    len(recall_truth_table[candidate].inputs),
-                    len(recall_truth_table[candidate].eval_results),
-                )
                 recall_truth_table[candidate].evaluate(positive_inputs, self.graph)
             else:
                 new_row = AvicennaTruthTableRow(candidate)
@@ -324,6 +329,7 @@ class AviIslearn(InvariantLearner):
         recall_truth_table: AvicennaTruthTable,
         negative_inputs,
     ):
+        logger.info("Evaluating Precision.")
         for row in recall_truth_table:
             if len(recall_truth_table) > 0 and row in precision_truth_table:
                 precision_truth_table[row.formula].evaluate(negative_inputs, self.graph)
@@ -348,6 +354,12 @@ class AviIslearn(InvariantLearner):
                 result[precision_row.formula] = (precision_value, recall_value)
 
         sorted_result = dict(sorted(result.items(), key=lambda p: (p[1], -len(p[0])), reverse=True))
+        logger.info(
+            "Found %d invariants with precision >= %d%% and recall >= %d%%.",
+            len([p for p in result.values()]), #if p[0] >= self.min_specificity and p[1] >= self.min_recall]),
+            int(self.min_specificity * 100),
+            int(self.min_recall * 100),
+        )
 
         return sorted_result
 
@@ -359,6 +371,7 @@ class AviIslearn(InvariantLearner):
         precision_truth_table: AvicennaTruthTable,
         recall_truth_table: AvicennaTruthTable,
     ):
+        logger.info("Calculating Boolean Combinations.")
         for level in range(2, self.max_conjunction_size + 1):
             self.process_conjunction_level(
                 level, precision_truth_table, recall_truth_table
