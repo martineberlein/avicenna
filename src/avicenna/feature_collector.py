@@ -10,6 +10,7 @@ from avicenna.features import (
     ExistenceFeature,
     DerivationFeature,
     NumericFeature,
+    LengthFeature,
     Feature,
     FeatureVector,
     FeatureFactory,
@@ -19,6 +20,7 @@ DEFAULT_FEATURE_TYPES: List[Type[Feature]] = [
     ExistenceFeature,
     DerivationFeature,
     NumericFeature,
+    LengthFeature
 ]
 
 class FeatureCollector(ABC):
