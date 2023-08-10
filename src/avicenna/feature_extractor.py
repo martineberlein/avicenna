@@ -12,23 +12,14 @@ from sklearn.tree import DecisionTreeClassifier
 
 from avicenna.feature_collector import (
     Feature,
-    ExistenceFeature,
-    NumericFeature,
-    DerivationFeature,
-    LengthFeature,
     FeatureFactory,
+    DEFAULT_FEATURE_TYPES
 )
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
 
 
 class RelevantFeatureLearner(ABC):
-    DEFAULT_FEATURE_TYPES = [
-        ExistenceFeature,
-        DerivationFeature,
-        NumericFeature,
-        LengthFeature,
-    ]
 
     def __init__(
         self,
@@ -39,7 +30,7 @@ class RelevantFeatureLearner(ABC):
     ):
         self.grammar = grammar
         self.features = self.construct_features(
-            feature_types or self.DEFAULT_FEATURE_TYPES
+            feature_types or DEFAULT_FEATURE_TYPES
         )
         self.top_n = top_n
         self.threshold = threshold
@@ -167,9 +158,11 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
         classifier_type: Optional[
             Type[SKLearFeatureRelevanceLearner]
         ] = GradientBoostingTreeRelevanceLearner,
+        show_beeswarm_plot: bool = False,
     ):
         super().__init__(grammar, top_n=top_n)
         self.classifier = classifier_type(self.grammar)
+        self.show_beeswarm_plot = show_beeswarm_plot
 
     def get_relevant_features(
         self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]
@@ -177,6 +170,8 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
         x_train_normalized = self.normalize_learning_data(x_train)
         classifier = self.classifier.fit(x_train_normalized, y_train)
         shap_values = self.get_shap_values(classifier, x_train)
+        if self.show_beeswarm_plot:
+            self.display_beeswarm_plot(shap_values, x_train)
         return self.get_sorted_features_by_importance(shap_values, x_train)[
             : self.top_n
         ]
@@ -200,5 +195,5 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
         return x_train.columns[sorted_indices].tolist()
 
     @staticmethod
-    def show_beeswarm_plot(shap_values, x_train):
+    def display_beeswarm_plot(shap_values, x_train):
         return shap.summary_plot(shap_values[1], x_train.astype("float"))

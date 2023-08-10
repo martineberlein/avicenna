@@ -10,29 +10,24 @@ from avicenna.features import (
     ExistenceFeature,
     DerivationFeature,
     NumericFeature,
-    LengthFeature,
     Feature,
     FeatureVector,
     FeatureFactory,
 )
 
+DEFAULT_FEATURE_TYPES: List[Type[Feature]] = [
+    ExistenceFeature,
+    DerivationFeature,
+    NumericFeature,
+]
 
 class FeatureCollector(ABC):
     def __init__(
         self, grammar: Grammar, feature_types: Optional[List[Type[Feature]]] = None
     ):
         self.grammar = grammar
-        feature_types = feature_types if feature_types else self.default_feature_types()
+        feature_types = feature_types if feature_types else DEFAULT_FEATURE_TYPES
         self.features = self.construct_features(feature_types)
-
-    @staticmethod
-    def default_feature_types():
-        return [
-            ExistenceFeature,
-            DerivationFeature,
-            NumericFeature,
-            # LengthFeature,
-        ]
 
     def construct_features(self, feature_types: List[Type[Feature]]) -> List[Feature]:
         factory = FeatureFactory(self.grammar)
