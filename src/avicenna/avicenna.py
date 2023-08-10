@@ -191,7 +191,8 @@ class Avicenna(Timetable):
             inp.features = self.collector.collect_features(inp)
 
         # add to global list
-        self.all_inputs.update(test_inputs)
+        valid_inputs = set([inp for inp in test_inputs if inp.oracle in (OracleResult.BUG, OracleResult.NO_BUG)])
+        self.all_inputs.update(valid_inputs)
 
         prom, corr, excluded_features = self.feature_learner.learn(self.all_inputs)
 
@@ -225,18 +226,15 @@ class Avicenna(Timetable):
         LOGGER.info("Eval new stuff")
         # Update new Candidates
         for candidate in new_candidates:
-            if hash(candidate) not in self.truthTable.row_hashes:
-                self.truthTable.append(
-                    TruthTableRow(candidate).set_results(
-                        *self.get_statistics(
-                            candidate,
-                            self.precision_truth_table,
-                            self.recall_truth_table,
-                        )
+            self.truthTable.append(
+                TruthTableRow(candidate).set_results(
+                    *self.get_statistics(
+                        candidate,
+                        self.precision_truth_table,
+                        self.recall_truth_table,
                     )
                 )
-            else:
-                self.truthTable[candidate].evaluate(test_inputs, self._graph)
+            )
 
         untouched_formulas = [
             row.formula
