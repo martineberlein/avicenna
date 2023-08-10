@@ -81,6 +81,41 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         print(len([inp for inp in test_inputs if inp.oracle == OracleResult.BUG]))
         print(len([inp for inp in test_inputs if inp.oracle == OracleResult.NO_BUG]))
 
+    def test_learner_heartbleed(self):
+        from avicenna_formalizations.heartbeat import grammar, oracle
+        from avicenna.features import ExistenceFeature, NumericFeature, LengthFeature, DerivationFeature
+        features = [
+            ExistenceFeature,
+            NumericFeature,
+            DerivationFeature,
+            LengthFeature
+        ]
+
+        fuzzer = GrammarFuzzer(grammar)
+        test_inputs = set()
+        for _ in range(100):
+            inp = fuzzer.fuzz_tree()
+            test_inputs.add(Input(tree=inp, oracle=oracle(str(inp))))
+
+        collector = GrammarFeatureCollector(grammar, features)
+        for inp in test_inputs:
+            inp.features = collector.collect_features(inp)
+
+        feature_learner = feature_extractor.SHAPRelevanceLearner(
+            grammar,
+            classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
+            feature_types=features,
+            top_n=2,
+            show_beeswarm_plot=True,
+        )
+
+        relevant_features, corr, ex = feature_learner.learn(test_inputs)
+        print(relevant_features)
+        print(corr)
+        print(ex)
+        print(len([inp for inp in test_inputs if inp.oracle == OracleResult.BUG]))
+        print(len([inp for inp in test_inputs if inp.oracle == OracleResult.NO_BUG]))
+
     def test_learner_xml(self):
         from isla.derivation_tree import DerivationTree
         from isla_formalizations import xml_lang
