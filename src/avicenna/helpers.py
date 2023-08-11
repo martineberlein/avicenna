@@ -11,18 +11,14 @@ from avicenna.oracle import OracleResult
 from avicenna.input import Input
 
 
-def constraint_eval(test_inputs: Set[Input], constraint, grammar):
-    data = []
-    for inp in test_inputs:
-        data.append(
-            {
-                "name": str(inp),
-                "predicted": evaluate(constraint, inp.tree, grammar),
-                "oracle": True if inp.oracle == OracleResult.BUG else False,
-            }
-        )
-
-    return pandas.DataFrame.from_records(data)
+def map_to_bool(result: OracleResult) -> bool:
+    match result:
+        case OracleResult.BUG:
+            return True
+        case OracleResult.NO_BUG:
+            return False
+        case _:
+            return False
 
 
 class CustomTimeout(Exception):

@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-T = TypeVar('T')  # Declare a type variable T
+T = TypeVar('T')
 
-class Maybe(Generic[T], ABC):  # Declare that Maybe is generic over T
+class Maybe(Generic[T], ABC):
     @abstractmethod
     def is_just(self) -> bool:
         pass

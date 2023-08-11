@@ -10,6 +10,7 @@ from avicenna.input import Input
 from avicenna.oracle import OracleResult
 from avicenna.feature_collector import GrammarFeatureCollector
 from avicenna import feature_extractor
+from avicenna.features import ExistenceFeature, NumericFeature, LengthFeature, DerivationFeature
 
 
 class TestRelevantFeatureLearner(unittest.TestCase):
@@ -59,6 +60,12 @@ class TestRelevantFeatureLearner(unittest.TestCase):
 
     def test_relevant_feature_learner_middle(self):
         from avicenna_formalizations.middle import grammar, oracle
+        features = [
+            ExistenceFeature,
+            NumericFeature,
+            DerivationFeature,
+            #LengthFeature
+        ]
 
         fuzzer = GrammarFuzzer(grammar)
         test_inputs = set()
@@ -66,13 +73,18 @@ class TestRelevantFeatureLearner(unittest.TestCase):
             inp = fuzzer.fuzz_tree()
             test_inputs.add(Input(tree=inp, oracle=oracle(str(inp))))
 
-        collector = GrammarFeatureCollector(grammar)
+        p = [inp for inp in test_inputs if inp.oracle == OracleResult.BUG]
+        n = [inp for inp in test_inputs if inp.oracle == OracleResult.NO_BUG]
+        test_inputs = set(p + n)
+
+        collector = GrammarFeatureCollector(grammar, feature_types=features)
         for inp in test_inputs:
             inp.features = collector.collect_features(inp)
 
         feature_learner = feature_extractor.SHAPRelevanceLearner(
             grammar,
             classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
+            feature_types=features
         )
         relevant_features, corr, ex = feature_learner.learn(test_inputs)
         print(relevant_features)
@@ -83,7 +95,6 @@ class TestRelevantFeatureLearner(unittest.TestCase):
 
     def test_learner_heartbleed(self):
         from avicenna_formalizations.heartbeat import grammar, oracle
-        from avicenna.features import ExistenceFeature, NumericFeature, LengthFeature, DerivationFeature
         features = [
             ExistenceFeature,
             NumericFeature,
