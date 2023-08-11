@@ -64,7 +64,6 @@ class TestRelevantFeatureLearner(unittest.TestCase):
             ExistenceFeature,
             NumericFeature,
             DerivationFeature,
-            #LengthFeature
         ]
 
         fuzzer = GrammarFuzzer(grammar)
