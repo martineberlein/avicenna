@@ -6,6 +6,7 @@ from isla.fuzzer import GrammarFuzzer
 from isla.language import DerivationTree
 from isla.solver import ISLaSolver
 from fuzzingbook.Grammars import Grammar
+from fuzzingbook.GrammarFuzzer import GrammarFuzzer as FuzzingbookGrammarFuzzer
 
 from avicenna.input import Input
 from avicenna.helpers import map_to_bool
@@ -19,6 +20,14 @@ class Generator(ABC):
     @abstractmethod
     def generate(self, **kwargs) -> Maybe[Input]:
         raise NotImplementedError
+
+class FuzzingbookBasedGenerator(Generator):
+    def __init__(self, grammar: Grammar, **kwargs):
+        super().__init__(grammar)
+        self.fuzzer = FuzzingbookGrammarFuzzer(grammar)
+
+    def generate(self) -> Maybe[Input]:
+        return Just(Input(DerivationTree.from_parse_tree(self.fuzzer.fuzz_tree())))
 
 
 class ISLaGrammarBasedGenerator(Generator):
@@ -53,16 +62,12 @@ class MutationBasedGenerator(Generator):
     def __init__(
         self,
         grammar: Grammar,
-        max_positive,
-        max_negative,
         oracle,
         seed: Set[Input],
         yield_negative: bool = False,
         **kwargs
     ):
         super().__init__(grammar)
-        self.max_positive_samples = max_positive
-        self.max_negative_samples = max_negative
         self.oracle = oracle
         self.seed = [inp.tree for inp in seed]
         self.fuzzer = AvicennaMutationFuzzer(grammar, self.seed, oracle).run(
