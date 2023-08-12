@@ -86,10 +86,10 @@ class AvicennaTruthTableRow:
         )
 
     def __repr__(self):
-        return f"TruthTableRow({repr(self.formula)}, {repr(self.inputs)}, {repr(self.eval_results)}, {len(self.inputs)}, {len(self.comb)}, {len(self.comb.keys())})"
+        return f"TruthTableRow({str(self.formula)},{repr(self.eval_results)})"
 
     def __str__(self):
-        return f"{self.formula}: {', '.join(map(str, self.eval_results))}, {len(self.inputs)},{self.comb}, {len(self.comb.keys())}"
+        return f"{self.formula}: {', '.join(map(str, self.eval_results))}, {self.comb}"
 
     def __eq__(self, other):
         return (
@@ -285,7 +285,8 @@ class AviIslearn(InvariantLearner):
         )
         logger.info(
             "Keeping %d positive examples for candidate generation.",
-            len(sorted_positive_inputs[:max_number_positive_inputs_for_learning]))
+            len(sorted_positive_inputs[:max_number_positive_inputs_for_learning]),
+        )
 
         return sorted_positive_inputs[:max_number_positive_inputs_for_learning]
 
@@ -341,9 +342,14 @@ class AviIslearn(InvariantLearner):
 
         assert len(precision_truth_table) == len(recall_truth_table)
 
-    def get_result_dict(self, precision_truth_table, recall_truth_table) -> Dict[Formula, Tuple[float, float]]:
+    def get_result_dict(
+        self, precision_truth_table, recall_truth_table
+    ) -> Dict[Formula, Tuple[float, float]]:
         def meets_criteria(precision_value_, recall_value_):
-            return precision_value_ >= self.min_specificity and recall_value_ >= self.min_recall
+            return (
+                precision_value_ >= self.min_specificity
+                and recall_value_ >= self.min_recall
+            )
 
         result = {}
         for idx, precision_row in enumerate(precision_truth_table):
@@ -353,10 +359,14 @@ class AviIslearn(InvariantLearner):
             if meets_criteria(precision_value, recall_value):
                 result[precision_row.formula] = (precision_value, recall_value)
 
-        sorted_result = dict(sorted(result.items(), key=lambda p: (p[1], -len(p[0])), reverse=True))
+        sorted_result = dict(
+            sorted(result.items(), key=lambda p: (p[1], -len(p[0])), reverse=True)
+        )
         logger.info(
             "Found %d invariants with precision >= %d%% and recall >= %d%%.",
-            len([p for p in result.values()]), #if p[0] >= self.min_specificity and p[1] >= self.min_recall]),
+            len(
+                [p for p in result.values()]
+            ),  # if p[0] >= self.min_specificity and p[1] >= self.min_recall]),
             int(self.min_specificity * 100),
             int(self.min_recall * 100),
         )

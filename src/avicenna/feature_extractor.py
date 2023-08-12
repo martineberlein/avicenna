@@ -11,17 +11,12 @@ from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 
-from avicenna.feature_collector import (
-    Feature,
-    FeatureFactory,
-    DEFAULT_FEATURE_TYPES
-)
+from avicenna.feature_collector import Feature, FeatureFactory, DEFAULT_FEATURE_TYPES
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
 
 
 class RelevantFeatureLearner(ABC):
-
     def __init__(
         self,
         grammar: Grammar,
@@ -30,9 +25,7 @@ class RelevantFeatureLearner(ABC):
         threshold: float = 0.01,
     ):
         self.grammar = grammar
-        self.features = self.construct_features(
-            feature_types or DEFAULT_FEATURE_TYPES
-        )
+        self.features = self.construct_features(feature_types or DEFAULT_FEATURE_TYPES)
         self.top_n = top_n
         self.threshold = threshold
 
@@ -162,7 +155,7 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
         classifier_type: Optional[
             Type[SKLearFeatureRelevanceLearner]
         ] = GradientBoostingTreeRelevanceLearner,
-        normalize_data = False,
+        normalize_data: bool = False,
         show_beeswarm_plot: bool = False,
     ):
         super().__init__(grammar, top_n=top_n, feature_types=feature_types)
@@ -181,7 +174,6 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
         return self.get_sorted_features_by_importance(shap_values, x_train)[
             : self.top_n
         ]
-
 
     def normalize_learning_data(self, data: DataFrame):
         if self.normalize_data:

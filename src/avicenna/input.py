@@ -38,6 +38,9 @@ class Input:
     def features(self, features_: FeatureVector):
         self.__features = features_
 
+    def __repr__(self):
+        return str(f"Input({str(self), self.__oracle})")
+
     def __str__(self) -> str:
         return str(self.__tree)
 

@@ -20,8 +20,9 @@ DEFAULT_FEATURE_TYPES: List[Type[Feature]] = [
     ExistenceFeature,
     DerivationFeature,
     NumericFeature,
-    LengthFeature
+    LengthFeature,
 ]
+
 
 class FeatureCollector(ABC):
     def __init__(

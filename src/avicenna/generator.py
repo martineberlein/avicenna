@@ -21,6 +21,7 @@ class Generator(ABC):
     def generate(self, **kwargs) -> Maybe[Input]:
         raise NotImplementedError
 
+
 class FuzzingbookBasedGenerator(Generator):
     def __init__(self, grammar: Grammar, **kwargs):
         super().__init__(grammar)
@@ -40,7 +41,9 @@ class ISLaGrammarBasedGenerator(Generator):
 
 
 class ISLaSolverGenerator(Generator):
-    def __init__(self, grammar: Grammar, constraint,enable_optimized_z3_queries=False, **kwargs):
+    def __init__(
+        self, grammar: Grammar, constraint, enable_optimized_z3_queries=False, **kwargs
+    ):
         super().__init__(grammar)
         self.solver = ISLaSolver(
             grammar,
