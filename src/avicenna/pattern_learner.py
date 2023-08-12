@@ -41,17 +41,13 @@ class AvicennaTruthTableRow:
         self,
         test_inputs: Set[Input],
         graph: gg.GrammarGraph,
-        lazy: bool = False,
-        result_threshold: float = 0.9,
     ):
-        negative_results = 0
         new_inputs = test_inputs - self.inputs
 
         for inp in new_inputs:
-            if self.should_stop_evaluation(negative_results, lazy, result_threshold):
-                self.extend_eval_results_with_false()
-                break
-            eval_result = self.evaluate_formula_for_input(self.formula, inp, graph)
+            eval_result = evaluate(
+                self.formula, inp.tree, graph.grammar, graph=graph
+            ).is_true()
             self.update_eval_results_and_combination(eval_result, inp)
 
         self.inputs.update(new_inputs)
@@ -89,7 +85,7 @@ class AvicennaTruthTableRow:
         return f"TruthTableRow({str(self.formula)},{repr(self.eval_results)})"
 
     def __str__(self):
-        return f"{self.formula}: {', '.join(map(str, self.eval_results))}, {self.comb}"
+        return f"{self.formula.__str__()}: {', '.join(map(str, self.eval_results))}, {self.comb}"
 
     def __eq__(self, other):
         return (
@@ -262,7 +258,18 @@ class AviIslearn(InvariantLearner):
         self.get_conjunctions(precision_truth_table, recall_truth_table)
 
         result = self.get_result_dict(precision_truth_table, recall_truth_table)
-        return result, precision_truth_table, recall_truth_table
+        return result #, precision_truth_table, recall_truth_table
+
+    @staticmethod
+    def clean_up_tables(candidates, precision_truth_table, recall_truth_table):
+        rows_to_remove = [
+            row
+            for row in recall_truth_table
+            if row.formula not in candidates
+        ]
+        for row in rows_to_remove:
+            recall_truth_table.remove(row)
+            precision_truth_table.remove(row)
 
     def get_candidates(self, sorted_positive_inputs):
         candidates = self.generate_candidates(
@@ -304,7 +311,7 @@ class AviIslearn(InvariantLearner):
                 recall_truth_table[candidate].evaluate(positive_inputs, self.graph)
             else:
                 new_row = AvicennaTruthTableRow(candidate)
-                new_row.evaluate(self.all_positive_inputs, self.graph, lazy=False)
+                new_row.evaluate(self.all_positive_inputs, self.graph)
                 recall_truth_table.append(new_row)
 
     def filter_candidates(
@@ -337,7 +344,7 @@ class AviIslearn(InvariantLearner):
             else:
                 # print("Complete Eval Precision")
                 new_row = AvicennaTruthTableRow(row.formula)
-                new_row.evaluate(self.all_negative_inputs, self.graph, lazy=False)
+                new_row.evaluate(self.all_negative_inputs, self.graph)
                 precision_truth_table.append(new_row)
 
         assert len(precision_truth_table) == len(recall_truth_table)
