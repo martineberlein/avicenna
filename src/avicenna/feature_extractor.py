@@ -1,6 +1,7 @@
 import logging
 from typing import List, Set, Type, Optional, Any, Tuple
 from abc import ABC, abstractmethod
+import warnings
 
 import numpy as np
 from pandas import DataFrame
@@ -14,6 +15,9 @@ from sklearn.tree import DecisionTreeClassifier
 from avicenna.feature_collector import Feature, FeatureFactory, DEFAULT_FEATURE_TYPES
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
+
+# Suppress the specific SHAP warning
+warnings.filterwarnings('ignore', 'LightGBM binary classifier with TreeExplainer shap values output has changed to a list of ndarray')
 
 
 class RelevantFeatureLearner(ABC):
