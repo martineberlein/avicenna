@@ -29,6 +29,7 @@ class TestAvicennaIslearn(unittest.TestCase):
         )
 
     def test_avicenna_islearn(self):
+        print(str(get_pattern_file_path()))
         avi_islearn = AviIslearn(grammar, pattern_file=str(get_pattern_file_path()))
         exclude_nonterminals = [
             "<digits>",
@@ -41,20 +42,12 @@ class TestAvicennaIslearn(unittest.TestCase):
 
         precision_truth_table = AvicennaTruthTable()
         recall_truth_table = AvicennaTruthTable()
-        (
-            result,
-            precision_truth_table,
-            recall_truth_table,
-        ) = avi_islearn.learn_failure_invariants(
+        result = avi_islearn.learn_failure_invariants(
             self.test_inputs,
             precision_truth_table,
             recall_truth_table,
             exclude_nonterminals,
         )
-
-        # for formula in result.keys():
-        # print(ISLaUnparser(formula).unparse())
-        # self.assertEqual(True, False)  # add assertion here
 
         inputs = [
             ("sqrt(-20)", OracleResult.BUG),
@@ -72,7 +65,7 @@ class TestAvicennaIslearn(unittest.TestCase):
 
         # precision_truth_table = AvicennaTruthTable()
         # recall_truth_table = AvicennaTruthTable()
-        result, _, _ = avi_islearn.learn_failure_invariants(
+        result = avi_islearn.learn_failure_invariants(
             new_inputs, precision_truth_table, recall_truth_table, exclude_nonterminals
         )
 
@@ -83,6 +76,7 @@ class TestAvicennaIslearn(unittest.TestCase):
             print(f)
 
     def test_iterative_addition(self):
+        print(str(get_pattern_file_path()))
         fuzzer = GrammarFuzzer(grammar)
         test_inputs = set()
         for _ in range(200):
@@ -101,11 +95,7 @@ class TestAvicennaIslearn(unittest.TestCase):
 
         precision_truth_table = AvicennaTruthTable()
         recall_truth_table = AvicennaTruthTable()
-        (
-            result,
-            precision_truth_table,
-            recall_truth_table,
-        ) = avi_islearn.learn_failure_invariants(
+        result = avi_islearn.learn_failure_invariants(
             test_inputs, precision_truth_table, recall_truth_table, exclude_nonterminals
         )
 
@@ -126,7 +116,7 @@ class TestAvicennaIslearn(unittest.TestCase):
 
         # precision_truth_table = AvicennaTruthTable()
         # recall_truth_table = AvicennaTruthTable()
-        result, _, _ = avi_islearn.learn_failure_invariants(
+        result = avi_islearn.learn_failure_invariants(
             new_inputs, precision_truth_table, recall_truth_table, exclude_nonterminals
         )
 

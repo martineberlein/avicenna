@@ -205,7 +205,6 @@ class AviIslearn(InvariantLearner):
         self.all_negative_inputs: Set[Input] = set()
         self.all_positive_inputs: Set[Input] = set()
         self.initialize_attributes(grammar)
-        print(self.patterns)
 
     def initialize_attributes(self, grammar: Grammar):
         self.graph = gg.GrammarGraph.from_grammar(grammar)
