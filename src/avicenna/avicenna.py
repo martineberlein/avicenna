@@ -85,16 +85,14 @@ class Avicenna:
             else SingleExecutionHandler(self.oracle)
         )
 
-        self.all_inputs: Set[Input] = set()
-        test_inputs = (
+        self.all_inputs: Set[Input] = (
             Exceptional.of(lambda: initial_inputs)
             .map(self.parse_to_input)
-            .map(self.add_inputs)
+            .map(self.assign_label)
             .reraise()
             .get()
         )
 
-        self.execution_handler.label(test_inputs, self.report)
         self.best_candidates = set()
 
     @staticmethod
@@ -191,7 +189,7 @@ class Avicenna:
         self.best_candidates = new_candidates
         new_inputs = (
             Exceptional.of(lambda: new_candidates)
-            # .map(self.add_negated_constraints)
+            .map(self.add_negated_constraints)
             .map(self.generate_inputs)
             .bind(check_empty)
             .recover(self.generate_inputs_with_grammar_fuzzer)
@@ -302,3 +300,8 @@ class Avicenna:
                 else:
                     break
         return generated_inputs
+
+    @staticmethod
+    def add_negated_constraints(candidates: Set[Formula]) -> Set[Formula]:
+        negated_constraints = [-c for c in candidates]
+        return candidates.union(negated_constraints)
