@@ -16,7 +16,7 @@ from isla.parser import EarleyParser
 
 # ~~~~~~ CONSTANTS ~~~~~~ #
 
-T4P_DIR = Path(Path(__file__).parent.parent.parent.parent / 'Tests4Py').absolute()
+T4P_DIR = Path(Path(__file__).parent.parent.parent.parent / "Tests4Py").absolute()
 
 # ~~~~~~ TYPES ~~~~~~ #
 
@@ -25,7 +25,6 @@ Environment = Dict[str, str]
 # ~~~~~~ FILES ~~~~~~ #
 
 HARNESS_FILE = "harness_fastapi_1.py"
-
 
 
 class TestResult(enum.Enum):
@@ -117,8 +116,6 @@ class ExpectOutputAPI(API):
             return TestResult.UNDEFINED
 
 
-
-
 class ExpectErrAPI(ExpectOutputAPI):
     def __init__(
         self, expected: bytes | Collection[bytes], executable: PathLike = HARNESS_FILE
@@ -145,7 +142,6 @@ class ExpectNotOutAPI(ExpectOutputAPI):
         self, expected: bytes | Collection[bytes], executable: PathLike = HARNESS_FILE
     ):
         super().__init__(expected, executable, is_stdout=True, expect_in=True)
-
 
 
 ILLEGAL_CHARS = re.compile(r"[^A-Za-z0-9_]")

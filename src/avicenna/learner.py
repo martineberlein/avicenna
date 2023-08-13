@@ -8,11 +8,17 @@ from grammar_graph.gg import GrammarGraph
 from isla.language import DerivationTree
 
 from avicenna.generator import Generator
-from avicenna.feature_collector import Collector
-from avicenna.feature_extractor import Extractor, get_all_non_terminals
-from avicenna.features import STANDARD_FEATURES, FeatureWrapper, Feature
+from avicenna.feature_collector import GrammarFeatureCollector as Collector
+from avicenna.feature_extractor import SHAPRelevanceLearner
+
+# from avicenna.features import STANDARD_FEATURES, FeatureWrapper, Feature
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
+from avicenna.features import Feature
+
+
+def get_all_non_terminals():
+    pass
 
 
 class InputElementLearner:
@@ -27,7 +33,7 @@ class InputElementLearner:
         oracle,
         max_relevant_features: int = 2,
         generate_more_inputs: bool = True,
-        features: Set[FeatureWrapper] = STANDARD_FEATURES,
+        features=None,
         show_shap_beeswarm=False,
     ):
         """
@@ -46,7 +52,9 @@ class InputElementLearner:
         self._show_shap_beeswarm = show_shap_beeswarm
         self._relevant_input_elements = None
 
-    def learn(self, test_inputs: Set[Input], use_correlation=True) -> List[Tuple[str, Feature, List[Feature]]]:
+    def learn(
+        self, test_inputs: Set[Input], use_correlation=True
+    ) -> List[Tuple[str, Feature, List[Feature]]]:
         """
         Learns and determines the most relevant input elements by (1) parsing the input files into their grammatical
         features; (2) training a machine learning model that associates the input features with the failure/passing
@@ -64,7 +72,9 @@ class InputElementLearner:
                 label = self._prop(inp.tree)
                 inp.oracle = OracleResult.BUG if label else OracleResult.NO_BUG
 
-        num_bug_inputs = len([inp for inp in test_inputs if inp.oracle == OracleResult.BUG])
+        num_bug_inputs = len(
+            [inp for inp in test_inputs if inp.oracle == OracleResult.BUG]
+        )
 
         logging.info(
             f"Learning with {num_bug_inputs} failure-inducing and {len(test_inputs) - num_bug_inputs} benign "
@@ -81,7 +91,7 @@ class InputElementLearner:
         learning_data = self._get_learning_data(test_inputs)
 
         logging.info(f"Learning most relevant input elements.")
-        self._extractor = Extractor(
+        self._extractor = SHAPRelevanceLearner(
             learning_data,
             self._grammar,
             max_feature_num=self._max_relevant_features,
@@ -99,8 +109,10 @@ class InputElementLearner:
                 feature
             )
             relevant_input_elements.append((str(feature.rule), feature, corr_features))
-        logging.info(f"Extracted {len(relevant_input_elements)} {[f[0] for f in relevant_input_elements]} input "
-                     f"elements.")
+        logging.info(
+            f"Extracted {len(relevant_input_elements)} {[f[0] for f in relevant_input_elements]} input "
+            f"elements."
+        )
 
         if use_correlation:
             prev_length = len(relevant_input_elements)
@@ -170,7 +182,9 @@ class InputElementLearner:
         for inp in test_inputs:
             if inp.oracle != OracleResult.UNDEF:
                 learning_data = inp.features  # .drop(["sample"], axis=1)
-                learning_data["oracle"] = True if inp.oracle == OracleResult.BUG else False
+                learning_data["oracle"] = (
+                    True if inp.oracle == OracleResult.BUG else False
+                )
                 data.append(learning_data)
 
         return DataFrame.from_records(data)

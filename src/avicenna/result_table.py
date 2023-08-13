@@ -1,5 +1,5 @@
 import copy
-from typing import Iterable, Set
+from typing import Iterable, Set, List
 
 from grammar_graph import gg
 from isla import language
@@ -31,6 +31,8 @@ class TruthTableRow:
         tn: int = 0,
     ):
         self.formula = formula
+        # self.precision_results: List[bool]
+        # self.recall_results: [bool]
         self.n = n
         self.tp = tp
         self.fp = fp
@@ -50,10 +52,10 @@ class TruthTableRow:
                 self.formula, inp.tree, graph.grammar, graph=graph
             ).is_true()
 
-            bool_oracle = (True if inp.oracle == OracleResult.BUG else False)
+            bool_oracle = True if inp.oracle == OracleResult.BUG else False
 
             if eval_result is True and bool_oracle is True:
-                    self.tp += 1
+                self.tp += 1
             elif eval_result is True and bool_oracle is False:
                 self.fp += 1
             elif eval_result is False and bool_oracle is True:
@@ -71,6 +73,15 @@ class TruthTableRow:
         assert self.n == (self.tp + self.tn + self.fn + self.fp)
         return self.n, self.tp, self.fp, self.fn, self.tn
 
+    def set_results(self, n, tp, fp, fn, tn) -> "TruthTableRow":
+        self.n = n
+        self.tp = tp
+        self.fp = fp
+        self.fn = fn
+        self.tn = tn
+
+        return self
+
     def __repr__(self):
         return f"TruthTableRow({repr(self.formula)})"
 
@@ -78,10 +89,12 @@ class TruthTableRow:
         precision = self.tp / (self.tp + self.fp)
         recall = self.tp / (self.tp + self.fn)
         f1 = (2 * precision * recall) / (precision + recall)
-        return f"{self.formula}: #inputs: {self.n};" \
-               f" precision {round(precision * 100, 3)}%;" \
-               f" recall {round(recall * 100, 3)}%;" \
-               f" f1 {round(f1, 3)}"
+        return (
+            f"{self.formula}: #inputs: {self.n};"
+            f" precision {round(precision * 100, 3)}%;"
+            f" recall {round(recall * 100, 3)}%;"
+            f" f1 {round(f1, 3)}"
+        )
 
     def __eq__(self, other):
         return isinstance(other, TruthTableRow) and self.formula == other.formula

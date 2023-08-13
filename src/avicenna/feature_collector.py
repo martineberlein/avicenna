@@ -1,109 +1,73 @@
 from functools import lru_cache
-from typing import List, Set, Dict
+from typing import List, Dict, Optional, Any, Type
+from abc import ABC, abstractmethod
 
-import numpy
-import pandas
-from fuzzingbook.GrammarFuzzer import is_nonterminal, Grammar
+from fuzzingbook.Grammars import is_nonterminal, Grammar
 from isla.language import DerivationTree
 
-from avicenna.features import Feature, FeatureWrapper, STANDARD_FEATURES
 from avicenna.input import Input
+from avicenna.features import (
+    ExistenceFeature,
+    DerivationFeature,
+    NumericFeature,
+    LengthFeature,
+    Feature,
+    FeatureVector,
+    FeatureFactory,
+)
+
+DEFAULT_FEATURE_TYPES: List[Type[Feature]] = [
+    ExistenceFeature,
+    DerivationFeature,
+    NumericFeature,
+    LengthFeature,
+]
 
 
-class Collector:
-    def __init__(self, grammar, features=None):
-        if features is None:
-            features = STANDARD_FEATURES
-        else:
-            for feature in features:
-                assert isinstance(feature, FeatureWrapper)
+class FeatureCollector(ABC):
+    def __init__(
+        self, grammar: Grammar, feature_types: Optional[List[Type[Feature]]] = None
+    ):
+        self.grammar = grammar
+        feature_types = feature_types if feature_types else DEFAULT_FEATURE_TYPES
+        self.features = self.construct_features(feature_types)
 
-        self._grammar: Grammar = grammar
-        self._features: Set[FeatureWrapper] = features
-        self.all_features: List[Feature] = self.get_all_features()
+    def construct_features(self, feature_types: List[Type[Feature]]) -> List[Feature]:
+        factory = FeatureFactory(self.grammar)
+        return factory.build(feature_types)
 
-    def get_all_features(self) -> List[Feature]:
-        assert len(self._features) != 0
+    @abstractmethod
+    def collect_features(self, test_input: Input) -> Dict[str, Any]:
+        pass
 
-        features = []
-        for feature_class in self._features:
-            features.extend(feature_class.extract_from_grammar(
-                grammar=self._grammar
-            ))
-        assert len(features) != 0, "Could not extract any features."
-        return features
 
-    def collect_features_from_list(self, test_inputs: Set[Input]) -> pandas.DataFrame:
-        data = []
-        for inp in test_inputs:
-            data.append(self.collect_features(inp))
+class GrammarFeatureCollector(FeatureCollector):
+    def collect_features(self, test_input: Input) -> FeatureVector:
+        feature_vector = FeatureVector(str(test_input))
 
-        return pandas.DataFrame.from_records(data)
+        for feature in self.features:
+            feature_vector.set_feature(feature, feature.default_value)
 
-    def collect_features(self, test_input: Input) -> Dict:
-        assert isinstance(
-            test_input.tree, DerivationTree
-        ), "Inputs is not a derivation tree."
-        parsed_features = {}
-        # initiate dictionary
-        for feature in self.all_features:
-            # initialization
-            parsed_features[feature.name] = feature.initialization_value()
+        self.set_features(test_input.tree, feature_vector)
+        return feature_vector
 
-        self.feature_collection(test_input.tree, parsed_features)
-        return parsed_features
-
-    def feature_collection(self, tree: DerivationTree, feature_table):
+    def set_features(self, tree: DerivationTree, feature_vector: FeatureVector):
         (node, children) = tree
 
-        # Get features that correspond to this node
-        # Get all one-dimensional features, e.g., Existence Feature of a single non-terminal,
-        # the length or the numerical representation of a non-terminal.
-        corresponding_features_1d = self.get_corresponding_feature(node, node)
+        corresponding_features_1d = self.get_corresponding_feature(node)
 
         for corresponding_feature in corresponding_features_1d:
-            assert feature_table[corresponding_feature.name] is not None, (
-                f"Feature {corresponding_feature.name} is " f"not in the feature table"
-            )
-            value = corresponding_feature.evaluate(tree, feature_table)
-            if value is not None:
-                feature_table[corresponding_feature.name] = value
-
-        # Get features that correspond to this node
-        # Get all two-dimensional features, e.g., the Existence of a Derivation Sequences A-> BD
-        expansion = "".join([child[0] for child in children])
-        corresponding_features_2d = self.get_corresponding_feature(node, expansion)
-
-        for corresponding_feature in corresponding_features_2d:
-            assert feature_table[corresponding_feature.name] is not None, (
-                f"Feature {corresponding_feature.name} is " f"not in the feature table"
-            )
-            value = corresponding_feature.evaluate(tree, feature_table)
-            if value is not None:
-                feature_table[corresponding_feature.name] = value
+            value = corresponding_feature.evaluate(tree)
+            feature_vector.set_feature(corresponding_feature, value)
 
         for child in children:
             if is_nonterminal(child[0]):
-                self.feature_collection(child, feature_table)
+                self.set_features(child, feature_vector)
 
     @lru_cache
-    def get_corresponding_feature(
-        self, feature_rule: str, feature_key: str
-    ) -> List[Feature]:
-        feature_list = []
-        for feature in self.all_features:
-            if feature.rule == feature_rule and feature.key == feature_key:
-                feature_list.append(feature)
-
-        # assert len(feature_list) != 0
-        return feature_list
-
-
-def get_all_features_n(features_set: Set[FeatureWrapper], grammar: Grammar):
-    assert len(features_set) != 0, "No Feature Classes were given."
-
-    features = []
-    for feature_class in features_set:
-        features = features + feature_class.extract_from_grammar(grammar=grammar)
-    assert len(features) != 0, "Could not extract any features."
-    return features
+    def get_corresponding_feature(self, current_node: str) -> List[Feature]:
+        return [
+            feature
+            for feature in self.features
+            if (feature.non_terminal == current_node)
+        ]
