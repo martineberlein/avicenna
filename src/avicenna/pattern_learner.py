@@ -192,14 +192,12 @@ class AviIslearn(InvariantLearner):
     def __init__(
         self,
         grammar: Grammar,
-        patterns: Optional[List[language.Formula | str]] = None,
         pattern_file: Optional[str] = None,
         activated_patterns: Optional[Iterable[str]] = None,
         deactivated_patterns: Optional[Iterable[str]] = None,
     ):
         super().__init__(
             grammar,
-            patterns=patterns,
             pattern_file=pattern_file,
             activated_patterns=activated_patterns,
             deactivated_patterns=deactivated_patterns,
@@ -207,6 +205,7 @@ class AviIslearn(InvariantLearner):
         self.all_negative_inputs: Set[Input] = set()
         self.all_positive_inputs: Set[Input] = set()
         self.initialize_attributes(grammar)
+        print(self.patterns)
 
     def initialize_attributes(self, grammar: Grammar):
         self.graph = gg.GrammarGraph.from_grammar(grammar)
