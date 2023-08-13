@@ -1,12 +1,8 @@
 import logging
-import sys
 from pathlib import Path
 from typing import List, Dict, Set, Callable, Tuple, Iterable
 
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
-from fuzzingbook.Parser import EarleyParser
-from grammar_graph.gg import GrammarGraph
-from isla.language import DerivationTree
 from isla.language import ISLaUnparser, Formula
 
 from avicenna import feature_extractor
@@ -15,9 +11,7 @@ from avicenna.generator import (
     ISLaGrammarBasedGenerator,
     FuzzingbookBasedGenerator,
 )
-from avicenna.helpers import (
-    Timetable,
-)
+
 from avicenna.input import Input
 from avicenna.pattern_learner import (
     AvicennaTruthTable,
@@ -30,16 +24,13 @@ from avicenna.report import SingleFailureReport, MultipleFailureReport
 from avicenna.logger import LOGGER
 from avicenna.monads import Maybe, Exceptional, check_empty
 
-ISLA_GENERATOR_TIMEOUT_SECONDS = 10
 
-
-class Avicenna(Timetable):
+class Avicenna:
     def __init__(
         self,
         grammar: Grammar,
         oracle: Callable[[Input], OracleResult],
         initial_inputs: List[str],
-        working_dir: Path = Path("/tmp").resolve(),
         activated_patterns: List[str] = None,
         max_iterations: int = 10,
         max_excluded_features: int = 3,
@@ -48,7 +39,6 @@ class Avicenna(Timetable):
         use_multi_failure_report: bool = True,
         use_batch_execution: bool = False,
     ):
-        super().__init__(working_dir)
         self._start_time = None
         self._activated_patterns = activated_patterns
         self.oracle = oracle
