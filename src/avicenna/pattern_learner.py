@@ -256,14 +256,12 @@ class AviIslearn(InvariantLearner):
         self.get_conjunctions(precision_truth_table, recall_truth_table)
 
         result = self.get_result_dict(precision_truth_table, recall_truth_table)
-        return result #, precision_truth_table, recall_truth_table
+        return result  # , precision_truth_table, recall_truth_table
 
     @staticmethod
     def clean_up_tables(candidates, precision_truth_table, recall_truth_table):
         rows_to_remove = [
-            row
-            for row in recall_truth_table
-            if row.formula not in candidates
+            row for row in recall_truth_table if row.formula not in candidates
         ]
         for row in rows_to_remove:
             recall_truth_table.remove(row)
