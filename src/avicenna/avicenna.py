@@ -1,23 +1,18 @@
 import logging
 import sys
 from pathlib import Path
-from time import perf_counter
-from typing import List, Dict, Set, Callable, Optional, Tuple, Iterable
+from typing import List, Dict, Set, Callable, Tuple, Iterable
 
-import islearn.learner
-import pandas
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
 from fuzzingbook.Parser import EarleyParser
 from grammar_graph.gg import GrammarGraph
 from isla.language import DerivationTree
 from isla.language import ISLaUnparser, Formula
-from islearn.learner import TruthTable as IslearnTruthTable
 
 from avicenna import feature_extractor
 from avicenna.feature_collector import GrammarFeatureCollector
 from avicenna.generator import (
     ISLaGrammarBasedGenerator,
-    MutationBasedGenerator,
     FuzzingbookBasedGenerator,
 )
 from avicenna.helpers import (
@@ -30,8 +25,6 @@ from avicenna.pattern_learner import (
 )
 from avicenna.oracle import OracleResult
 from avicenna_formalizations import get_pattern_file_path
-from avicenna.result_table import TruthTable, TruthTableRow
-from avicenna.helpers import time
 from avicenna.execution_handler import SingleExecutionHandler, BatchExecutionHandler
 from avicenna.report import SingleFailureReport, MultipleFailureReport
 from avicenna.logger import LOGGER
@@ -84,18 +77,11 @@ class Avicenna(Timetable):
 
         self._pattern_file = pattern_file if pattern_file else get_pattern_file_path()
 
-        # Islearn
-        self._graph = GrammarGraph.from_grammar(grammar)
-
         self.pattern_learner = AviIslearn(grammar, pattern_file=str(self._pattern_file))
 
         # TruthTable
-        self.truthTable: TruthTable = TruthTable()
         self.precision_truth_table = AvicennaTruthTable()
         self.recall_truth_table = AvicennaTruthTable()
-
-        # All bug triggering inputs
-        self.pathological_inputs = set()
 
         self.report = (
             MultipleFailureReport()
@@ -109,23 +95,15 @@ class Avicenna(Timetable):
             else SingleExecutionHandler(self.oracle)
         )
 
-        test_inputs: Set[Input] = set()
-        for inp in initial_inputs:
-            try:
-                test_inputs.add(
-                    Input(
-                        DerivationTree.from_parse_tree(
-                            next(EarleyParser(self.grammar).parse(inp))
-                        )
-                    )
-                )
-            except SyntaxError:
-                logging.error(
-                    "Avicenna: Could not parse initial inputs with given grammar!"
-                )
-                sys.exit(-1)
+        self.all_inputs: Set[Input] = set()
+        test_inputs = (
+            Exceptional.of(lambda: initial_inputs)
+            .map(self.parse_to_input)
+            .map(self.add_inputs)
+            .reraise()
+            .get()
+        )
 
-        self.all_inputs: Set[Input] = test_inputs
         self.execution_handler.label(test_inputs, self.report)
         self.best_candidates = set()
 
@@ -152,30 +130,29 @@ class Avicenna(Timetable):
         if num_failing_inputs < self._targeted_start_size:
             # generator = MutationBasedGenerator(self.grammar, self.oracle, self.all_inputs, True)
             generator = FuzzingbookBasedGenerator(self.grammar)
-            for _ in range(20):
+            for _ in range(100):
                 result = generator.generate()
                 if result.is_just():
                     generated_inputs.add(result.value())
                 else:
                     break
-        # If we have generated some inputs, we return them wrapped in a Just monad
         if generated_inputs:
             return Maybe.just(generated_inputs)
         return Maybe.nothing()
 
-    def explain(self) -> List[Tuple[Formula, float, float, float]]:
+    def explain(self) -> List[Tuple[Formula, float, float]]:
         new_inputs: Set[Input] = self.all_inputs.union(self.generate_more_inputs())
         while self._do_more_iterations():
-            LOGGER.info("Starting Iteration " + str(self._iteration))
             new_inputs = self._loop(new_inputs)
 
-        return self._finalize()
+        return self.finalize()
 
     def _do_more_iterations(self):
         if self._iteration >= self._max_iterations:
-            logging.info("Terminate due to maximal iterations reached")
+            LOGGER.info("Terminate due to maximal iterations reached")
             return False
         self._iteration += 1
+        LOGGER.info("Starting Iteration " + str(self._iteration))
         return True
 
     def add_inputs(self, test_inputs: Set[Input]):
@@ -209,7 +186,6 @@ class Avicenna(Timetable):
         ]
 
     def _loop(self, test_inputs: Set[Input]):
-        # first generate and give constraints not inputs
         test_inputs = self.construct_inputs(test_inputs)
         exclusion_non_terminals = self.learn_relevant_features()
 
@@ -246,61 +222,66 @@ class Avicenna(Timetable):
                 break
         return generated_inputs
 
-
-    @staticmethod
-    def get_statistics(
-        formula: Formula,
-        precision_truth_table: IslearnTruthTable,
-        recall_truth_table: IslearnTruthTable,
-    ) -> Tuple[int, float, float, float, float]:
-        recall_results = recall_truth_table[formula].eval_results
-        precision_results = precision_truth_table[formula].eval_results
-        tp = sum(int(r) for r in recall_results)
-        fp = sum(int(r) for r in precision_results)
-        return (
-            len(precision_results) + len(recall_results),
-            tp,
-            fp,
-            len(recall_results) - tp,
-            len(precision_results) - fp,
-        )
-
     def _add_infeasible_constraints(self, constraint):
         self._infeasible_constraints.add(constraint)
         logging.info("Removing infeasible constraint")
         logging.debug(f"Infeasible constraint: {constraint}")
 
-    def _finalize(self) -> List[Tuple[Formula, float, float, float]]:
-        logging.info("Avicenna finished")
-        logging.info("The best learned failure invariant(s):")
+    def finalize(self) -> List[Tuple[Formula, float, float]]:
+        candidates_with_scores = self._gather_candidates_with_scores()
+        best_candidates = self._get_best_candidates(candidates_with_scores)
 
+        self._log_best_candidates(best_candidates)
+
+        return best_candidates
+
+    def _gather_candidates_with_scores(self) -> List[Tuple[Formula, float, float]]:
         def meets_criteria(precision_value_, recall_value_):
             return precision_value_ >= 0.9 and recall_value_ >= 0.6
 
-        result = {}
+        candidates_with_scores = []
+
         for idx, precision_row in enumerate(self.precision_truth_table):
             precision_value = 1 - precision_row.eval_result()
             recall_value = self.recall_truth_table[idx].eval_result()
 
             if meets_criteria(precision_value, recall_value):
-                result[precision_row.formula] = (precision_value, recall_value)
+                candidates_with_scores.append(
+                    (precision_row.formula, precision_value, recall_value)
+                )
 
-        sorted_result = dict(
-            sorted(result.items(), key=lambda p: (p[1], -len(p[0])), reverse=True)
+        candidates_with_scores.sort(
+            key=lambda x: (x[1], x[2], -len(x[0])), reverse=True
         )
 
-        logging.info(
+        return candidates_with_scores
+
+    @staticmethod
+    def _get_best_candidates(
+        candidates_with_scores: List[Tuple[Formula, float, float]]
+    ) -> List[Tuple[Formula, float, float]]:
+        top_precision, top_recall = (
+            candidates_with_scores[0][1],
+            candidates_with_scores[0][2],
+        )
+
+        return [
+            candidate
+            for candidate in candidates_with_scores
+            if candidate[1] == top_precision and candidate[2] == top_recall
+        ]
+
+    @staticmethod
+    def _log_best_candidates(best_candidates: List[Tuple[Formula, float, float]]):
+        LOGGER.info(
             "\n".join(
-                map(
-                    lambda x: f"({x[1][0], x[1][1]}) " + ISLaUnparser(x[0]).unparse(),
-                    sorted_result.items(),
-                )
+                [
+                    f"({candidate[1], candidate[2]}) "
+                    + ISLaUnparser(candidate[0]).unparse()
+                    for candidate in best_candidates
+                ]
             )
         )
-        return [
-            (candidate, stats[0], stats[1])
-            for candidate, stats in sorted_result.items()
-        ]
 
     def parse_to_input(self, test_inputs: Iterable[str]) -> Set[Input]:
         return set([Input.from_str(self.grammar, inp_) for inp_ in test_inputs])
