@@ -21,7 +21,7 @@ from avicenna.oracle import OracleResult
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.execution_handler import SingleExecutionHandler, BatchExecutionHandler
 from avicenna.report import SingleFailureReport, MultipleFailureReport
-from avicenna.logger import LOGGER
+from avicenna.logger import LOGGER, configure_logging
 from avicenna.monads import Maybe, Exceptional, check_empty
 
 
@@ -38,6 +38,7 @@ class Avicenna:
         max_conjunction_size: int = 2,
         use_multi_failure_report: bool = True,
         use_batch_execution: bool = False,
+        log: bool = False,
     ):
         self._start_time = None
         self._activated_patterns = activated_patterns
@@ -51,6 +52,18 @@ class Avicenna:
         self._all_data = None
         self._learned_invariants: Dict[str, List[float]] = {}
         self._best_candidates: Dict[str, List[float]] = {}
+
+        if log:
+            configure_logging()
+        else:
+            # If you want to disable logging when log is set to False
+            # Clear root logger handlers
+            for handler in logging.root.handlers[:]:
+                logging.root.removeHandler(handler)
+
+            # Clear avicenna logger handlers
+            for handler in LOGGER.handlers[:]:
+                LOGGER.removeHandler(handler)
 
         self._infeasible_constraints: Set = set()
         self._max_conjunction_size = max_conjunction_size

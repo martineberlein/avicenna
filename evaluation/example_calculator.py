@@ -10,6 +10,7 @@ if __name__ == "__main__":
         initial_inputs=initial_inputs,
         oracle=oracle,
         max_iterations=10,
+        log=False,
     )
 
     diagnoses = avicenna.explain()
