@@ -33,7 +33,10 @@ grammar = {
     "<heartbeat-request>": ["\x01 <payload-length> <payload> <padding>"],
     "<payload-length>": ["<one_nine><maybe_digits>"],
     "<one_nine>": srange("123456789"),
-    "<maybe_digits>": ["", "<digits>", ],
+    "<maybe_digits>": [
+        "",
+        "<digits>",
+    ],
     "<digits>": ["<digit>", "<digit><digits>"],
     "<digit>": list(string.digits),
     "<payload>": ["<string>"],
@@ -42,7 +45,11 @@ grammar = {
     "<char>": list(string.ascii_letters),
 }
 
-initial_inputs = ["\x01 5 HELLO PADDING", "\x01 7 ILoveSE padding", "\x01 100 Hello RANDOM"]
+initial_inputs = [
+    "\x01 5 HELLO PADDING",
+    "\x01 7 ILoveSE padding",
+    "\x01 100 Hello RANDOM",
+]
 
 
 def heartbeat_string_to_hex(s):
@@ -52,7 +59,7 @@ def heartbeat_string_to_hex(s):
     remaining_string = s[1:].lstrip()  # Remove leading spaces
 
     # Use regex to parse the rest of the string
-    match = re.match(r'(\d+) ([\w\s]+)', remaining_string)
+    match = re.match(r"(\d+) ([\w\s]+)", remaining_string)
     if not match:
         raise ValueError("Invalid heartbeat string format")
 
@@ -70,12 +77,16 @@ def heartbeat_string_to_hex(s):
 
     # Convert each section to hex and concatenate
     type_hex = f"{ord(type_byte):02X}"
-    length_bytes = length.to_bytes(2, byteorder='big')
-    payload_bytes = payload.encode('utf-8')
-    padding_bytes = padding.encode('utf-8')
+    length_bytes = length.to_bytes(2, byteorder="big")
+    payload_bytes = payload.encode("utf-8")
+    padding_bytes = padding.encode("utf-8")
 
-    hex_representation = ' '.join(
-        f"{byte:02X}" for byte in (bytes.fromhex(type_hex) + length_bytes + payload_bytes + padding_bytes))
+    hex_representation = " ".join(
+        f"{byte:02X}"
+        for byte in (
+            bytes.fromhex(type_hex) + length_bytes + payload_bytes + padding_bytes
+        )
+    )
     return hex_representation
 
 
@@ -88,12 +99,13 @@ def hex_to_heartbeat_string(hex_string):
     # Extract components from the byte data
     type_byte = byte_data[0]
     length_bytes = byte_data[1:3]
-    payload_length = int.from_bytes(length_bytes, byteorder='big')
+    payload_length = int.from_bytes(length_bytes, byteorder="big")
 
     # Extract payload and padding based on the length
-    payload = byte_data[3:3 + payload_length].decode('utf-8', errors='replace')
-    padding = byte_data[3 + payload_length:].decode('utf-8',
-                                                    errors='replace')  # Using 'ignore' to handle potential non-UTF8 characters
+    payload = byte_data[3 : 3 + payload_length].decode("utf-8", errors="replace")
+    padding = byte_data[3 + payload_length :].decode(
+        "utf-8", errors="replace"
+    )  # Using 'ignore' to handle potential non-UTF8 characters
 
     # Construct the heartbeat string
     heartbeat_string = f"\\x{type_byte:02X} {payload_length} {payload} {padding}"
@@ -102,8 +114,11 @@ def hex_to_heartbeat_string(hex_string):
 
 def generate_random_utf8_string(length):
     """Generate a random UTF-8 string of the given length."""
-    characters = string.ascii_letters + string.digits + string.punctuation # + string.whitespace
-    return ''.join(random.choice(characters) for _ in range(length))
+    characters = (
+        string.ascii_letters + string.digits + string.punctuation
+    )  # + string.whitespace
+    return "".join(random.choice(characters) for _ in range(length))
+
 
 def heartbeat_response(hex_request):
     """Simulate a vulnerable Heartbeat response."""
@@ -113,18 +128,20 @@ def heartbeat_response(hex_request):
 
     # Extract the payload length from the request
     length_bytes = byte_data[1:3]
-    payload_length = int.from_bytes(length_bytes, byteorder='big')
+    payload_length = int.from_bytes(length_bytes, byteorder="big")
 
     # Simulated memory: Actual payload + some extra memory
     # memory = byte_data[3:] + os.urandom(1000)  # 1000 bytes of extra memory for demonstration
-    memory = byte_data[3:] + generate_random_utf8_string(1000).encode('utf-8')
+    memory = byte_data[3:] + generate_random_utf8_string(1000).encode("utf-8")
 
     # Retrieve the payload and padding based on the specified length
     response_payload = memory[:payload_length]
 
     # Construct the official Heartbeat response
     response_type = "02 "
-    response = response_type + ' '.join(f"{byte:02X}" for byte in (length_bytes + response_payload))
+    response = response_type + " ".join(
+        f"{byte:02X}" for byte in (length_bytes + response_payload)
+    )
 
     return response
 
@@ -137,13 +154,15 @@ def _test_heartbleed_vulnerability(request_str, response_hex):
     specified_payload_length = int(request_str.split()[1])
 
     # Extract the actual payload from the request string (assuming space-separated format)
-    actual_payload = request_str.split()[2][:specified_payload_length].encode('utf-8')
+    actual_payload = request_str.split()[2][:specified_payload_length].encode("utf-8")
 
     # Convert the response hex string to bytes
     response_byte_data = bytes.fromhex(response_hex.replace(" ", ""))
 
     # Extract the payload (and potentially extra data) from the response
-    response_payload_and_extra = response_byte_data[3:3 + specified_payload_length + len(actual_payload)]
+    response_payload_and_extra = response_byte_data[
+        3 : 3 + specified_payload_length + len(actual_payload)
+    ]
 
     # Compare the response payload to the request payload
     # If they're not the same or if there's extra data, then there's a potential Heartbleed vulnerability

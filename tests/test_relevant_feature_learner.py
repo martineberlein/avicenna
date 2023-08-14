@@ -116,7 +116,6 @@ class TestRelevantFeatureLearner(unittest.TestCase):
             classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
             feature_types=features,
             top_n=2,
-            show_beeswarm_plot=True,
         )
 
         relevant_features, corr, ex = feature_learner.learn(test_inputs)

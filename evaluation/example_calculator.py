@@ -1,7 +1,7 @@
 from isla.language import ISLaUnparser
 
 from avicenna import Avicenna
-from avicenna_formalizations.heartbeat import grammar, oracle, initial_inputs
+from avicenna_formalizations.calculator import grammar, oracle, initial_inputs
 
 
 if __name__ == "__main__":
@@ -9,7 +9,7 @@ if __name__ == "__main__":
         grammar=grammar,
         initial_inputs=initial_inputs,
         oracle=oracle,
-        max_iterations=5,
+        max_iterations=10,
     )
 
     diagnoses = avicenna.explain()

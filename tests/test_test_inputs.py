@@ -4,7 +4,7 @@ from typing import Tuple
 from isla.derivation_tree import DerivationTree
 from fuzzingbook.Parser import EarleyParser, is_valid_grammar, Grammar
 
-from avicenna_formalizations.calculator import grammar, prop
+from avicenna_formalizations.calculator import grammar, oracle
 from avicenna.oracle import OracleResult
 from avicenna.input import Input
 
@@ -47,7 +47,7 @@ class TestInputs(unittest.TestCase):
 
     def test_input_execution(self):
         for inp in self.test_inputs:
-            inp.oracle = prop(inp)
+            inp.oracle = oracle(inp)
 
     def test_hash(self):
         grammar: Grammar = {

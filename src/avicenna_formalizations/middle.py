@@ -58,6 +58,9 @@ def oracle(inp: Input | str) -> OracleResult:
     return _test_dummy(str(inp))
 
 
+initial_inputs = ["3, 1, 4", "3, 2, 1"]
+
+
 if __name__ == "__main__":
     assert _test_dummy("3, 1, 4") == OracleResult.BUG
     assert _test_dummy("3, 2, 1") == OracleResult.NO_BUG
