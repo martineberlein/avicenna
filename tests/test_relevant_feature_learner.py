@@ -52,7 +52,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
 
     def test_relevant_feature_learner(self):
         feature_learner = feature_extractor.DecisionTreeRelevanceLearner(
-            grammar_calculator
+            grammar_calculator, prune_parent_correlation=False
         )
         (
             relevant_features,
@@ -87,7 +87,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
 
     def test_relevant_feature_exception_handling(self):
         feature_learner = feature_extractor.DecisionTreeRelevanceLearner(
-            grammar_calculator
+            grammar_calculator, prune_parent_correlation=False
         )
 
         excluded_non_terminal_strings = (
@@ -123,7 +123,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         fuzzer = GrammarFuzzer(grammar_calculator)
         collector = GrammarFeatureCollector(grammar_calculator)
         feature_learner = feature_extractor.DecisionTreeRelevanceLearner(
-            grammar_calculator
+            grammar_calculator, prune_parent_correlation=False
         )
 
         excluded_non_terminal_strings = (

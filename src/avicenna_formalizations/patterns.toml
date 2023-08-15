@@ -25,14 +25,14 @@ forall <?NONTERMINAL> container in start:
     (= (str.len elem) (str.to.int <?STRING>))
 '''
 
-[[Length]]
-
-name = "Existence String Max Length"
-constraint = '''
-forall <?NONTERMINAL> container in start:
-  exists <?NONTERMINAL> elem in container:
-    (<= (str.len elem) (str.to.int <?STRING>))
-'''
+#[[Length]]
+#
+#name = "Existence String Max Length"
+#constraint = '''
+#forall <?NONTERMINAL> container in start:
+#  exists <?NONTERMINAL> elem in container:
+#    (<= (str.len elem) (str.to.int <?STRING>))
+#'''
 
 #[[Length]]
 #
@@ -79,9 +79,9 @@ forall <?NONTERMINAL> elem in start:
 
 name = "Occurrence in Container"
 constraint = '''
-forall <?NONTERMINAL> c in start:
-  exists <?NONTERMINAL> elem in c:
-    (inside(elem, c))
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> elem in container:
+    (inside(elem, container))
 '''
 
 [[Existential]]

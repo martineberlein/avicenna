@@ -92,8 +92,6 @@ def check_empty(x: T) -> Exceptional[Exception, T]:
         return Failure(AssertionError())
     return Success(x)
 
-
-
 def parse_to_input(test_inputs: Iterable[str]) -> Set[Input]:
     return set([Input.from_str(grammar, inp_) for inp_, _ in test_inputs])
 

@@ -28,13 +28,14 @@ class RelevantFeatureLearner(ABC):
         feature_types: Optional[List[Type[Feature]]] = None,
         top_n: int = 3,
         threshold: float = 0.01,
+        prune_parent_correlation: bool = True
     ):
         self.grammar = grammar
         self.features = self.construct_features(feature_types or DEFAULT_FEATURE_TYPES)
         self.top_n = top_n
         self.threshold = threshold
         self.graph = GrammarGraph.from_grammar(grammar)
-        self.prune_parent_correlation = True
+        self.prune_parent_correlation = prune_parent_correlation
 
     def construct_features(self, feature_types: List[Type[Feature]]) -> List[Feature]:
         return FeatureFactory(self.grammar).build(feature_types)
