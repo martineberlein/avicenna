@@ -79,9 +79,9 @@ forall <?NONTERMINAL> elem in start:
 
 name = "Occurrence in Container"
 constraint = '''
-forall <?NONTERMINAL> container in start:
-  exists <?NONTERMINAL> elem in container:
-    (inside(elem, container))
+forall <?NONTERMINAL> c in start:
+  exists <?NONTERMINAL> elem in c:
+    (inside(elem, c))
 '''
 
 [[Existential]]
@@ -100,15 +100,15 @@ exists <?NONTERMINAL> elem_xy in start:
     (inside(elem_xy, start))
 '''
 
-[[Misc]]
-
-name = "Equal Count"
-constraint = '''
-exists int num:
-  forall <?NONTERMINAL> elem in start:
-    ((>= (str.to.int num) 1) and
-    count(elem, <?NONTERMINAL>, num))
-'''
+#[[Misc]]
+#
+#name = "Equal Count"
+#constraint = '''
+#exists int num:
+#  forall <?NONTERMINAL> elem in start:
+#    ((>= (str.to.int num) 1) and
+#    count(elem, <?NONTERMINAL>, num))
+#'''
 
 [[Misc]]
 

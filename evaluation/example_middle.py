@@ -1,9 +1,3 @@
-from enum import Enum
-import logging
-
-from fuzzingbook.Grammars import Grammar, is_valid_grammar
-from avicenna.oracle import OracleResult
-from avicenna.input import Input
 from avicenna import Avicenna
 from isla.language import ISLaUnparser
 
@@ -13,13 +7,17 @@ from avicenna_formalizations.middle import grammar, oracle, initial_inputs
 if __name__ == "__main__":
     avicenna = Avicenna(
         grammar=grammar,
-        initial_inputs=["3, 1, 4", "3, 2, 1"],
+        initial_inputs=initial_inputs,
         oracle=oracle,
         max_excluded_features=4,
         max_iterations=10,
+        log=True
     )
 
-    diagnoses = avicenna.explain()
+    diagnosis = avicenna.explain()
+    print("Final Diagnosis:")
+    print(ISLaUnparser(diagnosis[0]).unparse())
 
-    for diagnosis in diagnoses:
+    print("\nEquivalent Representations:")
+    for diagnosis in avicenna.get_equivalent_best_formulas():
         print(ISLaUnparser(diagnosis[0]).unparse())

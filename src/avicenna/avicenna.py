@@ -10,6 +10,7 @@ from avicenna.feature_collector import GrammarFeatureCollector
 from avicenna.generator import (
     ISLaGrammarBasedGenerator,
     FuzzingbookBasedGenerator,
+    MutationBasedGenerator,
 )
 
 from avicenna.input import Input
@@ -141,7 +142,7 @@ class Avicenna:
             return Maybe.just(generated_inputs)
         return Maybe.nothing()
 
-    def explain(self) -> List[Tuple[Formula, float, float]]:
+    def explain(self) -> Tuple[Formula, float, float]:
         new_inputs: Set[Input] = self.all_inputs.union(self.generate_more_inputs())
         while self._do_more_iterations():
             new_inputs = self._loop(new_inputs)
@@ -228,12 +229,19 @@ class Avicenna:
         logging.info("Removing infeasible constraint")
         logging.debug(f"Infeasible constraint: {constraint}")
 
-    def finalize(self) -> List[Tuple[Formula, float, float]]:
+    def finalize(self) -> Tuple[Formula, float, float]:
+        best_candidate = self._calculate_best_formula().pop()
+        self._log_best_candidates([best_candidate])
+        return best_candidate
+
+    def _calculate_best_formula(self) -> List[Tuple[Formula, float, float]]:
         candidates_with_scores = self._gather_candidates_with_scores()
         best_candidates = self._get_best_candidates(candidates_with_scores)
 
-        self._log_best_candidates(best_candidates)
+        return best_candidates
 
+    def get_equivalent_best_formulas(self) -> List[Tuple[Formula, float, float]]:
+        best_candidates = self._calculate_best_formula()[1:]
         return best_candidates
 
     def _gather_candidates_with_scores(self) -> List[Tuple[Formula, float, float]]:
@@ -305,7 +313,7 @@ class Avicenna:
     def generate_inputs(self, candidate_set):
         generated_inputs = set()
         for _ in candidate_set:
-            generator = ISLaGrammarBasedGenerator(self.grammar)
+            generator = MutationBasedGenerator(self.grammar, self.oracle, self.all_inputs, yield_negative=True)
             for _ in range(1):
                 result_ = generator.generate()
                 if result_.is_just():
