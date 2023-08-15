@@ -1,4 +1,6 @@
 from typing import Generator, Optional
+from typing import Final
+
 
 from isla.derivation_tree import DerivationTree
 from fuzzingbook.Parser import EarleyParser
@@ -11,6 +13,7 @@ class Input:
     """
     Class describing a test input.
     """
+    __tree: Final[DerivationTree]
 
     def __init__(self, tree: DerivationTree, oracle: OracleResult = None):
         assert isinstance(tree, DerivationTree)
@@ -37,6 +40,10 @@ class Input:
     @features.setter
     def features(self, features_: FeatureVector):
         self.__features = features_
+
+    def update_oracle(self, oracle_: OracleResult) -> 'Input':
+        self.__oracle = oracle_
+        return self
 
     def __repr__(self):
         return str(f"Input({str(self), self.__oracle})")
