@@ -230,7 +230,7 @@ class Avicenna:
         logging.debug(f"Infeasible constraint: {constraint}")
 
     def finalize(self) -> Tuple[Formula, float, float]:
-        best_candidate = self._calculate_best_formula().pop()
+        best_candidate = self._calculate_best_formula()[0]
         self._log_best_candidates([best_candidate])
         return best_candidate
 
