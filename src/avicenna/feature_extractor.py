@@ -39,6 +39,9 @@ class RelevantFeatureLearner(ABC):
     def learn(
         self, test_input: Set[Input]
     ) -> Tuple[Set[Feature], Set[Feature], Set[Feature]]:
+        if not test_input:
+            raise ValueError("Input set for learning relevant features must not be empty.")
+
         x_train, y_train = self.get_learning_data(test_input)
         primary_features = set(self.get_relevant_features(test_input, x_train, y_train))
         logging.info(f"Determined {primary_features} as most relevant.")

@@ -45,6 +45,10 @@ class Input:
         self.__oracle = oracle_
         return self
 
+    def update_features(self, features_: FeatureVector) -> 'Input':
+        self.__features = features_
+        return self
+
     def __repr__(self):
         return str(f"Input({str(self), self.__oracle})")
 
