@@ -132,7 +132,7 @@ class Avicenna:
         if num_failing_inputs < self._targeted_start_size:
             # generator = MutationBasedGenerator(self.grammar, self.oracle, self.all_inputs, True)
             generator = FuzzingbookBasedGenerator(self.grammar)
-            for _ in range(100):
+            for _ in range(20):
                 result = generator.generate()
                 if result.is_just():
                     generated_inputs.add(result.value())
