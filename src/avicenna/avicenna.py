@@ -53,6 +53,8 @@ class Avicenna:
         self._all_data = None
         self._learned_invariants: Dict[str, List[float]] = {}
         self._best_candidates: Dict[str, List[float]] = {}
+        self.min_precision = 0.6
+        self.min_recall = 0.9
 
         if log:
             configure_logging()
@@ -246,7 +248,10 @@ class Avicenna:
 
     def _gather_candidates_with_scores(self) -> List[Tuple[Formula, float, float]]:
         def meets_criteria(precision_value_, recall_value_):
-            return precision_value_ >= 0.9 and recall_value_ >= 0.6
+            return (
+                precision_value_ >= self.min_precision
+                and recall_value_ >= self.min_recall
+            )
 
         candidates_with_scores = []
 
@@ -313,7 +318,9 @@ class Avicenna:
     def generate_inputs(self, candidate_set):
         generated_inputs = set()
         for _ in candidate_set:
-            generator = MutationBasedGenerator(self.grammar, self.oracle, self.all_inputs, yield_negative=True)
+            generator = MutationBasedGenerator(
+                self.grammar, self.oracle, self.all_inputs, yield_negative=True
+            )
             for _ in range(1):
                 result_ = generator.generate()
                 if result_.is_just():
