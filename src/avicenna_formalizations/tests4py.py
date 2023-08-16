@@ -1,8 +1,9 @@
 import os
 import string
 from pathlib import Path
-from typing import Union, Callable
+from typing import Union, Callable, List
 
+from fuzzingbook.Parser import EarleyParser
 from tests4py.grammars.fuzzer import GrammarFuzzer, Grammar, srange, is_valid_grammar
 from tests4py import framework
 from tests4py.projects import load_bug_info
@@ -53,6 +54,20 @@ def construct_oracle(
         return generic_tests4py_oracle(inp, project_dir)
 
     return oracle
+
+
+def run_parsing_checks(grammar: Grammar, input_list: List[str]):
+    parser = EarleyParser(grammar)
+    for inp in input_list:
+        for tree in parser.parse(inp):
+            pass
+
+
+def run_oracle_check(
+    oracle: Callable, input_list: List[str], expected_result: OracleResult
+):
+    for inp in input_list:
+        assert oracle(inp) == expected_result
 
 
 grammar_pysnooper: Grammar = {
