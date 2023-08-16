@@ -13,30 +13,31 @@ from avicenna_formalizations.tests4py import (
 
 
 failing_list = [
-    "-otest.log\n-cint=str\n",
-    "-cint=str\n",
-    "-d1\n-cint=repr\n-T\n",
-    "-o\n-d1\n-cbool=str\n",
-    "-otest.log\n-cint=repr,bool=str\n-O\n",
-    "-d1\n-wx\n-cfloat=str\n",
-    "-wy\n-cstr=str\n",
-    "-otest.log\n-wx\n-cstr=int\n",
-    "-ptest\n-cbool=int\n",
-    "-ptest\n-wx\n-cint=str\n",
+    "-otest1.log\n",
+    "-otest2.log\n-d1\n",
+    "-otest3.log\n-vx\n",
+    "-otest4.log\n-vx,y\n",
+    "-otest5.log\n-vw\n-d2\n",
+    "-otest6.log\n-ptest\n",
+    "-otest7.log\n-d1\n-ptest\n",
+    "-otest8.log\n-vx\n-ptest\n",
+    "-otest9.log\n-vw,x,y,z\n-d1\n",
+    "-otest10.log\n-vx,z\n-d1\n-ptest\n",
 ]
 
+
 passing_list = [
-    "-otest.log\n",
-    "",
-    "-d1\n-T\n",
     "-o\n-d1\n",
-    "-otest.log\n-O\n",
-    "-d1\n-wx\n",
-    "-wy\n",
-    "-otest.log\n-wx\n",
-    "-ptest\n",
-    "-ptest\n-wx\n",
+    "-vx\n",
+    "-o\n-vx,y\n",
+    "-vw\n-d2\n",
+    "-o\n-ptest\n",
+    "-d1\n-ptest\n",
+    "-o\n-vx\n-ptest\n",
+    "-vw,x,y,z\n-d1\n",
+    "-o\n-vx,z\n-d1\n-ptest\n",
 ]
+
 
 initial_inputs = failing_list + passing_list
 
@@ -45,7 +46,7 @@ if __name__ == "__main__":
     from avicenna_formalizations.tests4py import grammar_pysnooper as grammar
 
     project_name: str = "pysnooper"
-    bug_id: int = 2
+    bug_id: int = 3
     work_dir = DEFAULT_WORK_DIR
     setup_tests4py_project(project_name, bug_id, work_dir)
 
