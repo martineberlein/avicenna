@@ -11,6 +11,7 @@ from avicenna_formalizations.tests4py import (
     construct_oracle,
     run_oracle_check,
     run_parsing_checks,
+    get_tests4py_feature_learner,
 )
 
 
@@ -85,8 +86,9 @@ if __name__ == "__main__":
         grammar=grammar,
         initial_inputs=initial_inputs,
         oracle=oracle,
-        max_iterations=10,
+        max_iterations=20,
         log=True,
+        feature_learner=get_tests4py_feature_learner(grammar)
     )
 
     diagnosis = avicenna.explain()

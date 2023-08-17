@@ -9,6 +9,7 @@ from avicenna_formalizations.tests4py import (
     setup_tests4py_project,
     DEFAULT_WORK_DIR,
     construct_oracle,
+    get_tests4py_feature_learner,
 )
 
 
@@ -59,6 +60,7 @@ if __name__ == "__main__":
         oracle=oracle,
         max_iterations=3,
         log=True,
+        feature_learner=get_tests4py_feature_learner(grammar)
     )
 
     diagnosis = avicenna.explain()

@@ -11,6 +11,7 @@ import tests4py.constants
 
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
+from avicenna.feature_extractor import DecisionTreeRelevanceLearner
 
 
 DEFAULT_WORK_DIR = Path("/tmp")
@@ -69,6 +70,11 @@ def run_oracle_check(
 ):
     for inp in input_list:
         assert oracle(inp) == expected_result
+
+def get_tests4py_feature_learner(grammar: Grammar):
+    return DecisionTreeRelevanceLearner(
+        grammar
+    )
 
 
 grammar_pysnooper: Grammar = {

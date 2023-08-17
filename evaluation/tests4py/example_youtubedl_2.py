@@ -12,6 +12,7 @@ from avicenna_formalizations.tests4py import (
     DEFAULT_WORK_DIR,
     construct_oracle,
     run_oracle_check,
+    get_tests4py_feature_learner
 )
 
 
@@ -369,14 +370,6 @@ if __name__ == "__main__":
     oracle: Callable[[Union[str, Input]], OracleResult] = construct_oracle(
         project_name, bug_id, work_dir
     )
-    # from tests4py import framework
-    # report = framework.systemtest.tests4py_test(
-    #     work_dir=work_dir / "youtubedl_3", path_or_str=failing_list[0], diversity=False
-    # )
-    # print(report)
-    #
-    # for inp in failing_list:
-    #     print(oracle(inp))
 
     run_oracle_check(oracle, failing_list, OracleResult.BUG)
     run_oracle_check(oracle, passing_list, OracleResult.NO_BUG)
@@ -387,6 +380,7 @@ if __name__ == "__main__":
         oracle=oracle,
         max_iterations=10,
         log=True,
+        feature_learner=get_tests4py_feature_learner(grammar)
     )
 
     diagnosis = avicenna.explain()
