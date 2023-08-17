@@ -31,6 +31,7 @@ def setup_tests4py_project(
     report = framework.default.tests4py_compile(project_dir)
     if report.raised:
         raise report.raised
+    print(report)
     project = load_bug_info(project_dir / tests4py.constants.INFO_FILE)
     assert project.compiled
 
