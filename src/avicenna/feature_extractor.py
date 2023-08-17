@@ -19,6 +19,7 @@ from avicenna.oracle import OracleResult
 
 # Suppress the specific SHAP warning
 warnings.filterwarnings('ignore', 'LightGBM binary classifier with TreeExplainer shap values output has changed to a list of ndarray')
+warnings.filterwarnings('ignore', 'No further splits with positive gain, best gain: -inf')
 
 
 class RelevantFeatureLearner(ABC):
