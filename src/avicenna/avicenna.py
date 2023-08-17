@@ -40,6 +40,7 @@ class Avicenna:
         use_multi_failure_report: bool = True,
         use_batch_execution: bool = False,
         log: bool = False,
+        feature_learner: feature_extractor.RelevantFeatureLearner = None
     ):
         self._start_time = None
         self._activated_patterns = activated_patterns
@@ -75,10 +76,14 @@ class Avicenna:
         assert is_valid_grammar(self.grammar)
 
         self.collector = GrammarFeatureCollector(self.grammar)
-        self.feature_learner = feature_extractor.SHAPRelevanceLearner(
+        self.feature_learner = (
+            feature_learner
+            if feature_learner
+            else feature_extractor.SHAPRelevanceLearner(
             self.grammar,
             top_n=self._top_n,
             classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
+        )
         )
 
         self._pattern_file = pattern_file if pattern_file else get_pattern_file_path()
@@ -134,7 +139,7 @@ class Avicenna:
         if num_failing_inputs < self._targeted_start_size:
             # generator = MutationBasedGenerator(self.grammar, self.oracle, self.all_inputs, True)
             generator = FuzzingbookBasedGenerator(self.grammar)
-            for _ in range(20):
+            for _ in range(50):
                 result = generator.generate()
                 if result.is_just():
                     generated_inputs.add(result.value())
