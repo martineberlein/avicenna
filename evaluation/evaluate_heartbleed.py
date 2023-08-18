@@ -1,9 +1,10 @@
 from typing import Dict, Any
 
-from avicenna import Avicenna
 from isla.language import ISLaUnparser
 
-from avicenna_formalizations.middle import grammar, oracle, initial_inputs
+from avicenna import Avicenna
+from avicenna_formalizations.heartbeat import grammar, oracle, initial_inputs
+from avicenna.evaluation_setup import EvaluationSubject
 
 
 def eval_config() -> Dict[str, Any]:
@@ -11,14 +12,21 @@ def eval_config() -> Dict[str, Any]:
         "grammar": grammar,
         "oracle": oracle,
         "initial_inputs": initial_inputs,
-        "max_excluded_features": 4,
-        "max_iterations": 20,
     }
 
 
-if __name__ == "__main__":
+class HeartbleedSubject(EvaluationSubject):
+    name = "Heartbleed"
 
-    param = eval_config()
+    @classmethod
+    def build(cls):
+        return cls(grammar, oracle, initial_inputs)
+
+
+if __name__ == "__main__":
+    heartbleed_subject = HeartbleedSubject.build()
+    param = heartbleed_subject.get_evaluation_config()
+
     avicenna = Avicenna(
         **param
     )
