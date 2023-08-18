@@ -40,7 +40,8 @@ class Avicenna:
         use_multi_failure_report: bool = True,
         use_batch_execution: bool = False,
         log: bool = False,
-        feature_learner: feature_extractor.RelevantFeatureLearner = None
+        feature_learner: feature_extractor.RelevantFeatureLearner = None,
+        timeout: int = 3600,
     ):
         self._start_time = None
         self._activated_patterns = activated_patterns
@@ -80,10 +81,10 @@ class Avicenna:
             feature_learner
             if feature_learner
             else feature_extractor.SHAPRelevanceLearner(
-            self.grammar,
-            top_n=self._top_n,
-            classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
-        )
+                self.grammar,
+                top_n=self._top_n,
+                classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
+            )
         )
 
         self._pattern_file = pattern_file if pattern_file else get_pattern_file_path()
@@ -153,7 +154,6 @@ class Avicenna:
         new_inputs: Set[Input] = self.all_inputs.union(self.generate_more_inputs())
         while self._do_more_iterations():
             new_inputs = self._loop(new_inputs)
-
         return self.finalize()
 
     def _do_more_iterations(self):
@@ -238,7 +238,7 @@ class Avicenna:
 
     def finalize(self) -> Tuple[Formula, float, float]:
         best_candidate = self._calculate_best_formula()[0]
-        self._log_best_candidates([best_candidate])
+        # self._log_best_candidates([best_candidate])
         return best_candidate
 
     def _calculate_best_formula(self) -> List[Tuple[Formula, float, float]]:

@@ -13,6 +13,7 @@ class Input:
     """
     Class describing a test input.
     """
+
     __tree: Final[DerivationTree]
 
     def __init__(self, tree: DerivationTree, oracle: OracleResult = None):
@@ -41,11 +42,11 @@ class Input:
     def features(self, features_: FeatureVector):
         self.__features = features_
 
-    def update_oracle(self, oracle_: OracleResult) -> 'Input':
+    def update_oracle(self, oracle_: OracleResult) -> "Input":
         self.__oracle = oracle_
         return self
 
-    def update_features(self, features_: FeatureVector) -> 'Input':
+    def update_features(self, features_: FeatureVector) -> "Input":
         self.__features = features_
         return self
 
