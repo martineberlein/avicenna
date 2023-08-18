@@ -20,7 +20,7 @@ from avicenna.evaluation_setup import (
 from avicenna.avicenna import Avicenna
 
 if __name__ == "__main__":
-    DEFAULT_PARAM = {"max_iterations": 100, "timeout": 3600, "log": False}
+    DEFAULT_PARAM = {"max_iterations": 10, "timeout": 3600, "log": False}
 
     subjects: List[Tuple[str, Callable]] = [
         ("Calculator", calc_config),
