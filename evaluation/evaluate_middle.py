@@ -7,7 +7,6 @@ from avicenna.evaluation_setup import EvaluationSubject
 from avicenna_formalizations.middle import grammar, oracle, initial_inputs
 
 
-
 def eval_config() -> Dict[str, Any]:
     return {
         "grammar": grammar,
@@ -15,6 +14,7 @@ def eval_config() -> Dict[str, Any]:
         "initial_inputs": initial_inputs,
         "max_excluded_features": 4,
     }
+
 
 class MiddleSubject(EvaluationSubject):
     name = "Middle"
@@ -28,9 +28,7 @@ if __name__ == "__main__":
     middle_subject = MiddleSubject.build()
     param = middle_subject.get_evaluation_config()
 
-    avicenna = Avicenna(
-        **param
-    )
+    avicenna = Avicenna(**param)
 
     diagnosis = avicenna.explain()
     print("Final Diagnosis:")

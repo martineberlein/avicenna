@@ -9,10 +9,11 @@ from avicenna_formalizations.tests4py import (
     setup_tests4py_project,
     DEFAULT_WORK_DIR,
     construct_oracle,
-    get_tests4py_feature_learner
+    get_tests4py_feature_learner,
 )
 
 from avicenna_formalizations.tests4py import grammar_pysnooper as grammar
+
 PROJECT_NAME: str = "pysnooper"
 BUG_ID: int = 3
 WORK_DIR = DEFAULT_WORK_DIR
@@ -55,15 +56,13 @@ def eval_config() -> Dict[str, Any]:
         "grammar": grammar,
         "oracle": oracle,
         "initial_inputs": failing_list + passing_list,
-        "feature_learner": get_tests4py_feature_learner(grammar)
+        "feature_learner": get_tests4py_feature_learner(grammar),
     }
 
 
 if __name__ == "__main__":
     param = eval_config()
-    avicenna = Avicenna(
-        **param
-    )
+    avicenna = Avicenna(**param)
 
     diagnosis = avicenna.explain()
     print("Final Diagnosis:")

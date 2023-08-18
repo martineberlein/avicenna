@@ -27,9 +27,7 @@ if __name__ == "__main__":
     heartbleed_subject = HeartbleedSubject.build()
     param = heartbleed_subject.get_evaluation_config()
 
-    avicenna = Avicenna(
-        **param
-    )
+    avicenna = Avicenna(**param)
 
     diagnosis = avicenna.explain()
     print("Final Diagnosis:")
