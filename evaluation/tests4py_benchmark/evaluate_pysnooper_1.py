@@ -1,4 +1,4 @@
-from typing import Union, Callable
+from typing import Union, Callable, Dict, Any
 
 from isla.language import ISLaUnparser
 
@@ -12,6 +12,16 @@ from avicenna_formalizations.tests4py import (
     get_tests4py_feature_learner,
 )
 
+from avicenna_formalizations.tests4py import grammar_pysnooper as grammar
+
+PROJECT_NAME: str = "pysnooper"
+BUG_ID: int = 2
+WORK_DIR = DEFAULT_WORK_DIR
+setup_tests4py_project(PROJECT_NAME, BUG_ID, WORK_DIR)
+
+oracle: Callable[[Union[str, Input]], OracleResult] = construct_oracle(
+    PROJECT_NAME, BUG_ID, WORK_DIR
+)
 
 failing_list = [
     "-otest.log\n-cint=str\n",
@@ -39,28 +49,20 @@ passing_list = [
     "-ptest\n-wx\n",
 ]
 
-initial_inputs = failing_list + passing_list
+
+def eval_config() -> Dict[str, Any]:
+    return {
+        "grammar": grammar,
+        "oracle": oracle,
+        "initial_inputs": failing_list + passing_list,
+        "feature_learner": get_tests4py_feature_learner(grammar)
+    }
 
 
 if __name__ == "__main__":
-    from avicenna_formalizations.tests4py import grammar_pysnooper as grammar
-
-    project_name: str = "pysnooper"
-    bug_id: int = 2
-    work_dir = DEFAULT_WORK_DIR
-    setup_tests4py_project(project_name, bug_id, work_dir)
-
-    oracle: Callable[[Union[str, Input]], OracleResult] = construct_oracle(
-        project_name, bug_id, work_dir
-    )
-
+    param = eval_config()
     avicenna = Avicenna(
-        grammar=grammar,
-        initial_inputs=initial_inputs,
-        oracle=oracle,
-        max_iterations=3,
-        log=True,
-        feature_learner=get_tests4py_feature_learner(grammar)
+        **param
     )
 
     diagnosis = avicenna.explain()
