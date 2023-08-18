@@ -1,5 +1,5 @@
 import string
-from typing import Union, Callable
+from typing import Union, Callable, Dict, Any
 
 from isla.language import ISLaUnparser
 from fuzzingbook.Grammars import srange
@@ -13,6 +13,16 @@ from avicenna_formalizations.tests4py import (
     construct_oracle,
     run_oracle_check,
     get_tests4py_feature_learner
+)
+
+
+PROJECT_NAME: str = "youtubedl"
+BUG_ID: int = 3
+WORK_DIR = DEFAULT_WORK_DIR
+setup_tests4py_project(PROJECT_NAME, BUG_ID, WORK_DIR)
+
+oracle: Callable[[Union[str, Input]], OracleResult] = construct_oracle(
+    PROJECT_NAME, BUG_ID, WORK_DIR
 )
 
 
@@ -358,29 +368,24 @@ passing_list = [
 ]
 
 
-initial_inputs = failing_list + passing_list
+def eval_config() -> Dict[str, Any]:
+    return {
+        "grammar": grammar,
+        "oracle": oracle,
+        "initial_inputs": failing_list + passing_list,
+        "feature_learner": get_tests4py_feature_learner(grammar)
+    }
 
 
 if __name__ == "__main__":
-    project_name: str = "youtubedl"
-    bug_id: int = 3
-    work_dir = DEFAULT_WORK_DIR
-    setup_tests4py_project(project_name, bug_id, work_dir)
+    run_checks = False
+    if run_checks:
+        run_oracle_check(oracle, failing_list, OracleResult.BUG)
+        run_oracle_check(oracle, passing_list, OracleResult.NO_BUG)
 
-    oracle: Callable[[Union[str, Input]], OracleResult] = construct_oracle(
-        project_name, bug_id, work_dir
-    )
-
-    run_oracle_check(oracle, failing_list, OracleResult.BUG)
-    run_oracle_check(oracle, passing_list, OracleResult.NO_BUG)
-
+    param = eval_config()
     avicenna = Avicenna(
-        grammar=grammar,
-        initial_inputs=initial_inputs,
-        oracle=oracle,
-        max_iterations=10,
-        log=True,
-        feature_learner=get_tests4py_feature_learner(grammar)
+        **param
     )
 
     diagnosis = avicenna.explain()

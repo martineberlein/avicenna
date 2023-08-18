@@ -1,8 +1,7 @@
 import string
-from typing import Union, Callable
+from typing import Union, Callable, Dict, Any
 
 from isla.language import ISLaUnparser
-from fuzzingbook.Grammars import srange
 
 from avicenna import Avicenna
 from avicenna.oracle import OracleResult
@@ -14,6 +13,17 @@ from avicenna_formalizations.tests4py import (
     run_oracle_check,
     get_tests4py_feature_learner
 )
+
+
+PROJECT_NAME: str = "youtubedl"
+BUG_ID: int = 1
+WORK_DIR = DEFAULT_WORK_DIR
+setup_tests4py_project(PROJECT_NAME, BUG_ID, WORK_DIR)
+
+oracle: Callable[[Union[str, Input]], OracleResult] = construct_oracle(
+    PROJECT_NAME, BUG_ID, WORK_DIR
+)
+
 
 grammar = {
     "<start>": ["<match_str>"],
@@ -49,13 +59,13 @@ grammar = {
 failing_list = [
     "-q !is_live\n-d {'is_live': False}",
     "-q !test\n-d {'test': False}",
-    "-q !like_count & dislike_count <? 50 & description\n-d {'like_count': False, 'dislike_count': 10, 'description': ''}",
-    "-q like_count > 100 & dislike_count <? 50 & !description\n-d {'like_count': 190, 'dislike_count': 23, 'description': False}",
-    "-q like_count > 100 & !description\n-d {'like_count': 190, 'dislike_count': 4, 'description': False}",
+    "-q !like_count & dislike_count <? 52 & description\n-d {'like_count': False, 'dislike_count': 10, 'description': ''}",
+    "-q like_count > 134 & dislike_count <? 50 & !description\n-d {'like_count': 190, 'dislike_count': 23, 'description': False}",
+    "-q like_count > 198 & !description\n-d {'like_count': 190, 'dislike_count': 4, 'description': False}",
     "-q !other & !description\n-d {'other': False, 'dislike_count': 1, 'description': False}",
     "-q !description\n-d {'other': False, 'dislike_count': 99999, 'description': False}",
     "-q !title\n-d {'title': False, 'description': False}",
-    "-q description >? 10 & !title\n-d {'title': False}",
+    "-q description >? 914 & !title\n-d {'title': False}",
     "-q !is_live & description\n-d {'is_live': False, 'description': True}",
 ]
 
@@ -73,30 +83,24 @@ passing_list = [
     "-q is_live\n-d {}",
 ]
 
-
-initial_inputs = failing_list + passing_list
+def eval_config() -> Dict[str, Any]:
+    return {
+        "grammar": grammar,
+        "oracle": oracle,
+        "initial_inputs": failing_list + passing_list,
+        "feature_learner": get_tests4py_feature_learner(grammar),
+    }
 
 
 if __name__ == "__main__":
-    project_name: str = "youtubedl"
-    bug_id: int = 1
-    work_dir = DEFAULT_WORK_DIR
-    setup_tests4py_project(project_name, bug_id, work_dir)
+    run_checks = False
+    if run_checks:
+        run_oracle_check(oracle, failing_list, OracleResult.BUG)
+        run_oracle_check(oracle, passing_list, OracleResult.NO_BUG)
 
-    oracle: Callable[[Union[str, Input]], OracleResult] = construct_oracle(
-        project_name, bug_id, work_dir
-    )
-
-    run_oracle_check(oracle, failing_list, OracleResult.BUG)
-    run_oracle_check(oracle, passing_list, OracleResult.NO_BUG)
-
+    param = eval_config()
     avicenna = Avicenna(
-        grammar=grammar,
-        initial_inputs=initial_inputs,
-        oracle=oracle,
-        max_iterations=3,
-        log=True,
-        feature_learner=get_tests4py_feature_learner(grammar)
+        **param
     )
 
     diagnosis = avicenna.explain()
