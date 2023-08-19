@@ -11,7 +11,7 @@ from avicenna_formalizations.tests4py import (
     DEFAULT_WORK_DIR,
     construct_oracle,
     run_oracle_check,
-    get_tests4py_feature_learner
+    get_tests4py_feature_learner,
 )
 
 
@@ -83,6 +83,7 @@ passing_list = [
     "-q is_live\n-d {}",
 ]
 
+
 def eval_config() -> Dict[str, Any]:
     return {
         "grammar": grammar,
@@ -99,9 +100,7 @@ if __name__ == "__main__":
         run_oracle_check(oracle, passing_list, OracleResult.NO_BUG)
 
     param = eval_config()
-    avicenna = Avicenna(
-        **param
-    )
+    avicenna = Avicenna(**param)
 
     diagnosis = avicenna.explain()
     print("Final Diagnosis:")
