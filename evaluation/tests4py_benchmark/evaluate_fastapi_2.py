@@ -1,6 +1,7 @@
 from typing import Union, Callable
 
 from isla.language import ISLaUnparser
+from tests4py.projects.fastapi import grammar_request
 
 from avicenna import Avicenna
 from avicenna.oracle import OracleResult
@@ -13,18 +14,14 @@ from avicenna_formalizations.tests4py import (
     run_parsing_checks,
 )
 
-failing_list = [
-    "-o{'foo':'test'}\n-d\n"
-]
+failing_list = ["-o{'foo':'test'}\n-d\n"]
 
-passing_list = [
-    "-o{'foo':'test'}"
-]
+passing_list = ["-o{'foo':'test'}"]
 
 
 if __name__ == "__main__":
     project_name: str = "fastapi"
-    bug_id: int = 1
+    bug_id: int = 2
     work_dir = DEFAULT_WORK_DIR
     setup_tests4py_project(project_name, bug_id, work_dir)
 
@@ -32,8 +29,11 @@ if __name__ == "__main__":
         project_name, bug_id, work_dir
     )
     from tests4py import framework
+
     report = framework.systemtest.tests4py_test(
-        work_dir=work_dir / "fastapi_1", path_or_str=str(passing_list[0]), diversity=False
+        work_dir=work_dir / "fastapi_1",
+        path_or_str=str(passing_list[0]),
+        diversity=False,
     )
     print(report.results)
 
