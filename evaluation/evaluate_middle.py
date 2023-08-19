@@ -19,6 +19,18 @@ def eval_config() -> Dict[str, Any]:
 class MiddleSubject(EvaluationSubject):
     name = "Middle"
 
+    def get_evaluation_config(self):
+        param = self.default_param().copy()
+        param.update(
+            {
+                "grammar": self.grammar,
+                "oracle": self.oracle,
+                "initial_inputs": self.initial_inputs,
+                "max_excluded_features": 4,
+            }
+        )
+        return param
+
     @classmethod
     def build(cls):
         return cls(grammar, oracle, initial_inputs)
