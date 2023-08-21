@@ -1,0 +1,6 @@
+include *.txt
+include Dockerfile
+recursive-include notebooks *.ipynb
+recursive-include notebooks *.md
+recursive-include tests *.py
+recursive-include src *.toml
