@@ -25,14 +25,14 @@ forall <?NONTERMINAL> container in start:
     (= (str.len elem) (str.to.int <?STRING>))
 '''
 
-[[Length]]
-
-name = "Existence String Max Length"
-constraint = '''
-forall <?NONTERMINAL> container in start:
-  exists <?NONTERMINAL> elem in container:
-    (<= (str.len elem) (str.to.int <?STRING>))
-'''
+#[[Length]]
+#
+#name = "Existence String Max Length"
+#constraint = '''
+#forall <?NONTERMINAL> container in start:
+#  exists <?NONTERMINAL> elem in container:
+#    (<= (str.len elem) (str.to.int <?STRING>))
+#'''
 
 #[[Length]]
 #
@@ -100,15 +100,15 @@ exists <?NONTERMINAL> elem_xy in start:
     (inside(elem_xy, start))
 '''
 
-[[Misc]]
-
-name = "Equal Count"
-constraint = '''
-exists int num:
-  forall <?NONTERMINAL> elem in start:
-    ((>= (str.to.int num) 1) and
-    count(elem, <?NONTERMINAL>, num))
-'''
+#[[Misc]]
+#
+#name = "Equal Count"
+#constraint = '''
+#exists int num:
+#  forall <?NONTERMINAL> elem in start:
+#    ((>= (str.to.int num) 1) and
+#    count(elem, <?NONTERMINAL>, num))
+#'''
 
 [[Misc]]
 

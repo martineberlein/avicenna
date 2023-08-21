@@ -10,6 +10,7 @@ from avicenna.feature_collector import GrammarFeatureCollector
 from avicenna.generator import (
     ISLaGrammarBasedGenerator,
     FuzzingbookBasedGenerator,
+    MutationBasedGenerator,
 )
 
 from avicenna.input import Input
@@ -21,7 +22,7 @@ from avicenna.oracle import OracleResult
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.execution_handler import SingleExecutionHandler, BatchExecutionHandler
 from avicenna.report import SingleFailureReport, MultipleFailureReport
-from avicenna.logger import LOGGER
+from avicenna.logger import LOGGER, configure_logging
 from avicenna.monads import Maybe, Exceptional, check_empty
 
 
@@ -38,6 +39,9 @@ class Avicenna:
         max_conjunction_size: int = 2,
         use_multi_failure_report: bool = True,
         use_batch_execution: bool = False,
+        log: bool = False,
+        feature_learner: feature_extractor.RelevantFeatureLearner = None,
+        timeout: int = 3600,
     ):
         self._start_time = None
         self._activated_patterns = activated_patterns
@@ -51,6 +55,20 @@ class Avicenna:
         self._all_data = None
         self._learned_invariants: Dict[str, List[float]] = {}
         self._best_candidates: Dict[str, List[float]] = {}
+        self.min_precision = 0.6
+        self.min_recall = 0.9
+
+        if log:
+            configure_logging()
+        else:
+            # If you want to disable logging when log is set to False
+            # Clear root logger handlers
+            for handler in logging.root.handlers[:]:
+                logging.root.removeHandler(handler)
+
+            # Clear avicenna logger handlers
+            for handler in LOGGER.handlers[:]:
+                LOGGER.removeHandler(handler)
 
         self._infeasible_constraints: Set = set()
         self._max_conjunction_size = max_conjunction_size
@@ -59,10 +77,14 @@ class Avicenna:
         assert is_valid_grammar(self.grammar)
 
         self.collector = GrammarFeatureCollector(self.grammar)
-        self.feature_learner = feature_extractor.SHAPRelevanceLearner(
-            self.grammar,
-            top_n=self._top_n,
-            classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
+        self.feature_learner = (
+            feature_learner
+            if feature_learner
+            else feature_extractor.SHAPRelevanceLearner(
+                self.grammar,
+                top_n=self._top_n,
+                classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
+            )
         )
 
         self._pattern_file = pattern_file if pattern_file else get_pattern_file_path()
@@ -118,7 +140,7 @@ class Avicenna:
         if num_failing_inputs < self._targeted_start_size:
             # generator = MutationBasedGenerator(self.grammar, self.oracle, self.all_inputs, True)
             generator = FuzzingbookBasedGenerator(self.grammar)
-            for _ in range(100):
+            for _ in range(50):
                 result = generator.generate()
                 if result.is_just():
                     generated_inputs.add(result.value())
@@ -128,11 +150,10 @@ class Avicenna:
             return Maybe.just(generated_inputs)
         return Maybe.nothing()
 
-    def explain(self) -> List[Tuple[Formula, float, float]]:
+    def explain(self) -> Tuple[Formula, float, float]:
         new_inputs: Set[Input] = self.all_inputs.union(self.generate_more_inputs())
         while self._do_more_iterations():
             new_inputs = self._loop(new_inputs)
-
         return self.finalize()
 
     def _do_more_iterations(self):
@@ -215,17 +236,27 @@ class Avicenna:
         logging.info("Removing infeasible constraint")
         logging.debug(f"Infeasible constraint: {constraint}")
 
-    def finalize(self) -> List[Tuple[Formula, float, float]]:
+    def finalize(self) -> Tuple[Formula, float, float]:
+        best_candidate = self._calculate_best_formula()[0]
+        # self._log_best_candidates([best_candidate])
+        return best_candidate
+
+    def _calculate_best_formula(self) -> List[Tuple[Formula, float, float]]:
         candidates_with_scores = self._gather_candidates_with_scores()
         best_candidates = self._get_best_candidates(candidates_with_scores)
 
-        self._log_best_candidates(best_candidates)
+        return best_candidates
 
+    def get_equivalent_best_formulas(self) -> List[Tuple[Formula, float, float]]:
+        best_candidates = self._calculate_best_formula()[1:]
         return best_candidates
 
     def _gather_candidates_with_scores(self) -> List[Tuple[Formula, float, float]]:
         def meets_criteria(precision_value_, recall_value_):
-            return precision_value_ >= 0.9 and recall_value_ >= 0.6
+            return (
+                precision_value_ >= self.min_precision
+                and recall_value_ >= self.min_recall
+            )
 
         candidates_with_scores = []
 
@@ -292,7 +323,9 @@ class Avicenna:
     def generate_inputs(self, candidate_set):
         generated_inputs = set()
         for _ in candidate_set:
-            generator = ISLaGrammarBasedGenerator(self.grammar)
+            generator = MutationBasedGenerator(
+                self.grammar, self.oracle, self.all_inputs, yield_negative=True
+            )
             for _ in range(1):
                 result_ = generator.generate()
                 if result_.is_just():

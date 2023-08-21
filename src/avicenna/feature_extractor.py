@@ -5,6 +5,7 @@ import warnings
 
 import numpy as np
 from pandas import DataFrame
+from grammar_graph.gg import GrammarGraph
 import shap
 from fuzzingbook.Grammars import Grammar
 from lightgbm import LGBMClassifier
@@ -17,7 +18,13 @@ from avicenna.input import Input
 from avicenna.oracle import OracleResult
 
 # Suppress the specific SHAP warning
-warnings.filterwarnings('ignore', 'LightGBM binary classifier with TreeExplainer shap values output has changed to a list of ndarray')
+warnings.filterwarnings(
+    "ignore",
+    "LightGBM binary classifier with TreeExplainer shap values output has changed to a list of ndarray",
+)
+warnings.filterwarnings(
+    "ignore", "No further splits with positive gain, best gain: -inf"
+)
 
 
 class RelevantFeatureLearner(ABC):
@@ -27,11 +34,14 @@ class RelevantFeatureLearner(ABC):
         feature_types: Optional[List[Type[Feature]]] = None,
         top_n: int = 3,
         threshold: float = 0.01,
+        prune_parent_correlation: bool = True,
     ):
         self.grammar = grammar
         self.features = self.construct_features(feature_types or DEFAULT_FEATURE_TYPES)
         self.top_n = top_n
         self.threshold = threshold
+        self.graph = GrammarGraph.from_grammar(grammar)
+        self.prune_parent_correlation = prune_parent_correlation
 
     def construct_features(self, feature_types: List[Type[Feature]]) -> List[Feature]:
         return FeatureFactory(self.grammar).build(feature_types)
@@ -39,6 +49,11 @@ class RelevantFeatureLearner(ABC):
     def learn(
         self, test_input: Set[Input]
     ) -> Tuple[Set[Feature], Set[Feature], Set[Feature]]:
+        if not test_input:
+            raise ValueError(
+                "Input set for learning relevant features must not be empty."
+            )
+
         x_train, y_train = self.get_learning_data(test_input)
         primary_features = set(self.get_relevant_features(test_input, x_train, y_train))
         logging.info(f"Determined {primary_features} as most relevant.")
@@ -50,9 +65,8 @@ class RelevantFeatureLearner(ABC):
             set(self.features) - primary_features.union(correlated_features),
         )
 
-    @staticmethod
     def find_correlated_features(
-        x_train: DataFrame, primary_features: Set[Feature]
+        self, x_train: DataFrame, primary_features: Set[Feature]
     ) -> Set[Feature]:
         correlation_matrix = x_train.corr(method="spearman")
 
@@ -61,9 +75,28 @@ class RelevantFeatureLearner(ABC):
             for primary in primary_features
             for feature, value in correlation_matrix[primary].items()
             if abs(value) > 0.7
+            and self.determine_correlating_parent_non_terminal(primary, feature)
         }
         logging.info(f"Added Features: {correlated_features} due to high correlation.")
         return correlated_features
+
+    def determine_correlating_parent_non_terminal(
+        self, primary_feature: Feature, correlating_feature: Feature
+    ) -> bool:
+        if (
+            self.prune_parent_correlation
+            and self.graph.reachable(
+                primary_feature.non_terminal, correlating_feature.non_terminal
+            )
+            and not (
+                self.graph.reachable(
+                    correlating_feature.non_terminal, primary_feature.non_terminal
+                )
+            )
+            and not correlating_feature.non_terminal == "<start>"
+        ):
+            return False
+        return True
 
     @abstractmethod
     def get_relevant_features(

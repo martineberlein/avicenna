@@ -29,7 +29,7 @@ def arith_eval(inp) -> float:
     )
 
 
-def oracle(inp: Input) -> OracleResult:
+def oracle(inp: Input | str) -> OracleResult:
     try:
         arith_eval(inp)
         return OracleResult.NO_BUG
