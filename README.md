@@ -137,9 +137,9 @@ Remember, these results are generated based on the information provided to Avice
 
 ### More Examples:
 
-If you want to explore more of how Avicenna works and how it can, for instance, be used to generate new and unseen behavior-triggering inputs, make sure to have a look at the jupyter notebooks in the `./notebooks` folder:
-- **Calculator.ipynb**: A quick and more detailed tutorial on how to setup up Avicenna. It also showcases how to use the ISLa-Solver to generate new inputs from the final diagnosis.
-- **Heartbleed.ipynb**: This notebook demonstrates the capabilities of Avicenna on the infamous [Heartbleed Bug](https://heartbleed.com).
+If you want to explore more of how Avicenna works and how it can, for instance, be used to generate new and unseen behavior-triggering inputs, make sure to have a look at the jupyter notebooks in the [notebooks](./notebooks) folder:
+- **[Calculator.ipynb](./notebooks/calculator.ipynb)**: A quick and more detailed tutorial on how to setup up Avicenna. It also showcases how to use the ISLa-Solver to generate new inputs from the final diagnosis.
+- **[Heartbleed.ipynb](./notebooks/heartbleed.ipynb)**: This notebook demonstrates the capabilities of Avicenna on the infamous [Heartbleed Bug](https://heartbleed.com).
 
 ## Install, Development, Testing
 
