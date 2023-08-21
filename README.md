@@ -135,7 +135,13 @@ With this information, we can address the issue in our Calculator program to pre
 
 Remember, these results are generated based on the information provided to Avicenna, such as the grammar and the oracle function, as well as the results of Avicenna's systematic testing of the Calculator program. So the more accurate and comprehensive these inputs are, the more helpful Avicenna's outputs will be.
 
-## Install, Development, Testing, Build
+### More Examples:
+
+If you want to explore more of how Avicenna works and how it can, for instance, be used to generate new and unseen behavior-triggering inputs, make sure to have a look at the jupyter notebooks in the `./notebooks` folder:
+- **Calculator.ipynb**: A quick and more detailed tutorial on how to setup up Avicenna. It also showcases how to use the ISLa-Solver to generate new inputs from the final diagnosis.
+- **Heartbleed.ipynb**: This notebook demonstrates the capabilities of Avicenna on the infamous [Heartbleed Bug](https://heartbleed.com).
+
+## Install, Development, Testing
 
 ### Install
 If all external dependencies are available, a simple pip install avicenna suffices.
@@ -166,4 +172,36 @@ pip install --upgrade pip
 # Run tests
 pip install -e .[dev]
 python3 -m pytest
+```
+
+### Docker
+
+For users who want to test Avicenna without managing external dependencies like Python, we offer a Docker container setup. Docker allows you to package and run applications in lightweight containers. Our Docker container already includes all necessary dependencies for Avicenna.
+
+**Step 1:** Build the Docker image. Ensure you are in the directory containing the Dockerfile and execute:
+
+```shell
+docker build -t avicenna_image .
+```
+
+**Step 2:** Run a Docker container using the image you just built:
+
+```shell
+docker run -it --name avicenna avicenna_image
+```
+
+After executing the above command, you'll be inside the Docker container's shell.
+
+**Step 3:** Update the Avicenna repository:
+
+```shell
+cd avicenna/
+git pull
+```
+
+**Step 4:** Install Avicenna in editable mode and execute its tests:
+
+```shell
+pip install -e .[dev]
+python3.10 -m pytest ./tests
 ```
