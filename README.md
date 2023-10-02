@@ -205,3 +205,21 @@ git pull
 pip install -e .[dev]
 python3.10 -m pytest ./tests
 ```
+
+
+### Avicenna Research Paper
+
+To reference Avicenna in your research, we request you to cite our ESEC/FSE'23 paper:
+
+> Martin Eberlein, Marius Smytzek, Dominic Steinhöfel, Lars Grunske, and Andreas Zeller. 2023. **Semantic Debugging**. In the Proceedings of the 31th ACM Joint European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE) 2023.
+
+If you want to cite the Avicenna implementation of this repository, we request you to cite our GitHub repository as follows:
+
+```
+@misc{avicenna2023,
+  author       = {Martin Eberlein and Marius Smytzek and Dominic Steinh{\"o}fel and Lars Grunske and Andreas Zeller},
+  url          = {https://github.com/martineberlein/avicenna},
+  title        = {AVICENNA},
+  year         = {2023}
+}
+```
