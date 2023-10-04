@@ -193,11 +193,13 @@ class AviIslearn(InvariantLearner):
         self,
         grammar: Grammar,
         pattern_file: Optional[str] = None,
+        patterns: Optional[List[Formula]] = None,
         activated_patterns: Optional[Iterable[str]] = None,
         deactivated_patterns: Optional[Iterable[str]] = None,
     ):
         super().__init__(
             grammar,
+            patterns=patterns,
             pattern_file=pattern_file,
             activated_patterns=activated_patterns,
             deactivated_patterns=deactivated_patterns,

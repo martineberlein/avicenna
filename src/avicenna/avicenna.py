@@ -99,9 +99,7 @@ class Avicenna:
                 else parse_abstract_isla(pattern, grammar)
                 for pattern in patterns]
 
-        self._pattern_file = pattern_file if pattern_file else get_pattern_file_path()
-
-        self.pattern_learner = AviIslearn(grammar, pattern_file=str(self._pattern_file))
+        self.pattern_learner = AviIslearn(grammar, pattern_file=str(self.pattern_file), patterns=self.patterns)
 
         # TruthTable
         self.precision_truth_table = AvicennaTruthTable()
