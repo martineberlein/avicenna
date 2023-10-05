@@ -35,7 +35,7 @@ class TestConstructOracle(unittest.TestCase):
         def under_test(x, y):
             return x + y
 
-        my_oracle = construct_oracle(oracle, under_test, self.error_definitions)
+        my_oracle = construct_oracle(under_test, oracle, self.error_definitions)
         self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.NO_BUG)
 
     def test_different_result(self):
@@ -45,7 +45,7 @@ class TestConstructOracle(unittest.TestCase):
         def under_test(x, y):
             return x - y
 
-        my_oracle = construct_oracle(oracle, under_test, self.error_definitions)
+        my_oracle = construct_oracle(under_test, oracle, self.error_definitions)
         self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.BUG)
 
     def test_defined_exception(self):
@@ -67,6 +67,18 @@ class TestConstructOracle(unittest.TestCase):
 
         my_oracle = construct_oracle(oracle, under_test, self.error_definitions)
         self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.UNDEF)
+
+    def test_timeout_sleep(self):
+        def oracle(x, y):
+            return x + y
+
+        def under_test(x, y):
+            import time
+            time.sleep(2)
+            return x + y
+
+        my_oracle = construct_oracle(under_test, oracle, {UnexpectedResultError: OracleResult.NO_BUG, TimeoutError: OracleResult.BUG}, timeout=1)
+        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.BUG)
 
 
 if __name__ == "__main__":
