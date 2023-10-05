@@ -95,11 +95,15 @@ class Avicenna:
             self.patterns = list(pattern_repo.get_all())
         else:
             self.patterns = [
-                pattern if isinstance(pattern, Formula)
+                pattern
+                if isinstance(pattern, Formula)
                 else parse_abstract_isla(pattern, grammar)
-                for pattern in patterns]
+                for pattern in patterns
+            ]
 
-        self.pattern_learner = AviIslearn(grammar, pattern_file=str(self.pattern_file), patterns=self.patterns)
+        self.pattern_learner = AviIslearn(
+            grammar, pattern_file=str(self.pattern_file), patterns=self.patterns
+        )
 
         # TruthTable
         self.precision_truth_table = AvicennaTruthTable()

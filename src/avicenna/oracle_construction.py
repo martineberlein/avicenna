@@ -41,16 +41,32 @@ def construct_oracle(
     program_oracle: Optional[Callable],
     error_definitions: Dict[Type[Exception], OracleResult],
     timeout: int = 1,
+    default_oracle_result: OracleResult = OracleResult.UNDEF,
 ) -> Callable[[Input], OracleResult]:
     if not isinstance(error_definitions, dict):
         raise ValueError(f"Invalid value for expected_error: {error_definitions}")
 
     if program_oracle:
-        return construct_functional_oracle(program_under_test, program_oracle, error_definitions, timeout)
+        return _construct_functional_oracle(
+            program_under_test,
+            program_oracle,
+            error_definitions,
+            timeout,
+            default_oracle_result,
+        )
 
-    return construct_failure_oracle(program_under_test, error_definitions, timeout)
+    return _construct_failure_oracle(
+        program_under_test, error_definitions, timeout, default_oracle_result
+    )
 
-def construct_functional_oracle(program_under_test, program_oracle, error_definitions, timeout):
+
+def _construct_functional_oracle(
+    program_under_test: Callable,
+    program_oracle: Callable,
+    error_definitions: Dict[Type[Exception], OracleResult],
+    timeout: int,
+    default_oracle_result: OracleResult,
+):
     def oracle(inp: Input) -> OracleResult:
         param = list(map(int, str(inp).strip().split()))  # This might become a problem
         try:
@@ -61,23 +77,24 @@ def construct_functional_oracle(program_under_test, program_oracle, error_defini
             if expected_result != produced_result:
                 raise UnexpectedResultError("Results do not match")
         except Exception as e:
-            return error_definitions.get(
-                type(e), OracleResult.UNDEF
-            )  # Default to UNDEF if exception type not found
+            return error_definitions.get(type(e), default_oracle_result)
         return OracleResult.NO_BUG
 
     return oracle
 
-def construct_failure_oracle(program_under_test, error_definitions, timeout):
 
+def _construct_failure_oracle(
+    program_under_test: Callable,
+    error_definitions: Dict[Type[Exception], OracleResult],
+    timeout: int,
+    default_oracle_result: OracleResult,
+):
     def oracle(inp: Input) -> OracleResult:
         try:
             with ManageTimeout(timeout):
                 program_under_test(str(inp))
         except Exception as e:
-            return error_definitions.get(
-                type(e), OracleResult.UNDEF
-            )  # Default to UNDEF if exception type not found
+            return error_definitions.get(type(e), default_oracle_result)
         return OracleResult.NO_BUG
 
     return oracle
