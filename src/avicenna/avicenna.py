@@ -4,6 +4,8 @@ from typing import List, Dict, Set, Callable, Tuple, Iterable
 
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
 from isla.language import ISLaUnparser, Formula
+from islearn.language import parse_abstract_isla
+from islearn.learner import patterns_from_file
 
 from avicenna import feature_extractor
 from avicenna.feature_collector import GrammarFeatureCollector
@@ -32,7 +34,7 @@ class Avicenna:
         grammar: Grammar,
         oracle: Callable[[Input], OracleResult],
         initial_inputs: List[str],
-        activated_patterns: List[str] = None,
+        patterns: List[str] = None,
         max_iterations: int = 10,
         max_excluded_features: int = 3,
         pattern_file: Path = None,
@@ -44,7 +46,7 @@ class Avicenna:
         timeout: int = 3600,
     ):
         self._start_time = None
-        self._activated_patterns = activated_patterns
+        self.patterns = patterns
         self.oracle = oracle
         self._max_iterations: int = max_iterations
         self._top_n: int = max_excluded_features - 1
@@ -87,9 +89,21 @@ class Avicenna:
             )
         )
 
-        self._pattern_file = pattern_file if pattern_file else get_pattern_file_path()
+        self.pattern_file = pattern_file if pattern_file else get_pattern_file_path()
+        if not patterns:
+            pattern_repo = patterns_from_file(str(self.pattern_file))
+            self.patterns = list(pattern_repo.get_all())
+        else:
+            self.patterns = [
+                pattern
+                if isinstance(pattern, Formula)
+                else parse_abstract_isla(pattern, grammar)
+                for pattern in patterns
+            ]
 
-        self.pattern_learner = AviIslearn(grammar, pattern_file=str(self._pattern_file))
+        self.pattern_learner = AviIslearn(
+            grammar, pattern_file=str(self.pattern_file), patterns=self.patterns
+        )
 
         # TruthTable
         self.precision_truth_table = AvicennaTruthTable()
