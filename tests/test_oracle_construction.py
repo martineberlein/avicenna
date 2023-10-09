@@ -80,6 +80,29 @@ class TestConstructOracle(unittest.TestCase):
         my_oracle = construct_oracle(under_test, oracle, {UnexpectedResultError: OracleResult.NO_BUG, TimeoutError: OracleResult.BUG}, timeout=1)
         self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.BUG)
 
+    def test_no_error_definition(self):
+        def oracle(x, y):
+            return x + y
+
+        def under_test(x, y):
+            raise ValueError
+
+        def under_test_unexpected_result_error(x, y):
+            raise x + y + 1
+
+        def under_test_timeout(x, y):
+            import time
+
+            time.sleep(2)
+            return x + y
+
+        my_oracle = construct_oracle(under_test, oracle)
+        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.BUG)
+        my_oracle = construct_oracle(under_test_unexpected_result_error, oracle)
+        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.BUG)
+        my_oracle = construct_oracle(under_test_timeout, oracle)
+        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.BUG)
+
 
 if __name__ == "__main__":
     unittest.main()
