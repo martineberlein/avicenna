@@ -39,24 +39,29 @@ def cancel_alarm():
 def construct_oracle(
     program_under_test: Callable,
     program_oracle: Optional[Callable],
-    error_definitions: Dict[Type[Exception], OracleResult],
+    error_definitions: Optional[Dict[Type[Exception], OracleResult]] = None,
     timeout: int = 1,
     default_oracle_result: OracleResult = OracleResult.UNDEF,
 ) -> Callable[[Input], OracleResult]:
+    error_definitions = error_definitions or {}
+    default_oracle_result = (
+        OracleResult.BUG if not error_definitions else default_oracle_result
+    )
+
     if not isinstance(error_definitions, dict):
         raise ValueError(f"Invalid value for expected_error: {error_definitions}")
 
-    if program_oracle:
-        return _construct_functional_oracle(
-            program_under_test,
-            program_oracle,
-            error_definitions,
-            timeout,
-            default_oracle_result,
-        )
+    # Choose oracle construction method based on presence of program_oracle
+    oracle_constructor = (
+        _construct_functional_oracle if program_oracle else _construct_failure_oracle
+    )
 
-    return _construct_failure_oracle(
-        program_under_test, error_definitions, timeout, default_oracle_result
+    return oracle_constructor(
+        program_under_test,
+        program_oracle,
+        error_definitions,
+        timeout,
+        default_oracle_result,
     )
 
 
