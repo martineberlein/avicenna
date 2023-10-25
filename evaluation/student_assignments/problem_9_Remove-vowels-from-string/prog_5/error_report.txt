@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+&%^oq^
+
+Your Code's output is: 
+&%^q^None
+
+It's Correct output is: 
+&%^q^
+
+
+=== EXPLANATION ===
+Your method should return a string (instead of printing that string).

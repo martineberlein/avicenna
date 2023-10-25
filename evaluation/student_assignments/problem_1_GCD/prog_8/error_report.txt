@@ -1,0 +1,23 @@
+=== ERROR REPORT ===
+For Input: 
+194067000 194067
+
+Your Output:
+Traceback (most recent call last):
+  File "/home/47ce9f64381f3828fa85e171fdf91c5c.py", line 29, in <module>
+    print(ob.gcd(A,B))
+  File "/home/47ce9f64381f3828fa85e171fdf91c5c.py", line 14, in gcd
+    return self.gcd(a-b ,b)
+  File "/home/47ce9f64381f3828fa85e171fdf91c5c.py", line 14, in gcd
+    return self.gcd(a-b ,b)
+  File "/home/47ce9f64381f3828fa85e171fdf91c5c.py", line 14, in gcd
+    return self.gcd(a-b ,b)
+  File "/home/47ce9f64381f3828fa85e171fdf91c5c.py", line 14, in gcd
+    return se.................
+
+Its Correct output is:
+194067
+
+
+=== EXPLANATION ===
+The algorithm works, but not efficiently. In line 14 and 15, instead of `a-b` and `b-a`, it is more efficient to write `a%b` and `b%a`, respectively. 

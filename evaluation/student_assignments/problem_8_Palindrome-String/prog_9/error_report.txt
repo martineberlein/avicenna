@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+lezaq
+
+Your Code's output is: 
+1
+
+It's Correct output is: 
+0
+
+
+=== EXPLANATION ===
+Line 14: the condition should be `si<ei`, not `si>ei`.

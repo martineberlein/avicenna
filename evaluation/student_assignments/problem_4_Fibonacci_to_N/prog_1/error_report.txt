@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+5
+
+Your Code's output is: 
+0 1 1 2 3 5 8
+
+It's Correct output is: 
+0 1 1 2 3 5
+
+
+=== EXPLANATION ===
+- This program return the list of N+2 Fibonacci numbers, not the list of Fibonacci numbers up to number N.

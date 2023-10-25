@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+pjxcxjp
+
+Your Code's output is: 
+0
+
+It's Correct output is: 
+1
+
+
+=== EXPLANATION ===
+Line 4-5: note that a string with an odd number of characters can also be palindrome.

@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+h
+
+Your Code's output is: 
+0
+
+It's Correct output is: 
+1
+
+
+=== EXPLANATION ===
+Line 7-8: note that any string with length 1 is palindrome.

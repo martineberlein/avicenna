@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+124 153 97
+
+Your Code's output is: 
+153
+
+It's Correct output is: 
+124
+
+
+=== EXPLANATION ===
+This algorithm always returns B. Note that the elements in a list are not sorted automatically. You can fix your code by sorting the list `li` before returning.

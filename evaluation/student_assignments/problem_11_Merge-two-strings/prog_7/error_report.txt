@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+rvcGbk QUWNOV
+
+Your Code's output is: 
+rQvUcWGNbOkVQUWNOV
+
+It's Correct output is: 
+rQvUcWGNbOkV
+
+
+=== EXPLANATION ===
+Mind the `else` clause in lines 17-19. If `p == m`, this `else` clause will be triggered and you `ans` will be appended the whole `S2` at the end.

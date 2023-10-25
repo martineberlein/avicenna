@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+&%^oq^
+
+Your Code's output is: 
+&%^oq^
+
+It's Correct output is: 
+&%^q^
+
+
+=== EXPLANATION ===
+Line 6: You need `i` to be different from all vowels (so use `and` instead of `or`).

@@ -1,0 +1,12 @@
+{
+    "problem_name": "Number of divisors",
+    "problem_description": "Given an integer N, find the number of divisors of N that are divisible by 3.",
+    "expected_time_complexity": "O(sqrt(N))",
+    "expected_auxiliary_space": "O(1)",
+    "constraints": "1 <= N <= 10^5",
+    "number_of_buggy_programs": 10,
+    "source": "geeksforgeeks",
+    "problem_url":"https://practice.geeksforgeeks.org/problems/number-of-divisors1631/1",
+    "tests": "tests.json",
+    "your_task": "You don't need to read or print anything. Your task is to complete the function count_divisors() which takes N as input parameter and returns count of divisor which are divisible by 3."
+}

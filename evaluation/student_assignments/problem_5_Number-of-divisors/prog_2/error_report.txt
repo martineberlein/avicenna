@@ -1,0 +1,10 @@
+=== ERROR REPORT ===
+Input:
+100000
+
+Output:
+TLE
+
+
+=== EXPLANATION ===
+- This algorithm is not efficient enough. To get the divisors of a number, it is sufficient to look at the numbers from 1 to the square root of that number.

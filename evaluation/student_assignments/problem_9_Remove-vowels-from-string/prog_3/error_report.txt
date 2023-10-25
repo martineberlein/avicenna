@@ -1,0 +1,12 @@
+=== ERROR REPORT ===
+For Input: 
+&%^oq^
+
+Your Code's output is: 
+
+It's Correct output is: 
+&%^q^
+
+
+=== EXPLANATION ===
+Line 6: the syntax you use to check for whether `i` match any vowel character is not correct.

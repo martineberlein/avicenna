@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+Qh eyNFX
+
+Your Code's output is: 
+eQyhNFX
+
+It's Correct output is: 
+QehyNFX
+
+
+=== EXPLANATION ===
+Line 21: You sure it should be `zip(r,t)` but not `zip(t,r)`?

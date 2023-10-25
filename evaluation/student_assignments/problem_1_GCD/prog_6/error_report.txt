@@ -1,0 +1,14 @@
+=== ERROR REPORT ===
+For Input: 
+21 21
+
+Your Code's output is: 
+7
+
+It's Correct output is: 
+21
+
+
+=== EXPLANATION ===
+- The first error is: this algorithm only consider divisors smaller than `max(A, B)` (line 7). In this failing test case, A = B = 21 and thus the GCD should be 21. However, the algorithm only considers divisors from 1 to 20.
+- The second error is: this algorithm works but takes too much time for larger inputs. The fix is to use the Euclidean algorithm.

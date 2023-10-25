@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+11 4
+
+Your Code's output is: 
+1663200
+
+It's Correct output is: 
+7920
+
+
+=== EXPLANATION ===
+- The formula is incorrect. The denominator should be (n-r)!.

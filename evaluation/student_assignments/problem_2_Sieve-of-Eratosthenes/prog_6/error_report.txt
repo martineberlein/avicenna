@@ -1,0 +1,10 @@
+=== ERROR REPORT ===
+For Input: 
+7507
+
+Output:
+(missing the value 7507)
+
+
+=== EXPLANATION ===
+The `for` loop in line 19 doesn't consider the value N. Thus, even if N is a prime, it is not included in the result.

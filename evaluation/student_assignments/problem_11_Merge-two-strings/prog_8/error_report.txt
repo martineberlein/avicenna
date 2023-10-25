@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+Qh eyNFX
+
+Your Code's output is: 
+Qehy
+
+It's Correct output is: 
+QehyNFX
+
+
+=== EXPLANATION ===
+If `len(S1) > len(S2)`, you use line 7-8 to append the remaining characters of `S1` to your result. However, you forget the reverse case (i.e. when `len(S2) > len(S1)`).

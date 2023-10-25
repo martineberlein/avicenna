@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+Qh eyNFX
+
+Your Code's output is: 
+Qehy
+
+It's Correct output is: 
+QehyNFX
+
+
+=== EXPLANATION ===
+You append the remaining characters of S1 if S2 is shorter using line 12, but forgot to do the reverse (i.e. append the remaining characters of S2 if S1 is shorter).

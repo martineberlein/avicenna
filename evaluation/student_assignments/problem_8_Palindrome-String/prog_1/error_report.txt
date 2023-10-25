@@ -1,0 +1,19 @@
+=== ERROR REPORT ===
+For Input: 
+hq
+
+Your Output:
+Traceback (most recent call last):
+  File "/home/d0ed62d727e2f4f431fdb05559a51fc4.py", line 26, in <module>
+    answer = ob.isPalindrome(S)
+  File "/home/d0ed62d727e2f4f431fdb05559a51fc4.py", line 9, in isPalindrome
+    if S[i]==S[j]:
+IndexError: string index out of range
+
+Its Correct output is:
+0
+
+
+=== EXPLANATION ===
+Line 7: the last character in the string has index `len(S)-1`, not `len(S)`.
+Line 13-14: you should return 0 or 1, not False or True.

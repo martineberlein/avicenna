@@ -1,0 +1,14 @@
+=== ERROR REPORT ===
+For Input: 
+124 153 97
+
+Your Code's output is: 
+153
+
+It's Correct output is: 
+124
+
+
+=== EXPLANATION ===
+- Your forgot to sort the list.
+- You should return the number, not print it.

@@ -1,0 +1,14 @@
+=== ERROR REPORT ===
+For Input: 
+18
+
+Your Code's output is: 
+3
+
+It's Correct output is: 
+4
+
+
+=== EXPLANATION ===
+- Your algorithm only consider `N//i` if `i%3 != 0` (the `else` clause in line 12 is only executed if the `if` clause in line 10 is evaluated to False). However, `N//i` should also be considered if `i%3 == 0`. In this failing test case, N = 18, when i = 3, since N % 3 == 0, N//i (i.e. 6) is not considered.
+- It is needed that we check for whether `t != i`.

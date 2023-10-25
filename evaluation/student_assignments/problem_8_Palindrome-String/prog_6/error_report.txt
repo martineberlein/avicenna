@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+hq
+
+Your Code's output is: 
+1
+
+It's Correct output is: 
+0
+
+
+=== EXPLANATION ===
+Since lists are mutable objects, when you call `ob.Reserve` in line 19, the list `S` is modified. In other words, `rev` and `S` are always the same and your algorithm always returns 1. The fix is to make another copy of S, keep it safe and compare it with `rev` at the end (instead of comparing `rev` and `S`).

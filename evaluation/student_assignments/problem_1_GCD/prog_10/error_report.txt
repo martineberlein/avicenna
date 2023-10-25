@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+8 80
+
+Your Code's output is: 
+72
+
+It's Correct output is: 
+8
+
+
+=== EXPLANATION ===
+In line 10-11, if (a-b)%b==0 then actually we should return b (instead of returning a-b). Similarly, in line 14-15, we should return a.

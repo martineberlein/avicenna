@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+7 6
+
+Your Code's output is: 
+7
+
+It's Correct output is: 
+5040
+
+
+=== EXPLANATION ===
+- In case r == n-1 (line 16), the returned value is nCr rather than nPr.

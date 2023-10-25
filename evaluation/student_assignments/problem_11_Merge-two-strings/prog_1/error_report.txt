@@ -1,0 +1,10 @@
+=== ERROR REPORT ===
+Input:
+Bye Hello
+
+Output:
+TLE
+
+
+=== EXPLANATION ===
+Inside the `while` loop in line 12, if the length of S1 is smaller than the length of S2, the loop will run forever because nothing is added to `c`. The fix is to make the  `if` statement in line 15-16 outside of the `if` statement in line 13-14.

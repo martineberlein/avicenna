@@ -1,0 +1,14 @@
+=== ERROR REPORT ===
+For Input: 
+Qh eyNFX
+
+Your Code's output is: 
+QehyX
+
+It's Correct output is: 
+QehyNFX
+
+
+=== EXPLANATION ===
+Line 11: Are you sure the remaining characters of S2 are `S2[len(S2)-len(S1)+1:]`?
+Similarly in line 9.
