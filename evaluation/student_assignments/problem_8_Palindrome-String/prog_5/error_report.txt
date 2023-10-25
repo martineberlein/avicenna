@@ -1,0 +1,12 @@
+=== ERROR REPORT ===
+For Input: 
+qmoeeomq
+Your Code's output is: 
+0
+It's Correct output is: 
+1
+
+
+=== EXPLANATION ===
+- The first bug is: in line 6, you should `return check(s, si+1, ri-1)` instead of just calling it.
+- The second bug is: this recursion algorithm takes too much stack memory to run for large input. The fix is to convert this recursion into a loop.

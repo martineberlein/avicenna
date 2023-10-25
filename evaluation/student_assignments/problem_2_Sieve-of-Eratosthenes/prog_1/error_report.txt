@@ -1,0 +1,11 @@
+=== ERROR REPORT ===
+Input:
+10000
+
+Output:
+TLE
+
+
+=== EXPLANATION ===
+- The is_prime function takes too much time to run. This function should only take O(sqrt(n)) time.
+- The sieve should consider numbers up to and INCLUDING N.

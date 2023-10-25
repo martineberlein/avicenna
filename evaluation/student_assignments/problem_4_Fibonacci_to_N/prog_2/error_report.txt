@@ -1,0 +1,10 @@
+=== ERROR REPORT ===
+Input:
+1000000000
+
+Output:
+TLE
+
+
+=== EXPLANATION ===
+- The loop does not break when the value exceeds n, which causes TLE.

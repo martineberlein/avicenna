@@ -1,0 +1,11 @@
+{
+    "problem_name": "",
+    "problem_description": "",
+    "expected_time_complexity": "",
+    "expected_auxiliary_space": "",
+    "constraints": "",
+    "number_of_buggy_programs": 10,
+    "source": "geeksforgeeks",
+    "problem_url":"",
+    "tests": "tests.json"
+}

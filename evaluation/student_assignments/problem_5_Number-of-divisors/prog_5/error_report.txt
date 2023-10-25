@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+18
+
+Your Code's output is: 
+3
+
+It's Correct output is: 
+4
+
+
+=== EXPLANATION ===
+Line 11: the algorithm only considers `N // i` as a candidate if `i` is divisible by 3.

@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+11 4
+
+Your Code's output is: 
+39916800
+
+It's Correct output is: 
+7920
+
+
+=== EXPLANATION ===
+Mistyping in line 10: should be `fact1*=i`.

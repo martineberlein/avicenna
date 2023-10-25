@@ -1,0 +1,14 @@
+=== ERROR REPORT ===
+For Input: 
+Qh eyNFX
+
+Your Code's output is: 
+ QehyNFX
+
+It's Correct output is: 
+QehyNFX
+
+
+=== EXPLANATION ===
+Line 4: Perhaps you want to initialize `str` as an empty string? If so, remove the space character.
+Line 11 is redundant (although it does not affect the correctness of the program).

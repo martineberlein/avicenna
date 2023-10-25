@@ -1,0 +1,18 @@
+=== ERROR REPORT ===
+For Input: 
+8 8
+
+Your Output:
+Traceback (most recent call last):
+  File "/home/493014db2e4b4632f5f6966525e5ace0.py", line 29, in <module>
+    print(ob.nPr(n, r))
+  File "/home/493014db2e4b4632f5f6966525e5ace0.py", line 17, in nPr
+    finalVal = fact(n)/fact(n-r)
+ZeroDivisionError: division by zero
+
+Its Correct output is:
+40320
+
+
+=== EXPLANATION ===
+The `fact` method (defined in line 6) does not give the correct factorial for 0 -- it returns 0 while in fact 0! = 1.

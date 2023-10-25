@@ -1,0 +1,12 @@
+{
+    "problem_name": "Fibonacci to N",
+    "problem_description": "Given a positive integer N. Calculate the Fibonacci series till the number N. If N is a part of the series, include N as well.",
+    "expected_time_complexity": "O(N)",
+    "expected_auxiliary_space": "O(N)",
+    "constraints": "1<=N<=10^9",
+    "number_of_buggy_programs": 10,
+    "source": "geeksforgeeks",
+    "problem_url":"https://practice.geeksforgeeks.org/problems/fibonacci-to-n0811/1",
+    "tests": "tests.json",
+    "your_task": "You don't need to read input or print anything.Your Task is to complete the function nFibonacci() that takes an integer N as input parameter and returns a list of integers containing all terms of the fibonacci series up until N."
+}

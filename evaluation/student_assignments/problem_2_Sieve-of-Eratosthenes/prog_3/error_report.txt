@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+4272
+
+Output:
+(a string)
+
+Expected Output:
+(a list of numbers)
+
+
+=== EXPLANATION ===
+- The type of the returned value should be a list of numbers (not a string).

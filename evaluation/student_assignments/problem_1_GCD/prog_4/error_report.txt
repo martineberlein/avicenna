@@ -1,0 +1,14 @@
+=== ERROR REPORT ===
+For Input: 
+21 38
+
+Your Code's output is: 
+2
+
+It's Correct output is: 
+1
+
+
+=== EXPLANATION ===
+- This is an incorrect implementation of the Euclidean algorithm. The first bug is: the `while` loop should terminate when `B` equals to 0 (instead of when `B%A` equals to 0.
+- The second bug is: Inside each iteration of the `while` loop, `B` (instead of `A`) should be assigned to the value of `B%A`. Also, this assignment should happen after the swapping of `A` and `B`.

@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+h
+
+Your Code's output is: 
+0
+
+It's Correct output is: 
+1
+
+
+=== EXPLANATION ===
+In case len(S) == 1, the while loop in line 8 is not executed and your method returns 0. However, strings of length 1 are always palindrome.

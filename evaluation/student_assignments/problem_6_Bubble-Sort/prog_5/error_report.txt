@@ -1,0 +1,14 @@
+=== ERROR REPORT ===
+For Input: 
+5
+91 23 32 74 6
+
+Your Code's output is: 
+23 6 32 74 91
+
+It's Correct output is: 
+6 23 32 74 91
+
+
+=== EXPLANATION ===
+The outer loop should have at least `n-1` iterations instead of `n-2`. In this failing test case, the smallest value (6) is at the last position and it needs to be swapped 4 (i.e. n-1) times to come to first position.

@@ -1,0 +1,12 @@
+{
+    "problem_name": "Merge two strings",
+    "problem_description": "Given two strings S1 and S2 as input, the task is to merge them alternatively i.e. the first character of S1 then the first character of S2 and so on till the strings end. NOTE: Add the whole string if other string is empty.",
+    "expected_time_complexity": "O(|S1| + |S2|)",
+    "expected_auxiliary_space": "O(1)",
+    "constraints": "1<=|S1|, |S2| <=10^3",
+    "number_of_buggy_programs": 10,
+    "source": "geeksforgeeks",
+    "problem_url":"https://practice.geeksforgeeks.org/problems/merge-two-strings2736/1?page=1",
+    "tests": "tests.json",
+    "your_task": "You don't need to read input or print anything. Your task is to complete the function merge() which takes the strings S1 and S2 as input and returns the resultant string by merging both S1 and S2 alternatively starting from S1."
+}

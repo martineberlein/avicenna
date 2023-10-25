@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+1
+
+Your Code's output is: 
+1 1
+
+It's Correct output is: 
+0 1 1
+
+
+=== EXPLANATION ===
+- The first Fibonacci number is 0, not 1.

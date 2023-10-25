@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+hq
+
+Your Code's output is: 
+False
+
+It's Correct output is: 
+0
+
+
+=== EXPLANATION ===
+You should return 0 or 1 rather than False or True.

@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+1
+
+Your Code's output is: 
+None
+
+It's Correct output is: 
+1
+
+
+=== EXPLANATION ===
+Your algorithm returns None if x == 1. Handling this corner case and your algorithm will be good.

@@ -1,0 +1,14 @@
+=== ERROR REPORT ===
+For Input: 
+11 4
+
+Your Code's output is: 
+4790016000
+
+It's Correct output is: 
+7920
+
+
+=== EXPLANATION ===
+- In line 9, j should iterate through 1 to n-r.
+- In line 11, we shouldn't multiply `s` and `m` (division is the correct operator).

@@ -1,0 +1,14 @@
+=== ERROR REPORT ===
+For Input: 
+8
+24 18 38 43 14 40 1 54
+
+Your Code's output is: 
+18 24 14 1 38 40 43 54
+
+It's Correct output is: 
+1 14 18 24 38 40 43 54
+
+
+=== EXPLANATION ===
+For the inner loop, the range should be from `0` to `n-i-1` rather than from `i` to `n-1`.

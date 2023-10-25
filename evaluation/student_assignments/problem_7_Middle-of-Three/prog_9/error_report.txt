@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+312 62 478
+
+Your Code's output is: 
+None
+
+It's Correct output is: 
+312
+
+
+=== EXPLANATION ===
+Your algorithm only returns A if B > A > C. However, it should also return A in case B < A < C -- see this failing test case. Similarly to B and C.

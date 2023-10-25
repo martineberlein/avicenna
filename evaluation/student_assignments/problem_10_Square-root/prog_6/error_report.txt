@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+6179767
+
+Your Code's output is: 
+1
+
+It's Correct output is: 
+2485
+
+
+=== EXPLANATION ===
+Line 9: loop for only 10 times may not be enough for a large input.

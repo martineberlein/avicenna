@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+3
+
+Your Code's output is: 
+2
+
+It's Correct output is: 
+1
+
+
+=== EXPLANATION ===
+Line 16: Perhaps you don't want to set `low = mid+1` directly here because in case (mid+1)*(mid+1) > x, doing so makes `low` larger than the correct result.

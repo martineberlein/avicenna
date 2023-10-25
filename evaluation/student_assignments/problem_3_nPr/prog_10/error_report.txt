@@ -1,0 +1,14 @@
+=== ERROR REPORT ===
+For Input: 
+11 4
+
+Your Code's output is: 
+69300
+
+It's Correct output is: 
+7920
+
+
+=== EXPLANATION ===
+`b` (i.e. the denominator) should be (n-r)! but in this code, b = r!.
+`a` (i.e. the numerator) should be n! but in this code, a = (r+1)*(r+2)*...*(n).

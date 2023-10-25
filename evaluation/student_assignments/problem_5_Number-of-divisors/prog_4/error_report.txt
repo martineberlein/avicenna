@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+30
+
+Your Code's output is: 
+5
+
+It's Correct output is: 
+4
+
+
+=== EXPLANATION ===
+Line 7: The algorithm should consider the numbers from 1 to the square root of N, not to the square root of N plus 1.

@@ -1,0 +1,19 @@
+=== ERROR REPORT ===
+For Input: 
+7
+
+Your Output: 
+Runtime Error 
+Traceback (most recent call last):
+  File "/home/97eb36aae1a296bbb8b773df2367492a.py", line 33, in <module>
+    ans = ob.sieveOfEratosthenes(N)
+  File "/home/97eb36aae1a296bbb8b773df2367492a.py", line 15, in sieveOfEratosthenes
+    prime[i*j] = False
+IndexError: list assignment index out of range
+
+Expected Output: 
+2 3 5 7
+
+
+=== EXPLANATION ===
+In line 14, the condition should be i*j < N + 1 (i.e. `<` instead of `<=`) because we don't consider numbers larger than N.

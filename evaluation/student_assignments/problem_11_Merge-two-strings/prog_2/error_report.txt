@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+Qh eyNFX
+
+Your Code's output is: 
+Qehy
+
+It's Correct output is: 
+QehyNFX
+
+
+=== EXPLANATION ===
+Line 19: You want to add to `S` the remaining characters of `S2`?

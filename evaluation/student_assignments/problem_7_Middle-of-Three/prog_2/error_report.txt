@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+124 153 97
+
+Your Code's output is: 
+None
+
+It's Correct output is: 
+124
+
+
+=== EXPLANATION ===
+Notice that when you call the function `range` with 2 arguments, if the first argument is larger than the second one, the returned range will be empty. In this failing test case, `range(B, C)` is empty (because B > C) and thus, A is not returned even though it should be.

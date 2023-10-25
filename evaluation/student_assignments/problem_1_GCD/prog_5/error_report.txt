@@ -1,0 +1,14 @@
+=== ERROR REPORT ===
+For Input: 
+43 38
+
+Your Code's output is: 
+38
+
+It's Correct output is: 
+1
+
+
+=== EXPLANATION ===
+- The first bug is in line 13. It should return `gcd` instead of `i`.
+- The second bug is in the algorithm. This current algorithm works, however, it takes too much time for some test cases. The fix is to change the algorithm to the Euclidean algorithm for gcd.

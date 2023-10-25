@@ -1,0 +1,13 @@
+=== ERROR REPORT ===
+For Input: 
+13 39 485
+
+Your Code's output is: 
+13
+
+It's Correct output is: 
+39
+
+
+=== EXPLANATION ===
+Your program always sets `a` equals to `A`, then returns the min(A, max(B, C)) as the result. However, this is not the correct algorithm. In this failing test case, when A is the minimum, your program incorrectly returns A.
