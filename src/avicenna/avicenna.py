@@ -29,6 +29,16 @@ from avicenna.monads import Maybe, Exceptional, check_empty
 
 
 class Avicenna:
+    """
+    This is the main class of Avicenna. Its top-level methods are:
+
+    :meth: avicenna.Avicenna.explain`
+        Use to learn the failure-constraint (debugging constraint).
+
+    :meth: `avicenna.Avicenna.get_equivalent_best_formulas`
+        Use to obtain similar (or equivalent) failure constraints.
+    """
+
     def __init__(
         self,
         grammar: Grammar,
@@ -36,20 +46,47 @@ class Avicenna:
         initial_inputs: List[str],
         patterns: List[str] = None,
         max_iterations: int = 10,
-        max_excluded_features: int = 3,
+        top_n_relevant_features: int = 3,
         pattern_file: Path = None,
         max_conjunction_size: int = 2,
         use_multi_failure_report: bool = True,
         use_batch_execution: bool = False,
         log: bool = False,
         feature_learner: feature_extractor.RelevantFeatureLearner = None,
-        timeout: int = 3600,
+        # timeout: int = 3600,
     ):
+        """
+        The constructor of :class:`~avicenna.Avicenna.` accepts a large number of
+        parameters. However, only the :code:`grammar`, the :code:`oracle`, and the :code:`initial_inputs` are required.
+        All other parameters are *optional.*
+
+        :param grammar: The underlying grammar as a "Fuzzing Book" dictionary
+        :param oracle: The oracle that calls the underlying program and classifies the
+            program behavior as `oracle.BUG` or `oracle.NO_BUG`.
+        :param initial_inputs: An initial input corpus as strings.
+            At least one behavior-triggering input is required.
+        :param patterns: A List of patterns that will be used to explain the program behavior.
+        :param max_iterations: The maximum number of iteration of the refinement loop.
+        :param top_n_relevant_features: The number of *relevant* features during the
+            constraint and pattern matching step. The number heavily influences the
+            computational overhead of Avicenna. Avicenna will use this number to limit the
+            amount of non-terminals that are relevant for describing the program behavior.
+        :param pattern_file: A pattern repository with possible patterns.
+        :param max_conjunction_size: The maximum number of conjunctions in a learned constraint.
+            The higher the number, the higher the computational overhead.
+        :param use_multi_failure_report:
+        :param use_batch_execution: Toggle batch execution and single file execution.
+            During batch execution, the program is called once and given all inputs at the same time.
+            During single execution the program gets called for each individual input.
+        :param log: Toggle verbose logging.
+        :param feature_learner: A constructor class of the RelevantFeatureLearner.
+        """
+
         self._start_time = None
         self.patterns = patterns
         self.oracle = oracle
         self._max_iterations: int = max_iterations
-        self._top_n: int = max_excluded_features - 1
+        self._top_n: int = top_n_relevant_features - 1
         self._targeted_start_size: int = 10
         self._iteration = 0
         self._timeout: int = 3600  # timeout in seconds
