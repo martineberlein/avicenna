@@ -202,6 +202,14 @@ class Avicenna:
         return Maybe.nothing()
 
     def explain(self) -> Tuple[Formula, float, float]:
+        """
+        Attempts to compute a failure diagnosis as an ISLa Formula. It returns that solution, if there is one.
+        The result is a tuple with the learned failure constraint and the calculated precision and recall.
+        Note that the precision and recall correspond to the values that Avicenna calculated based on a limited subset
+        of all possible inputs. Thus, these do not necessarily correspond to the `real` statistical measures.
+
+        :return:
+        """
         new_inputs: Set[Input] = self.all_inputs.union(self.generate_more_inputs())
         while self._do_more_iterations():
             new_inputs = self._loop(new_inputs)
