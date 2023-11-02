@@ -52,7 +52,7 @@ class Avicenna:
         self._top_n: int = max_excluded_features - 1
         self._targeted_start_size: int = 10
         self._iteration = 0
-        self._timeout: int = 3600  # timeout in seconds
+        self._timeout: int = timeout  # timeout in seconds
         self._data = None
         self._all_data = None
         self._learned_invariants: Dict[str, List[float]] = {}
