@@ -1,5 +1,6 @@
 import logging
-from typing import List, Set, Type, Optional, Any, Tuple, re
+import re
+from typing import List, Set, Type, Optional, Any, Tuple
 from abc import ABC, abstractmethod
 import warnings
 
