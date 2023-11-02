@@ -1,5 +1,5 @@
 import logging
-from typing import List, Set, Type, Optional, Any, Tuple
+from typing import List, Set, Type, Optional, Any, Tuple, re
 from abc import ABC, abstractmethod
 import warnings
 
@@ -125,6 +125,7 @@ class RelevantFeatureLearner(ABC):
         ]
 
         df = DataFrame.from_records(records).replace(-np.inf, -(2**32))
+        df = df.rename(columns=lambda x: re.sub(r"[,\]\[{}\":]+", '', x))
         labels = [
             self.map_result(inp.oracle)
             for inp in test_inputs
