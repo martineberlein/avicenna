@@ -1,15 +1,14 @@
 import logging
-import re
-from typing import List, Set, Type, Optional, Any, Tuple
-from abc import ABC, abstractmethod
 import warnings
+from abc import ABC, abstractmethod
+from typing import List, Set, Type, Optional, Any, Tuple
 
 import numpy as np
-from pandas import DataFrame
-from grammar_graph.gg import GrammarGraph
 import shap
 from fuzzingbook.Grammars import Grammar
+from grammar_graph.gg import GrammarGraph
 from lightgbm import LGBMClassifier
+from pandas import DataFrame
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -126,7 +125,6 @@ class RelevantFeatureLearner(ABC):
         ]
 
         df = DataFrame.from_records(records).replace(-np.inf, -(2**32))
-        df = df.rename(columns=lambda x: re.sub(r"[,\]\[{}\":]+", '', x))
         labels = [
             self.map_result(inp.oracle)
             for inp in test_inputs
