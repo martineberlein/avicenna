@@ -125,7 +125,7 @@ class RelevantFeatureLearner(ABC):
         ]
 
         df = DataFrame.from_records(records).replace(-np.inf, -(2**32))
-        df = df.rename(columns=lambda x: re.sub('[^A-Za-z0-9_]+', '?', x))
+        df = df.rename(columns=lambda x: re.sub(r"[,\]\[{}\":]+", '', x))
         labels = [
             self.map_result(inp.oracle)
             for inp in test_inputs
