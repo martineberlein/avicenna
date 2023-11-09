@@ -290,6 +290,57 @@ class FeatureExtraction(unittest.TestCase):
             feature_vector = collector.collect_features(test_input)
             self.assertEqual(feature_vector.features, expected_feature_vectors)
 
+    def test_build_features_with_escaped_characters(self):
+        grammar_with_json_chars = {
+            "<start>": ["<arg>"],
+            "<arg>": ["<digit>", '"<digit>"'],
+            "<digit>": ["1"],
+        }
+        expected_feature_list = [
+            DerivationFeature("<start>", "<arg>"),
+            DerivationFeature("<arg>", "<digit>"),
+            DerivationFeature("<arg>", "\"<digit>\""),
+            DerivationFeature("<digit>", "1"),
+        ]
+
+        factory = FeatureFactory(grammar_with_json_chars)
+        features = factory.build([DerivationFeature])
+
+        self.assertEqual(set(features), set(expected_feature_list))
+
+
+    def test_feature_names_with_json_chars(self):
+        grammar_with_json_chars = {
+            "<start>": ["<arg>"],
+            "<arg>": ["<digit>", '"<digit>"'],
+            "<digit>": ["1"],
+        }
+        inputs = ["1", "\"1\""]
+        test_inputs = [Input.from_str(grammar_with_json_chars, inp) for inp in inputs]
+
+        expected_feature_vectors = [
+            {
+                DerivationFeature("<start>", "<arg>") : 1,
+                DerivationFeature("<arg>", "<digit>") : 1,
+                DerivationFeature("<arg>", "\"<digit>\""): 0,
+                DerivationFeature("<digit>", "1"): 1,
+            },
+            {
+                DerivationFeature("<start>", "<arg>") : 1,
+                DerivationFeature("<arg>", "<digit>") : 0,
+                DerivationFeature("<arg>", "\"<digit>\""): 1,
+                DerivationFeature("<digit>", "1"): 1,
+            }
+        ]
+
+        collector = GrammarFeatureCollector(grammar_with_json_chars, [DerivationFeature])
+
+        for test_input, expected_feature_vectors in zip(
+            test_inputs, expected_feature_vectors
+        ):
+            feature_vector = collector.collect_features(test_input)
+            self.assertEqual(feature_vector.features, expected_feature_vectors)
+
 
 if __name__ == "__main__":
     unittest.main()

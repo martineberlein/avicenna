@@ -1,8 +1,10 @@
+import string
 import unittest
 from flaky import flaky
 from typing import Set
 
 from isla.fuzzer import GrammarFuzzer
+from fuzzingbook.Grammars import srange
 
 from avicenna_formalizations.calculator import (
     grammar as grammar_calculator,
@@ -301,6 +303,55 @@ class TestRelevantFeatureLearner(unittest.TestCase):
                 feature.non_terminal not in excluded_non_terminal_strings
                 for feature in relevant_features
             )
+        )
+
+    def test_shap_feature_learner_with_special_characters(self):
+        grammar_with_json_chars = {
+            "<start>": ["<arg>"],
+            "<arg>": ["<digit>", '"<digit>"'],
+            "<digit>": ["1", "2", "3"],
+        }
+
+        inputs = [
+            ("1", OracleResult.BUG),
+            ("2", OracleResult.NO_BUG),
+            ("\"3\"", OracleResult.NO_BUG),
+        ]
+
+        collector = GrammarFeatureCollector(grammar_with_json_chars)
+        feature_learner = feature_extractor.SHAPRelevanceLearner(
+            grammar_with_json_chars,
+            classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
+        )
+
+        relevant_features = (
+            Exceptional.of(lambda: inputs)
+            .map(
+                lambda x: {
+                    Input.from_str(grammar_with_json_chars, inp_, oracle=orc_)
+                    for inp_, orc_ in x
+                }
+            )
+            .map(
+                lambda parsed_inputs: {
+                    inp_.update_features(collector.collect_features(inp_))
+                    for inp_ in parsed_inputs
+                }
+            )
+            .map(lambda parsed_inputs: feature_learner.learn(parsed_inputs))
+            .map(lambda learning_data: learning_data[0].union(learning_data[1]))
+            .map(
+                lambda relevant_features_: {
+                    feature.non_terminal for feature in relevant_features_
+                }
+            )
+            .reraise()
+            .get()
+        )
+        self.assertNotEqual(
+            len(relevant_features),
+            0,
+            "Expected at least one non-terminals to be relevant.",
         )
 
     @unittest.skip
