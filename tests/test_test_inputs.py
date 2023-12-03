@@ -13,7 +13,7 @@ class TestInputs(unittest.TestCase):
     def setUp(self) -> None:
         inputs = {"sqrt(-900)", "cos(10)"}
 
-        self.test_inputs = (
+        self.test_inputs: Set[Input] = (
             Exceptional.of(lambda: inputs)
             .map(lambda x: {Input.from_str(grammar, inp_) for inp_ in x})
             .reraise()
@@ -109,6 +109,14 @@ class TestInputs(unittest.TestCase):
         )
 
         self.assertEqual(1, len(parsed_input))
+
+    def test_input_oracle_to_bool(self):
+        for inp in self.test_inputs:
+            inp.oracle = oracle(inp)
+            if inp.oracle == OracleResult.FAILING:
+                self.assertTrue(inp.oracle.to_bool())
+            else:
+                self.assertFalse(inp.oracle.to_bool())
 
 
 if __name__ == "__main__":
