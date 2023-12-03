@@ -1,8 +1,7 @@
 import unittest
-from typing import Tuple, Set, List
+from typing import Set, List
 
-from isla.derivation_tree import DerivationTree
-from fuzzingbook.Parser import EarleyParser, is_valid_grammar, Grammar
+from fuzzingbook.Parser import is_valid_grammar, Grammar
 
 from avicenna_formalizations.calculator import grammar, oracle
 from avicenna.oracle import OracleResult
