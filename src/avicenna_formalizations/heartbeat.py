@@ -6,7 +6,7 @@ from typing import Union
 
 from fuzzingbook.Grammars import srange
 
-from avicenna.oracle import OracleResult
+from debugging_framework.oracle import OracleResult
 from avicenna.input import Input
 
 
@@ -22,10 +22,10 @@ def oracle_simple(test_input: Input | str):
 
     response = vulnerable_heartbeat(request_payload, request_length)
     if len(response) > len(request_payload):
-        return OracleResult.BUG
+        return OracleResult.FAILING
     elif response == request_payload:
-        return OracleResult.NO_BUG
-    return OracleResult.UNDEF
+        return OracleResult.PASSING
+    return OracleResult.UNDEFINED
 
 
 grammar = {
@@ -179,5 +179,5 @@ def oracle(test_input: Union[Input, str]) -> OracleResult:
         response = heartbeat_response(hex_request)
         is_vulnerable = _test_heartbleed_vulnerability(heartbeat_request_str, response)
     except OverflowError:
-        return OracleResult.UNDEF
-    return OracleResult.BUG if is_vulnerable else OracleResult.NO_BUG
+        return OracleResult.UNDEFINED
+    return OracleResult.FAILING if is_vulnerable else OracleResult.PASSING

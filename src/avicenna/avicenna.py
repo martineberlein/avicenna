@@ -20,12 +20,13 @@ from avicenna.pattern_learner import (
     AvicennaTruthTable,
     AviIslearn,
 )
-from avicenna.oracle import OracleResult
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.execution_handler import SingleExecutionHandler, BatchExecutionHandler
 from avicenna.report import SingleFailureReport, MultipleFailureReport
 from avicenna.logger import LOGGER, configure_logging
 from avicenna.monads import Maybe, Exceptional, check_empty
+
+from debugging_framework.oracle import OracleResult
 
 
 class Avicenna:
@@ -171,9 +172,9 @@ class Avicenna:
     @staticmethod
     def map_to_bool(result: OracleResult) -> bool:
         match result:
-            case OracleResult.BUG:
+            case OracleResult.FAILING:
                 return True
-            case OracleResult.NO_BUG:
+            case OracleResult.PASSING:
                 return False
             case _:
                 return False
@@ -231,7 +232,7 @@ class Avicenna:
         result: Set[Input] = (
             Exceptional.of(lambda: test_inputs)
             .map(self.assign_label)
-            .map(lambda x: {inp for inp in x if inp.oracle != OracleResult.UNDEF})
+            .map(lambda x: {inp for inp in x if inp.oracle != OracleResult.UNDEFINED})
             .map(self.assign_feature_vector)
             .map(self.add_inputs)
             .reraise()

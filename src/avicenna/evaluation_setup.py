@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from typing import List, Optional
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from isla.solver import ISLaSolver
 from sklearn.metrics import confusion_matrix
 
+from debugging_framework.oracle import OracleResult
+
 from avicenna.generator import MutationBasedGenerator
-from avicenna.oracle import OracleResult
 from avicenna.input import Input
 
 
@@ -45,7 +46,7 @@ class EvaluationResult:
 def evaluate_diagnosis(grammar, evaluation_result: EvaluationResult):
     assert evaluation_result.evaluation_data
     y_true = [
-        1 if inp.oracle == OracleResult.BUG else 0
+        1 if inp.oracle == OracleResult.FAILING else 0
         for inp in evaluation_result.evaluation_data
     ]
 
@@ -87,10 +88,10 @@ def generate_evaluation_data_set(
         if result.is_just():
             inp = result.value()
             oracle_result = oracle(inp)
-            if oracle_result == OracleResult.BUG:
-                positive_samples.add(inp.update_oracle(OracleResult.BUG))
-            elif oracle_result == OracleResult.NO_BUG:
-                negative_samples.add(inp.update_oracle(OracleResult.NO_BUG))
+            if oracle_result == OracleResult.FAILING:
+                positive_samples.add(inp.update_oracle(OracleResult.FAILING))
+            elif oracle_result == OracleResult.PASSING:
+                negative_samples.add(inp.update_oracle(OracleResult.FAILING))
 
     return (
         list(positive_samples)[:targeted_size] + list(negative_samples)[:targeted_size]

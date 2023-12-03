@@ -2,12 +2,12 @@ import unittest
 from typing import Set, List
 
 from fuzzingbook.Parser import is_valid_grammar, Grammar
+from debugging_framework.oracle import OracleResult
+
 
 from avicenna_formalizations.calculator import grammar, oracle
-from avicenna.oracle import OracleResult
 from avicenna.input import Input
 from avicenna.monads import Exceptional
-
 
 class TestInputs(unittest.TestCase):
     def setUp(self) -> None:
@@ -21,8 +21,8 @@ class TestInputs(unittest.TestCase):
         )
 
     def test_parsed_inputs_have_expected_trees_and_oracles(self):
-        inputs = {("sqrt(-900)", OracleResult.BUG),
-                  ("cos(10)", OracleResult.NO_BUG)}
+        inputs = {("sqrt(-900)", OracleResult.FAILING),
+                  ("cos(10)", OracleResult.PASSING)}
 
         parsed_inputs = (
             Exceptional.of(lambda : self.test_inputs)
@@ -49,7 +49,7 @@ class TestInputs(unittest.TestCase):
 
     def test_input_from_str(self):
         input_strings = ["sqrt(-900)"]
-        expected_oracle_result = [OracleResult.BUG]
+        expected_oracle_result = [OracleResult.FAILING]
 
         parsed_input: List[Input] = (
             Exceptional.of(lambda : input_strings)
@@ -72,7 +72,7 @@ class TestInputs(unittest.TestCase):
             inp.tree = "new tree"
 
         with self.assertRaises(AttributeError):
-            inp.oracle = OracleResult.NO_BUG
+            inp.oracle = OracleResult.PASSING
 
         self.assertEqual(inp.tree, original_tree)
         self.assertEqual(inp.oracle, original_oracle)

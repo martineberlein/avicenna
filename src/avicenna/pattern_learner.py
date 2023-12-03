@@ -15,8 +15,8 @@ from islearn.learner import InvariantLearner
 STANDARD_PATTERNS_REPO = "patterns.toml"
 logger = logging.getLogger("learner")
 
+from debugging_framework.oracle import OracleResult
 from avicenna.input import Input
-from avicenna.oracle import OracleResult
 
 
 class AvicennaTruthTableRow:
@@ -229,9 +229,9 @@ class AviIslearn(InvariantLearner):
 
     @staticmethod
     def categorize_inputs(test_inputs: Set[Input]) -> Tuple[Set[Input], Set[Input]]:
-        positive_inputs = {inp for inp in test_inputs if inp.oracle == OracleResult.BUG}
+        positive_inputs = {inp for inp in test_inputs if inp.oracle == OracleResult.FAILING}
         negative_inputs = {
-            inp for inp in test_inputs if inp.oracle == OracleResult.NO_BUG
+            inp for inp in test_inputs if inp.oracle == OracleResult.PASSING
         }
         return positive_inputs, negative_inputs
 

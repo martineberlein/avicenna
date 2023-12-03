@@ -5,7 +5,7 @@ from typing import Final
 from isla.derivation_tree import DerivationTree
 from fuzzingbook.Parser import EarleyParser
 
-from avicenna.oracle import OracleResult
+from debugging_framework.oracle import OracleResult
 from avicenna.features import FeatureVector
 
 
