@@ -1,7 +1,7 @@
 import unittest
 from typing import Set, Iterable, Type
 
-from avicenna.oracle import OracleResult
+from debugging_framework.oracle import OracleResult
 from avicenna.input import Input
 from avicenna.monads import Maybe, Just, Nothing, Exceptional, Success, Failure, T, E
 from avicenna_formalizations.calculator import grammar, oracle
@@ -12,12 +12,12 @@ from avicenna.execution_handler import SingleExecutionHandler
 class MyTestCase(unittest.TestCase):
     def test_monads(self):
         inputs = [
-            ("sqrt(-901)", OracleResult.BUG),
-            ("sqrt(-1)", OracleResult.BUG),
-            ("sqrt(10)", OracleResult.NO_BUG),
-            ("cos(1)", OracleResult.NO_BUG),
-            ("sin(99)", OracleResult.NO_BUG),
-            ("tan(-20)", OracleResult.NO_BUG),
+            ("sqrt(-901)", OracleResult.FAILING),
+            ("sqrt(-1)", OracleResult.FAILING),
+            ("sqrt(10)", OracleResult.PASSING),
+            ("cos(1)", OracleResult.PASSING),
+            ("sin(99)", OracleResult.PASSING),
+            ("tan(-20)", OracleResult.PASSING),
         ]
 
         result: Maybe = (
@@ -34,12 +34,12 @@ class MyTestCase(unittest.TestCase):
 
     def test_success_failure_monad(self):
         inputs = [
-            ("sqrt(-901)", OracleResult.BUG),
-            ("sqrt(-1)", OracleResult.BUG),
-            ("sqrt(10)", OracleResult.NO_BUG),
-            ("cos(1)", OracleResult.NO_BUG),
-            ("sin(99)", OracleResult.NO_BUG),
-            ("tan(-20)", OracleResult.NO_BUG),
+            ("sqrt(-901)", OracleResult.FAILING),
+            ("sqrt(-1)", OracleResult.FAILING),
+            ("sqrt(10)", OracleResult.PASSING),
+            ("cos(1)", OracleResult.PASSING),
+            ("sin(99)", OracleResult.PASSING),
+            ("tan(-20)", OracleResult.PASSING),
         ]
         # inputs = []
         parsed_inputs: Set[Input] = (
@@ -49,32 +49,6 @@ class MyTestCase(unittest.TestCase):
             .map(assign_feature_vector)
             .reraise()
             .map(lambda x: x if x else None)
-            .get()
-        )
-
-        if parsed_inputs:
-            for inp in parsed_inputs:
-                print(inp, inp.oracle, inp.features)
-        else:
-            print("Empty Set was returned")
-
-    def test_success_failure_monad(self):
-        inputs = [
-            ("sqrt(-901)", OracleResult.BUG),
-            ("sqrt(-1)", OracleResult.BUG),
-            ("sqrt(10)", OracleResult.NO_BUG),
-            ("cos(1)", OracleResult.NO_BUG),
-            ("sin(99)", OracleResult.NO_BUG),
-            ("tan(-20)", OracleResult.NO_BUG),
-        ]
-        parsed_inputs: Set[Input] = (
-            Exceptional.of(lambda: None)
-            .map(parse_to_input)
-            .map(assign_label)
-            .map(assign_feature_vector)
-            .recover(lambda _: None, SyntaxError)
-            .bind(check_empty)
-            .recover(lambda _: {Input.from_str(grammar, inp_) for inp_ in ["sqrt(-1)"]})
             .get()
         )
 

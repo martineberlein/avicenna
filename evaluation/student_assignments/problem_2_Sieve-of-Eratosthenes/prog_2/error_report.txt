@@ -1,7 +1,0 @@
-=== ERROR REPORT ===
-For Input: 
-7507
-
-
-=== EXPLANATION ===
-- In the 3 calls to the `range` function, we should include N in the ranges. This code doesn't include N and thus, N is not returned even if it is a prime number.

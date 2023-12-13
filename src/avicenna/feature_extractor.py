@@ -13,9 +13,10 @@ from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 
+from debugging_framework.oracle import OracleResult
+
 from avicenna.feature_collector import Feature, FeatureFactory, DEFAULT_FEATURE_TYPES
 from avicenna.input import Input
-from avicenna.oracle import OracleResult
 
 # Suppress the specific SHAP warning
 warnings.filterwarnings(
@@ -107,9 +108,9 @@ class RelevantFeatureLearner(ABC):
     @staticmethod
     def map_result(result: OracleResult) -> int:
         match result:
-            case OracleResult.NO_BUG:
+            case OracleResult.PASSING:
                 return 0
-            case OracleResult.BUG:
+            case OracleResult.FAILING:
                 return 1
             case _:
                 return -1
@@ -121,14 +122,14 @@ class RelevantFeatureLearner(ABC):
                 for feature in self.features
             }
             for inp in test_inputs
-            if inp.oracle != OracleResult.UNDEF
+            if inp.oracle != OracleResult.UNDEFINED
         ]
 
         df = DataFrame.from_records(records).replace(-np.inf, -(2**32))
         labels = [
             self.map_result(inp.oracle)
             for inp in test_inputs
-            if inp.oracle != OracleResult.UNDEF
+            if inp.oracle != OracleResult.UNDEFINED
         ]
 
         return df.drop(columns=df.columns[df.nunique() == 1]), labels

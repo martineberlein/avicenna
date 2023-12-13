@@ -1,6 +1,6 @@
-from avicenna.oracle import OracleResult
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
 
+from debugging_framework.oracle import OracleResult
 from avicenna.input import Input
 
 
@@ -33,11 +33,11 @@ def middle(x, y, z):
 def _test(function, x, y, z, expected):
     try:
         if function(x, y, z) == expected:
-            return OracleResult.NO_BUG
+            return OracleResult.PASSING
         else:
-            return OracleResult.BUG
+            return OracleResult.FAILING
     except BaseException:
-        return OracleResult.BUG
+        return OracleResult.FAILING
 
 
 def _test_middle(x, y, z, expected):
@@ -62,5 +62,5 @@ initial_inputs = ["3, 1, 4", "3, 2, 1"]
 
 
 if __name__ == "__main__":
-    assert _test_dummy("3, 1, 4") == OracleResult.BUG
-    assert _test_dummy("3, 2, 1") == OracleResult.NO_BUG
+    assert _test_dummy("3, 1, 4") == OracleResult.FAILING
+    assert _test_dummy("3, 2, 1") == OracleResult.PASSING
