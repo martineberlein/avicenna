@@ -53,7 +53,7 @@ class Avicenna:
         use_batch_execution: bool = False,
         log: bool = False,
         feature_learner: feature_extractor.RelevantFeatureLearner = None,
-        timeout: int = 3600,
+        # timeout: int = 3600,
     ):
         """
         The constructor of :class:`~avicenna.Avicenna.` accepts a large number of
