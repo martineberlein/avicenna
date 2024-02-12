@@ -24,7 +24,8 @@ class TestHeartbeatProtocol(unittest.TestCase):
 
         for inp in initial_inputs:
             inp_ = Input.from_str(grammar, inp, oracle(inp))
-            print(str(inp_).encode('utf-8'), inp_.oracle)
+            print(str(inp_).encode("utf-8"), inp_.oracle)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

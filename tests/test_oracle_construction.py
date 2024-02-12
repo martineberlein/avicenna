@@ -36,7 +36,9 @@ class TestConstructOracle(unittest.TestCase):
             return x + y
 
         my_oracle = construct_oracle(under_test, oracle, self.error_definitions)
-        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.PASSING)
+        self.assertEqual(
+            my_oracle(Input.from_str(grammar, "1 1")), OracleResult.PASSING
+        )
 
     def test_different_result(self):
         def oracle(x, y):
@@ -46,7 +48,9 @@ class TestConstructOracle(unittest.TestCase):
             return x - y
 
         my_oracle = construct_oracle(under_test, oracle, self.error_definitions)
-        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.FAILING)
+        self.assertEqual(
+            my_oracle(Input.from_str(grammar, "1 1")), OracleResult.FAILING
+        )
 
     def test_defined_exception(self):
         def oracle(x, y):
@@ -56,7 +60,9 @@ class TestConstructOracle(unittest.TestCase):
             raise TimeoutError()
 
         my_oracle = construct_oracle(oracle, under_test, self.error_definitions)
-        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.UNDEFINED)
+        self.assertEqual(
+            my_oracle(Input.from_str(grammar, "1 1")), OracleResult.UNDEFINED
+        )
 
     def test_undefined_exception(self):
         def oracle(x, y):
@@ -66,7 +72,9 @@ class TestConstructOracle(unittest.TestCase):
             raise ValueError()
 
         my_oracle = construct_oracle(oracle, under_test, self.error_definitions)
-        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.UNDEFINED)
+        self.assertEqual(
+            my_oracle(Input.from_str(grammar, "1 1")), OracleResult.UNDEFINED
+        )
 
     def test_timeout_sleep(self):
         def oracle(x, y):
@@ -74,11 +82,22 @@ class TestConstructOracle(unittest.TestCase):
 
         def under_test(x, y):
             import time
+
             time.sleep(2)
             return x + y
 
-        my_oracle = construct_oracle(under_test, oracle, {UnexpectedResultError: OracleResult.PASSING, TimeoutError: OracleResult.FAILING}, timeout=1)
-        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.FAILING)
+        my_oracle = construct_oracle(
+            under_test,
+            oracle,
+            {
+                UnexpectedResultError: OracleResult.PASSING,
+                TimeoutError: OracleResult.FAILING,
+            },
+            timeout=1,
+        )
+        self.assertEqual(
+            my_oracle(Input.from_str(grammar, "1 1")), OracleResult.FAILING
+        )
 
     def test_no_error_definition(self):
         def oracle(x, y):
@@ -97,11 +116,17 @@ class TestConstructOracle(unittest.TestCase):
             return x + y
 
         my_oracle = construct_oracle(under_test, oracle)
-        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.FAILING)
+        self.assertEqual(
+            my_oracle(Input.from_str(grammar, "1 1")), OracleResult.FAILING
+        )
         my_oracle = construct_oracle(under_test_unexpected_result_error, oracle)
-        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.FAILING)
+        self.assertEqual(
+            my_oracle(Input.from_str(grammar, "1 1")), OracleResult.FAILING
+        )
         my_oracle = construct_oracle(under_test_timeout, oracle)
-        self.assertEqual(my_oracle(Input.from_str(grammar, "1 1")), OracleResult.FAILING)
+        self.assertEqual(
+            my_oracle(Input.from_str(grammar, "1 1")), OracleResult.FAILING
+        )
 
 
 if __name__ == "__main__":

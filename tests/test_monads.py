@@ -66,13 +66,16 @@ def check_empty(x: T) -> Exceptional[Exception, T]:
         return Failure(AssertionError())
     return Success(x)
 
+
 def parse_to_input(test_inputs: Iterable[str]) -> Set[Input]:
     return set([Input.from_str(grammar, inp_) for inp_, _ in test_inputs])
+
 
 def assign_label(test_inputs: Set[Input]) -> Set[Input]:
     execution_handler = SingleExecutionHandler(oracle)
     execution_handler.label(test_inputs)
     return test_inputs
+
 
 def assign_feature_vector(test_inputs: Set[Input]) -> Set[Input]:
     collector = GrammarFeatureCollector(grammar)

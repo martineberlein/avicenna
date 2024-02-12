@@ -179,6 +179,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
     @flaky(max_runs=3, min_passes=2)
     def test_relevant_feature_learner_middle(self):
         from avicenna_formalizations.middle import grammar, oracle
+
         features = [
             ExistenceFeature,
             NumericFeature,
@@ -242,7 +243,6 @@ class TestRelevantFeatureLearner(unittest.TestCase):
             )
         )
 
-
     def test_learner_heartbleed(self):
         from avicenna_formalizations.heartbeat import grammar, oracle
 
@@ -287,7 +287,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
 
         relevant_features = {
             NumericFeature("<payload-length>"),
-            LengthFeature("<payload>")
+            LengthFeature("<payload>"),
         }
 
         self.assertNotEqual(
@@ -313,7 +313,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         inputs = [
             ("1", OracleResult.FAILING),
             ("2", OracleResult.PASSING),
-            ("\"3\"", OracleResult.PASSING),
+            ('"3"', OracleResult.PASSING),
         ]
 
         collector = GrammarFeatureCollector(grammar_with_json_chars)

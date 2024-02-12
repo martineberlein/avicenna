@@ -1,9 +1,14 @@
 import unittest
 
-from avicenna.generator import ISLaSolverGenerator, ISLaGrammarBasedGenerator, MutationBasedGenerator
+from avicenna.generator import (
+    ISLaSolverGenerator,
+    ISLaGrammarBasedGenerator,
+    MutationBasedGenerator,
+)
 from avicenna_formalizations.calculator import grammar
 from avicenna.input import Input
 from avicenna.monads import Just, Nothing, Maybe
+
 
 class TestInputGenerator(unittest.TestCase):
     def test_isla_grammar_fuzzer(self):
@@ -21,8 +26,11 @@ class TestInputGenerator(unittest.TestCase):
 
     def test_mutation_generator(self):
         from avicenna_formalizations.heartbeat import grammar, oracle
-        test_inputs = set([Input.from_str(grammar, str_inp) for str_inp in ['\x01 5 hello abc']])
-        generator = MutationBasedGenerator(grammar,oracle, test_inputs)
+
+        test_inputs = set(
+            [Input.from_str(grammar, str_inp) for str_inp in ["\x01 5 hello abc"]]
+        )
+        generator = MutationBasedGenerator(grammar, oracle, test_inputs)
 
         generated_inputs = []
         for _ in range(100):
@@ -65,7 +73,6 @@ class TestInputGenerator(unittest.TestCase):
 
         self.assertFalse(failed)
 
-
     def test_generate_with_monads(self):
         constraint = """(forall <number> elem in start:
                       (<= (str.to.int elem) (str.to.int "-1")) and
@@ -95,5 +102,6 @@ class TestInputGenerator(unittest.TestCase):
             return Just(generated_inputs)
         return Nothing()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

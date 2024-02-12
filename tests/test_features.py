@@ -299,7 +299,7 @@ class FeatureExtraction(unittest.TestCase):
         expected_feature_list = [
             DerivationFeature("<start>", "<arg>"),
             DerivationFeature("<arg>", "<digit>"),
-            DerivationFeature("<arg>", "\"<digit>\""),
+            DerivationFeature("<arg>", '"<digit>"'),
             DerivationFeature("<digit>", "1"),
         ]
 
@@ -308,32 +308,33 @@ class FeatureExtraction(unittest.TestCase):
 
         self.assertEqual(set(features), set(expected_feature_list))
 
-
     def test_feature_names_with_json_chars(self):
         grammar_with_json_chars = {
             "<start>": ["<arg>"],
             "<arg>": ["<digit>", '"<digit>"'],
             "<digit>": ["1"],
         }
-        inputs = ["1", "\"1\""]
+        inputs = ["1", '"1"']
         test_inputs = [Input.from_str(grammar_with_json_chars, inp) for inp in inputs]
 
         expected_feature_vectors = [
             {
-                DerivationFeature("<start>", "<arg>") : 1,
-                DerivationFeature("<arg>", "<digit>") : 1,
-                DerivationFeature("<arg>", "\"<digit>\""): 0,
+                DerivationFeature("<start>", "<arg>"): 1,
+                DerivationFeature("<arg>", "<digit>"): 1,
+                DerivationFeature("<arg>", '"<digit>"'): 0,
                 DerivationFeature("<digit>", "1"): 1,
             },
             {
-                DerivationFeature("<start>", "<arg>") : 1,
-                DerivationFeature("<arg>", "<digit>") : 0,
-                DerivationFeature("<arg>", "\"<digit>\""): 1,
+                DerivationFeature("<start>", "<arg>"): 1,
+                DerivationFeature("<arg>", "<digit>"): 0,
+                DerivationFeature("<arg>", '"<digit>"'): 1,
                 DerivationFeature("<digit>", "1"): 1,
-            }
+            },
         ]
 
-        collector = GrammarFeatureCollector(grammar_with_json_chars, [DerivationFeature])
+        collector = GrammarFeatureCollector(
+            grammar_with_json_chars, [DerivationFeature]
+        )
 
         for test_input, expected_feature_vectors in zip(
             test_inputs, expected_feature_vectors
