@@ -1,3 +1,7 @@
+
+git+https://github.com/martineberlein/debugging-benchmark.git@stable
+pygraphviz>=1.9  # in case of trouble, see https://pygraphviz.github.io/documentation/stable/install.html
+
 fuzzingbook>=1.1
 isla-solver>=0.10.10
 islearn>=0.2.15
