@@ -8,7 +8,7 @@ import string
 from fuzzingbook.Coverage import Coverage, Location, BranchCoverage
 
 from fuzzingbook.Grammars import Grammar
-from avicenna.oracle import OracleResult
+from debugging_framework.oracle import OracleResult
 from avicenna.oracle_construction import construct_oracle
 
 
