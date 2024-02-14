@@ -18,13 +18,15 @@ from avicenna.generator import (
 from avicenna.input import Input
 from avicenna.pattern_learner import (
     AvicennaTruthTable,
+    AvicennaTruthTableRow,
     AviIslearn,
 )
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.execution_handler import SingleExecutionHandler, BatchExecutionHandler
 from avicenna.report import SingleFailureReport, MultipleFailureReport
 from avicenna.logger import LOGGER, configure_logging
-from avicenna.monads import Maybe, Exceptional, check_empty
+from avicenna.monads import Exceptional, check_empty
+from returns.maybe import Maybe, Some, Nothing
 
 from debugging_framework.oracle import OracleResult
 
@@ -182,7 +184,7 @@ class Avicenna:
     def generate_more_inputs(self) -> Set[Input]:
         num_failing_inputs = self.get_num_failing_inputs()
         result = self.get_more_inputs(num_failing_inputs)
-        return result.value() if result.is_just() else set()
+        return result.value_or(set())
 
     def get_num_failing_inputs(self) -> int:
         return len(self.report.get_all_failing_inputs())
@@ -199,8 +201,8 @@ class Avicenna:
                 else:
                     break
         if generated_inputs:
-            return Maybe.just(generated_inputs)
-        return Maybe.nothing()
+            return Maybe.from_value(generated_inputs)
+        return Nothing
 
     def explain(self) -> Tuple[Formula, float, float]:
         """
@@ -297,19 +299,29 @@ class Avicenna:
         logging.debug(f"Infeasible constraint: {constraint}")
 
     def finalize(self) -> Tuple[Formula, float, float]:
-        best_candidate = self._calculate_best_formula()[0]
-        # self._log_best_candidates([best_candidate])
-        return best_candidate
+        return (
+            self._calculate_best_formula()
+            .map(lambda candidates: candidates[0])
+            .value_or(None)
+        )
 
-    def _calculate_best_formula(self) -> List[Tuple[Formula, float, float]]:
+    def _calculate_best_formula(self) -> Maybe(List[Tuple[Formula, float, float]]):
         candidates_with_scores = self._gather_candidates_with_scores()
+        if not candidates_with_scores:
+            return Nothing
         best_candidates = self._get_best_candidates(candidates_with_scores)
-
-        return best_candidates
+        return Some(best_candidates) if best_candidates else Nothing
 
     def get_equivalent_best_formulas(self) -> List[Tuple[Formula, float, float]]:
-        best_candidates = self._calculate_best_formula()[1:]
-        return best_candidates
+        return (
+            self._calculate_best_formula()
+            .bind(
+                lambda candidates: Some(candidates[1:])
+                if len(candidates) > 1
+                else Nothing
+            )
+            .value_or(None)
+        )
 
     def _gather_candidates_with_scores(self) -> List[Tuple[Formula, float, float]]:
         def meets_criteria(precision_value_, recall_value_):
@@ -321,6 +333,7 @@ class Avicenna:
         candidates_with_scores = []
 
         for idx, precision_row in enumerate(self.precision_truth_table):
+            assert isinstance(precision_row, AvicennaTruthTableRow)
             precision_value = 1 - precision_row.eval_result()
             recall_value = self.recall_truth_table[idx].eval_result()
 
