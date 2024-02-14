@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Dict, Set, Callable, Tuple, Iterable
+from typing import List, Dict, Set, Callable, Tuple, Iterable, Optional
 
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
 from isla.language import ISLaUnparser, Formula
@@ -204,7 +204,7 @@ class Avicenna:
             return Maybe.from_value(generated_inputs)
         return Nothing
 
-    def explain(self) -> Tuple[Formula, float, float]:
+    def explain(self) -> Optional[Tuple[Formula, float, float]]:
         """
         Attempts to compute a failure diagnosis as an ISLa Formula. It returns that solution, if there is one.
         The result is a tuple with the learned failure constraint and the calculated precision and recall.
@@ -298,7 +298,7 @@ class Avicenna:
         logging.info("Removing infeasible constraint")
         logging.debug(f"Infeasible constraint: {constraint}")
 
-    def finalize(self) -> Tuple[Formula, float, float]:
+    def finalize(self) -> Optional[Tuple[Formula, float, float]]:
         return (
             self._calculate_best_formula()
             .map(lambda candidates: candidates[0])
@@ -312,7 +312,9 @@ class Avicenna:
         best_candidates = self._get_best_candidates(candidates_with_scores)
         return Some(best_candidates) if best_candidates else Nothing
 
-    def get_equivalent_best_formulas(self) -> List[Tuple[Formula, float, float]]:
+    def get_equivalent_best_formulas(
+        self,
+    ) -> Optional[List[Tuple[Formula, float, float]]]:
         return (
             self._calculate_best_formula()
             .bind(
