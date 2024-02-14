@@ -229,7 +229,9 @@ class AviIslearn(InvariantLearner):
 
     @staticmethod
     def categorize_inputs(test_inputs: Set[Input]) -> Tuple[Set[Input], Set[Input]]:
-        positive_inputs = {inp for inp in test_inputs if inp.oracle == OracleResult.FAILING}
+        positive_inputs = {
+            inp for inp in test_inputs if inp.oracle == OracleResult.FAILING
+        }
         negative_inputs = {
             inp for inp in test_inputs if inp.oracle == OracleResult.PASSING
         }
