@@ -14,6 +14,7 @@ def eval_config() -> Dict[str, Any]:
         "oracle": oracle,
         "initial_inputs": initial_inputs,
         "feature_learner": DecisionTreeRelevanceLearner(grammar),
+        "max_iterations": 20
     }
 
 

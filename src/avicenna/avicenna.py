@@ -19,13 +19,15 @@ from avicenna.input import Input
 from avicenna.pattern_learner import (
     AvicennaTruthTable,
     AvicennaTruthTableRow,
+    PatternLearner,
     AviIslearn,
+    AvicennaPatternLearner,
 )
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.execution_handler import SingleExecutionHandler, BatchExecutionHandler
 from avicenna.report import SingleFailureReport, MultipleFailureReport
 from avicenna.logger import LOGGER, configure_logging
-from avicenna.monads import Exceptional, check_empty
+from avicenna.monads import Exceptional, check_empty, T
 from returns.maybe import Maybe, Some, Nothing
 
 from debugging_framework.oracle import OracleResult
@@ -43,20 +45,20 @@ class Avicenna:
     """
 
     def __init__(
-        self,
-        grammar: Grammar,
-        oracle: Callable[[Input], OracleResult],
-        initial_inputs: List[str],
-        patterns: List[str] = None,
-        max_iterations: int = 10,
-        top_n_relevant_features: int = 3,
-        pattern_file: Path = None,
-        max_conjunction_size: int = 2,
-        use_multi_failure_report: bool = True,
-        use_batch_execution: bool = False,
-        log: bool = False,
-        feature_learner: feature_extractor.RelevantFeatureLearner = None,
-        timeout: int = 3600,
+            self,
+            grammar: Grammar,
+            oracle: Callable[[Input], OracleResult],
+            initial_inputs: List[str],
+            patterns: List[str] = None,
+            max_iterations: int = 10,
+            top_n_relevant_features: int = 3,
+            pattern_file: Path = None,
+            max_conjunction_size: int = 2,
+            use_multi_failure_report: bool = True,
+            use_batch_execution: bool = False,
+            log: bool = False,
+            feature_learner: feature_extractor.RelevantFeatureLearner = None,
+            timeout: int = 3600,
     ):
         """
         The constructor of :class:`~avicenna.Avicenna.` accepts a large number of
@@ -141,7 +143,7 @@ class Avicenna:
                 for pattern in patterns
             ]
 
-        self.pattern_learner = AviIslearn(
+        self.pattern_learner: PatternLearner = AvicennaPatternLearner(
             grammar, pattern_file=str(self.pattern_file), patterns=self.patterns
         )
 
@@ -282,10 +284,23 @@ class Avicenna:
         LOGGER.info(f"Generated {len(new_inputs)} new inputs.")
         return new_inputs
 
+    def _learn_new_candidates(self, test_inputs, exclusion_non_terminals) -> Exceptional[Exception, T]:
+        new_candidates = (
+            Exceptional.of(self.pattern_learner.learn_failure_invariants(
+                test_inputs,
+                self.precision_truth_table,
+                self.recall_truth_table,
+                exclusion_non_terminals,
+                )
+            )
+            .bind(check_empty)
+        )
+        return new_candidates
+
     def generate_inputs_with_grammar_fuzzer(self, _) -> Set[Input]:
         generator = ISLaGrammarBasedGenerator(self.grammar)
         generated_inputs = set()
-        for _ in range(20):
+        for _ in range(40):
             result_ = generator.generate()
             if result_.is_just():
                 generated_inputs.add(result_.value())
@@ -313,7 +328,7 @@ class Avicenna:
         return Some(best_candidates) if best_candidates else Nothing
 
     def get_equivalent_best_formulas(
-        self,
+            self,
     ) -> Optional[List[Tuple[Formula, float, float]]]:
         return (
             self._calculate_best_formula()
@@ -328,8 +343,8 @@ class Avicenna:
     def _gather_candidates_with_scores(self) -> List[Tuple[Formula, float, float]]:
         def meets_criteria(precision_value_, recall_value_):
             return (
-                precision_value_ >= self.min_precision
-                and recall_value_ >= self.min_recall
+                    precision_value_ >= self.min_precision
+                    and recall_value_ >= self.min_recall
             )
 
         candidates_with_scores = []
@@ -352,7 +367,7 @@ class Avicenna:
 
     @staticmethod
     def _get_best_candidates(
-        candidates_with_scores: List[Tuple[Formula, float, float]]
+            candidates_with_scores: List[Tuple[Formula, float, float]]
     ) -> List[Tuple[Formula, float, float]]:
         top_precision, top_recall = (
             candidates_with_scores[0][1],
