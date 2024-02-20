@@ -23,11 +23,11 @@ from avicenna.input import Input
 
 class AvicennaTruthTableRow:
     def __init__(
-            self,
-            formula: language.Formula,
-            inputs: Set[Input] = None,
-            eval_results: Sequence[bool] = (),
-            comb: Dict[Input, bool] = None,
+        self,
+        formula: language.Formula,
+        inputs: Set[Input] = None,
+        eval_results: Sequence[bool] = (),
+        comb: Dict[Input, bool] = None,
     ):
         self.formula = formula
         self.inputs = inputs or set()
@@ -40,9 +40,9 @@ class AvicennaTruthTableRow:
         )
 
     def evaluate(
-            self,
-            test_inputs: Set[Input],
-            graph: gg.GrammarGraph,
+        self,
+        test_inputs: Set[Input],
+        graph: gg.GrammarGraph,
     ):
         new_inputs = test_inputs - self.inputs
 
@@ -55,7 +55,7 @@ class AvicennaTruthTableRow:
         self.inputs.update(new_inputs)
 
     def should_stop_evaluation(
-            self, negative_results: int, lazy: bool, result_threshold: float
+        self, negative_results: int, lazy: bool, result_threshold: float
     ) -> bool:
         return lazy and negative_results > len(self.inputs) * (1 - result_threshold)
 
@@ -66,7 +66,7 @@ class AvicennaTruthTableRow:
 
     @staticmethod
     def evaluate_formula_for_input(
-            formula: language.Formula, inp: Input, graph: gg.GrammarGraph
+        formula: language.Formula, inp: Input, graph: gg.GrammarGraph
     ) -> bool:
         return evaluate(formula, inp.tree, graph.grammar, graph=graph).is_true()
 
@@ -91,7 +91,7 @@ class AvicennaTruthTableRow:
 
     def __eq__(self, other):
         return (
-                isinstance(other, AvicennaTruthTableRow) and self.formula == other.formula
+            isinstance(other, AvicennaTruthTableRow) and self.formula == other.formula
         )
 
     def __len__(self):
@@ -191,25 +191,32 @@ class AvicennaTruthTable:
 
 
 class PatternLearner:
+    def __init__(
+        self,
+        grammar: Grammar,
+        pattern_file: Optional[str] = None,
+        patterns: Optional[List[Formula]] = None,
+    ):
+        pass
 
     def learn_failure_invariants(
-            self,
-            test_inputs: Set[Input],
-            precision_truth_table: AvicennaTruthTable,
-            recall_truth_table: AvicennaTruthTable,
-            exclude_nonterminals: Optional[Iterable[str]] = None,
+        self,
+        test_inputs: Set[Input],
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
+        exclude_nonterminals: Optional[Iterable[str]] = None,
     ):
         raise NotImplementedError()
 
 
 class AviIslearn(InvariantLearner, PatternLearner):
     def __init__(
-            self,
-            grammar: Grammar,
-            pattern_file: Optional[str] = None,
-            patterns: Optional[List[Formula]] = None,
-            activated_patterns: Optional[Iterable[str]] = None,
-            deactivated_patterns: Optional[Iterable[str]] = None,
+        self,
+        grammar: Grammar,
+        pattern_file: Optional[str] = None,
+        patterns: Optional[List[Formula]] = None,
+        activated_patterns: Optional[Iterable[str]] = None,
+        deactivated_patterns: Optional[Iterable[str]] = None,
     ):
         super().__init__(
             grammar,
@@ -237,11 +244,11 @@ class AviIslearn(InvariantLearner, PatternLearner):
         self.positive_examples_for_learning: List[language.DerivationTree] = []
 
     def learn_failure_invariants(
-            self,
-            test_inputs: Set[Input],
-            precision_truth_table: AvicennaTruthTable,
-            recall_truth_table: AvicennaTruthTable,
-            exclude_nonterminals: Optional[Iterable[str]] = None,
+        self,
+        test_inputs: Set[Input],
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
+        exclude_nonterminals: Optional[Iterable[str]] = None,
     ):
         positive_inputs, negative_inputs = self.categorize_inputs(test_inputs)
         self.update_inputs(positive_inputs, negative_inputs)
@@ -265,11 +272,11 @@ class AviIslearn(InvariantLearner, PatternLearner):
         self.all_negative_inputs.update(negative_inputs)
 
     def _learn_invariants(
-            self,
-            positive_inputs: Set[Input],
-            negative_inputs: Set[Input],
-            precision_truth_table: AvicennaTruthTable,
-            recall_truth_table: AvicennaTruthTable,
+        self,
+        positive_inputs: Set[Input],
+        negative_inputs: Set[Input],
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
     ):
         sorted_positive_inputs = self.sort_and_filter_inputs(self.all_positive_inputs)
         candidates = self.get_candidates(sorted_positive_inputs)
@@ -305,9 +312,9 @@ class AviIslearn(InvariantLearner, PatternLearner):
         return candidates
 
     def sort_and_filter_inputs(
-            self,
-            positive_inputs: Set[Input],
-            max_number_positive_inputs_for_learning: int = 10,
+        self,
+        positive_inputs: Set[Input],
+        max_number_positive_inputs_for_learning: int = 10,
     ):
         p_dummy = copy.deepcopy(positive_inputs)
         sorted_positive_inputs = self._sort_inputs(
@@ -324,15 +331,15 @@ class AviIslearn(InvariantLearner, PatternLearner):
         return sorted_positive_inputs[:max_number_positive_inputs_for_learning]
 
     def evaluate_recall(
-            self, candidates, recall_truth_table: AvicennaTruthTable, positive_inputs
+        self, candidates, recall_truth_table: AvicennaTruthTable, positive_inputs
     ):
         logger.info("Evaluating Recall.")
         for candidate in candidates.union(
-                set([row.formula for row in recall_truth_table])
+            set([row.formula for row in recall_truth_table])
         ):
             if (
-                    len(recall_truth_table) > 0
-                    and AvicennaTruthTableRow(candidate) in recall_truth_table
+                len(recall_truth_table) > 0
+                and AvicennaTruthTableRow(candidate) in recall_truth_table
             ):
                 recall_truth_table[candidate].evaluate(positive_inputs, self.graph)
             else:
@@ -341,16 +348,16 @@ class AviIslearn(InvariantLearner, PatternLearner):
                 recall_truth_table.append(new_row)
 
     def filter_candidates(
-            self,
-            precision_truth_table: AvicennaTruthTable,
-            recall_truth_table: AvicennaTruthTable,
+        self,
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
     ):
         # Deleting throws away all calculated evals so far == bad -> maybe only pass TruthTableRows >= self.min_recall?
         rows_to_remove = [
             row
             for row in recall_truth_table
             if row.eval_result() < self.min_recall
-               or isinstance(row.formula, ConjunctiveFormula)
+            or isinstance(row.formula, ConjunctiveFormula)
         ]
         if self.max_disjunction_size < 2:
             for row in rows_to_remove:
@@ -358,10 +365,10 @@ class AviIslearn(InvariantLearner, PatternLearner):
                 precision_truth_table.remove(row)
 
     def evaluate_precision(
-            self,
-            precision_truth_table: AvicennaTruthTable,
-            recall_truth_table: AvicennaTruthTable,
-            negative_inputs,
+        self,
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
+        negative_inputs,
     ):
         logger.info("Evaluating Precision.")
         for row in recall_truth_table:
@@ -376,12 +383,12 @@ class AviIslearn(InvariantLearner, PatternLearner):
         assert len(precision_truth_table) == len(recall_truth_table)
 
     def get_result_dict(
-            self, precision_truth_table, recall_truth_table
+        self, precision_truth_table, recall_truth_table
     ) -> Dict[Formula, Tuple[float, float]]:
         def meets_criteria(precision_value_, recall_value_):
             return (
-                    precision_value_ >= self.min_specificity
-                    and recall_value_ >= self.min_recall
+                precision_value_ >= self.min_specificity
+                and recall_value_ >= self.min_recall
             )
 
         result = {}
@@ -410,9 +417,9 @@ class AviIslearn(InvariantLearner, PatternLearner):
         pass
 
     def get_conjunctions(
-            self,
-            precision_truth_table: AvicennaTruthTable,
-            recall_truth_table: AvicennaTruthTable,
+        self,
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
     ):
         logger.info("Calculating Boolean Combinations.")
         for level in range(2, self.max_conjunction_size + 1):
@@ -421,10 +428,10 @@ class AviIslearn(InvariantLearner, PatternLearner):
             )
 
     def process_conjunction_level(
-            self,
-            level: int,
-            precision_truth_table: AvicennaTruthTable,
-            recall_truth_table: AvicennaTruthTable,
+        self,
+        level: int,
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
     ):
         combinations = self.get_combinations_of_truth_table_rows(
             level, precision_truth_table
@@ -437,15 +444,15 @@ class AviIslearn(InvariantLearner, PatternLearner):
 
     @staticmethod
     def get_combinations_of_truth_table_rows(
-            level: int, truth_table: AvicennaTruthTable
+        level: int, truth_table: AvicennaTruthTable
     ):
         return itertools.combinations(enumerate(truth_table), level)
 
     def process_combination(
-            self,
-            rows_with_indices,
-            precision_truth_table: AvicennaTruthTable,
-            recall_truth_table: AvicennaTruthTable,
+        self,
+        rows_with_indices,
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
     ):
         precision_table_rows = [row for (_, row) in rows_with_indices]
 
@@ -460,7 +467,7 @@ class AviIslearn(InvariantLearner, PatternLearner):
         )
 
     def rows_meet_minimum_recall(
-            self, rows_with_indices, recall_truth_table: AvicennaTruthTable
+        self, rows_with_indices, recall_truth_table: AvicennaTruthTable
     ) -> bool:
         return any(
             recall_truth_table[idx].eval_result() >= self.min_recall
@@ -468,7 +475,7 @@ class AviIslearn(InvariantLearner, PatternLearner):
         )
 
     def rows_meet_minimum_precision(
-            self, rows_with_indices, precision_truth_table: AvicennaTruthTable
+        self, rows_with_indices, precision_truth_table: AvicennaTruthTable
     ) -> bool:
         return not any(
             precision_truth_table[idx].eval_result() < self.min_specificity
@@ -476,11 +483,11 @@ class AviIslearn(InvariantLearner, PatternLearner):
         )
 
     def add_conjunction_to_truth_table(
-            self,
-            precision_table_rows,
-            precision_truth_table: AvicennaTruthTable,
-            recall_truth_table: AvicennaTruthTable,
-            rows_with_indices,
+        self,
+        precision_table_rows,
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
+        rows_with_indices,
     ):
         precision_conjunction = self.get_conjunction(precision_table_rows)
         recall_conjunction = self.get_conjunction(
@@ -500,7 +507,7 @@ class AviIslearn(InvariantLearner, PatternLearner):
         return conjunction
 
     def is_new_conjunction_valid(
-            self, conjunction: AvicennaTruthTableRow, precision_table_rows
+        self, conjunction: AvicennaTruthTableRow, precision_table_rows
     ) -> bool:
         new_precision = 1 - conjunction.eval_result()
         return new_precision >= self.min_specificity and all(
@@ -508,11 +515,11 @@ class AviIslearn(InvariantLearner, PatternLearner):
         )
 
     def _sort_inputs(
-            self,
-            inputs: Set[Input],
-            filter_inputs_for_learning_by_kpaths: bool,
-            more_paths_weight: float = 1.0,
-            smaller_inputs_weight: float = 0.0,
+        self,
+        inputs: Set[Input],
+        filter_inputs_for_learning_by_kpaths: bool,
+        more_paths_weight: float = 1.0,
+        smaller_inputs_weight: float = 0.0,
     ) -> List[Input]:
         assert more_paths_weight or smaller_inputs_weight
         result: List[Input] = []
@@ -522,11 +529,11 @@ class AviIslearn(InvariantLearner, PatternLearner):
                 path
                 for path in self.graph.k_paths_in_tree(inp.tree.to_parse_tree(), self.k)
                 if (
+                    not isinstance(path[-1], gg.TerminalNode)
+                    or (
                         not isinstance(path[-1], gg.TerminalNode)
-                        or (
-                                not isinstance(path[-1], gg.TerminalNode)
-                                and len(path[-1].symbol) > 1
-                        )
+                        and len(path[-1].symbol) > 1
+                    )
                 )
             }
             for inp in inputs
@@ -571,19 +578,18 @@ class AviIslearn(InvariantLearner, PatternLearner):
         return result
 
     def reduce_inputs(
-            self, test_inputs: Set[Input], negative_inputs: Set[Input]
+        self, test_inputs: Set[Input], negative_inputs: Set[Input]
     ) -> Tuple[Set[Input], Set[Input]]:
         raise NotImplementedError()
 
 
 class AvicennaPatternLearner(AviIslearn):
-
     def _learn_invariants(
-            self,
-            positive_inputs: Set[Input],
-            negative_inputs: Set[Input],
-            precision_truth_table: AvicennaTruthTable,
-            recall_truth_table: AvicennaTruthTable,
+        self,
+        positive_inputs: Set[Input],
+        negative_inputs: Set[Input],
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
     ):
         sorted_positive_inputs = self.sort_and_filter_inputs(self.all_positive_inputs)
         candidates = self.get_candidates(sorted_positive_inputs)
@@ -609,44 +615,63 @@ class AvicennaPatternLearner(AviIslearn):
         print(len(precision_truth_table), len(recall_truth_table))
         return result  # , precision_truth_table, recall_truth_table
 
-    def build_dataframe(self, precision_truth_table: AvicennaTruthTable, recall_truth_table: AvicennaTruthTable):
+    @staticmethod
+    def build_dataframe(
+        precision_truth_table: AvicennaTruthTable,
+        recall_truth_table: AvicennaTruthTable,
+    ):
         dataframe = pandas.DataFrame()
 
-        number_inputs = len(precision_truth_table.rows[0].inputs) + len(recall_truth_table.rows[0].inputs)
+        number_inputs = len(precision_truth_table.rows[0].inputs) + len(
+            recall_truth_table.rows[0].inputs
+        )
         for idx, row in enumerate(precision_truth_table.rows):
             assert row.formula == recall_truth_table.rows[idx].formula
             dataframe[idx] = pandas.Series([numpy.nan] * number_inputs)
-            dataframe[idx] = row.eval_results + recall_truth_table.rows[idx].eval_results
+            dataframe[idx] = (
+                row.eval_results + recall_truth_table.rows[idx].eval_results
+            )
 
-        dataframe["oracle"] = [False] * len(precision_truth_table.rows[0].inputs) + [True] * len(
-            recall_truth_table.rows[0].inputs)
+        dataframe["oracle"] = [False] * len(precision_truth_table.rows[0].inputs) + [
+            True
+        ] * len(recall_truth_table.rows[0].inputs)
         print(dataframe)
         return dataframe
 
-    def learn_decision_tree(self, dataframe: pandas.DataFrame, precision_truth_table):
+    @staticmethod
+    def learn_decision_tree(dataframe: pandas.DataFrame, precision_truth_table):
         from sklearn.tree import DecisionTreeClassifier, export_text
         from isla.language import ISLaUnparser
-        from avicenna.treetools import grouped_rules, remove_unequal_decisions, all_path, prediction_for_path
+        from avicenna.treetools import (
+            grouped_rules,
+            remove_unequal_decisions,
+            all_path,
+            prediction_for_path,
+        )
 
-        sample_bug_count = len(dataframe[(dataframe["oracle"] == True)])
+        sample_bug_count = len(dataframe[(dataframe["oracle"] is True)])
+        assert sample_bug_count > 0  # at least one bug triggering sample is required
         sample_count = len(dataframe)
         print(f"Learning with {sample_bug_count} failure inputs of {sample_count}")
 
-        clf = DecisionTreeClassifier(min_samples_leaf=1,
-                                     min_samples_split=2,  # minimal value
-                                     max_features=5,
-                                     max_depth=2,
-                                     class_weight={True: (1.0 / sample_bug_count),
-                                                   False:
-                                                       (1.0 / (sample_count - sample_bug_count))}
-                                     # class_weight={0: 1, 1: 10}
-                                     )
-        clf = clf.fit(dataframe.drop('oracle', axis=1), dataframe['oracle'])
+        clf = DecisionTreeClassifier(
+            min_samples_leaf=1,
+            min_samples_split=2,  # minimal value
+            max_features=5,
+            max_depth=2,
+            class_weight={
+                True: (1.0 / sample_bug_count),
+                False: (1.0 / (sample_count - sample_bug_count)),
+            }
+        )
+        clf = clf.fit(dataframe.drop("oracle", axis=1), dataframe["oracle"])
 
         # clf = remove_unequal_decisions(clf)
 
-        names = [ISLaUnparser(precision_truth_table.rows[idx].formula).unparse() for idx in
-                 dataframe.drop('oracle', axis=1).columns]
+        names = [
+            ISLaUnparser(precision_truth_table.rows[idx].formula).unparse()
+            for idx in dataframe.drop("oracle", axis=1).columns
+        ]
 
         # print(grouped_rules(clf, feature_names=names))
         # print(names)
@@ -657,15 +682,17 @@ class AvicennaPatternLearner(AviIslearn):
 
         candidates: List[Formula] = []
         for path in paths:
-            #print(path, prediction_for_path(clf, path))
+            # print(path, prediction_for_path(clf, path))
             if prediction_for_path(clf, path) == OracleResult.FAILING:
-                form: Formula = precision_truth_table.rows[clf.tree_.feature[path[0]]].formula
+                form: Formula = precision_truth_table.rows[
+                    clf.tree_.feature[path[0]]
+                ].formula
                 assert isinstance(form, Formula)
                 for elem in path[1:-1]:
                     new = precision_truth_table.rows[clf.tree_.feature[elem]].formula
                     assert isinstance(new, Formula)
                     form = form.__and__(new)
-                    #print("Elem: ", names[clf.tree_.feature[elem]])
+                    # print("Elem: ", names[clf.tree_.feature[elem]])
                 # print(form)
                 assert isinstance(form, Formula)
                 candidates.append(form)

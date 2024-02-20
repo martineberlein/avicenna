@@ -7,6 +7,7 @@ from debugging_benchmark.student_assignments import MiddleAssignmentBenchmarkRep
 from debugging_framework.benchmark import BenchmarkRepository, BenchmarkProgram
 
 from avicenna import Avicenna
+from avicenna.pattern_learner import AvicennaPatternLearner
 
 
 def main():
@@ -24,8 +25,7 @@ def main():
 
     for subject in subjects:
         param = subject.to_dict()
-
-        param["top_n_relevant_features"] = 4
+        param.update({"top_n_relevant_features": 4, "max_iterations": 10, "log": True})
 
         avicenna = Avicenna(**param)
         diagnosis = avicenna.explain()
