@@ -21,7 +21,6 @@ from avicenna.pattern_learner import (
     AvicennaTruthTableRow,
     PatternLearner,
     AviIslearn,
-    AvicennaPatternLearner,
 )
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.execution_handler import SingleExecutionHandler, BatchExecutionHandler
@@ -418,7 +417,7 @@ class Avicenna:
     def check_initial_inputs(test_inputs: Set[Input]) -> Set[Input]:
         if all([test_input.oracle.to_bool() for test_input in test_inputs]):
             raise AssertionError("Avicenna requires at least one passing input!")
-        if not all([not (test_input.oracle.to_bool()) for test_input in test_inputs]):
+        elif all([not (test_input.oracle.to_bool()) for test_input in test_inputs]):
             raise AssertionError("Avicenna requires at least one failure-inducing input!")
         return test_inputs
 
