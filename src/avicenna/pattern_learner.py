@@ -280,7 +280,6 @@ class AviIslearn(InvariantLearner, PatternLearner):
     ):
         sorted_positive_inputs = self.sort_and_filter_inputs(self.all_positive_inputs)
         candidates = self.get_candidates(sorted_positive_inputs)
-        print(f"Number of candidates: ", len(candidates))
 
         self.evaluate_recall(candidates, recall_truth_table, positive_inputs)
         self.filter_candidates(precision_truth_table, recall_truth_table)
@@ -292,7 +291,6 @@ class AviIslearn(InvariantLearner, PatternLearner):
         self.get_conjunctions(precision_truth_table, recall_truth_table)
 
         result = self.get_result_dict(precision_truth_table, recall_truth_table)
-        print(len(precision_truth_table), len(recall_truth_table))
         return result  # , precision_truth_table, recall_truth_table
 
     @staticmethod
