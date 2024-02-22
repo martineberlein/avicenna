@@ -649,7 +649,8 @@ class AvicennaPatternLearner(AviIslearn):
             prediction_for_path,
         )
 
-        sample_bug_count = len(dataframe[(dataframe["oracle"] is True)])
+        sample_bug_count = len(dataframe[(dataframe["oracle"] == True)])
+        print("number of bugs found: ", sample_bug_count)
         assert sample_bug_count > 0  # at least one bug triggering sample is required
         sample_count = len(dataframe)
         print(f"Learning with {sample_bug_count} failure inputs of {sample_count}")
