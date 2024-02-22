@@ -1,4 +1,5 @@
 import logging
+import time
 from pathlib import Path
 from typing import List, Dict, Set, Callable, Tuple, Iterable, Optional, Type
 
@@ -58,7 +59,7 @@ class Avicenna:
             log: bool = False,
             feature_learner: feature_extractor.RelevantFeatureLearner = None,
             pattern_learner: Type[PatternLearner] = None,
-            timeout: int = 3600,
+            timeout_seconds: Optional[int] = None,
     ):
         """
         The constructor of :class:`~avicenna.Avicenna.` accepts a large number of
@@ -94,7 +95,8 @@ class Avicenna:
         self._top_n: int = top_n_relevant_features - 1
         self._targeted_start_size: int = 10
         self._iteration = 0
-        self._timeout: int = 3600  # timeout in seconds
+        self.timeout_seconds = timeout_seconds
+        self.start_time: Optional[int] = None
         self._data = None
         self._all_data = None
         self._learned_invariants: Dict[str, List[float]] = {}
@@ -224,8 +226,16 @@ class Avicenna:
 
         :return:
         """
+        if self.timeout_seconds is not None and self.start_time is None:
+            self.start_time = int(time.time())
+
         new_inputs: Set[Input] = self.all_inputs.union(self.generate_more_inputs())
         while self._do_more_iterations():
+            if self.timeout_seconds is not None:
+                if int(time.time()) - self.start_time > self.timeout_seconds:
+                    LOGGER.info("TIMEOUT")
+                    raise TimeoutError(self.timeout_seconds)
+
             new_inputs = self._loop(new_inputs)
         return self.finalize()
 

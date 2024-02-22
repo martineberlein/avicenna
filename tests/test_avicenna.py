@@ -1,6 +1,6 @@
 import unittest
 
-from avicenna_formalizations.calculator import oracle, grammar
+from avicenna_formalizations.calculator import oracle, grammar, initial_inputs
 from avicenna.avicenna import Avicenna
 
 
@@ -13,19 +13,26 @@ class TestAvicenna(unittest.TestCase):
             (["sqrt(-900)", "cos(10)"], False),
         ]
 
-        for initial_inputs, expects_exception in test_cases:
-            with self.subTest(initial_inputs=initial_inputs):
+        for _initial_inputs, expects_exception in test_cases:
+            with self.subTest(initial_inputs=_initial_inputs):
                 if expects_exception:
                     self.assertRaises(
                         AssertionError,
-                        lambda: Avicenna(grammar=grammar, oracle=oracle, initial_inputs=initial_inputs),
+                        lambda: Avicenna(grammar=grammar, oracle=oracle, initial_inputs=_initial_inputs),
                     )
                 else:
                     # If no exception is expected, attempt instantiation and catch any unexpected exceptions.
                     try:
-                        Avicenna(grammar=grammar, oracle=oracle, initial_inputs=initial_inputs)
+                        Avicenna(grammar=grammar, oracle=oracle, initial_inputs=_initial_inputs)
                     except AssertionError:
-                        self.fail(f"Avicenna raised AssertionError unexpectedly with initial_inputs={initial_inputs}")
+                        self.fail(f"Avicenna raised AssertionError unexpectedly with initial_inputs={_initial_inputs}")
+
+    def test_timeout(self):
+        avicenna = Avicenna(grammar=grammar, oracle=oracle, initial_inputs=initial_inputs, timeout_seconds=1)
+        self.assertRaises(
+            TimeoutError,
+            lambda: avicenna.explain(),
+        )
 
 
 if __name__ == "__main__":
