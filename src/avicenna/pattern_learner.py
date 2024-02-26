@@ -235,9 +235,6 @@ class AviIslearn(InvariantLearner, PatternLearner):
 
         # self.patterns.extend(not_patterns)
 
-        for pattern in self.patterns:
-            print(pattern)
-
     def initialize_attributes(self, grammar: Grammar):
         self.graph = gg.GrammarGraph.from_grammar(grammar)
         self.exclude_nonterminals: Set[str] = set()
@@ -277,7 +274,7 @@ class AviIslearn(InvariantLearner, PatternLearner):
         negative_inputs: Set[Input],
         precision_truth_table: AvicennaTruthTable,
         recall_truth_table: AvicennaTruthTable,
-    ):
+    ) -> List[Tuple[Formula, float, float]]:
         sorted_positive_inputs = self.sort_and_filter_inputs(self.all_positive_inputs)
         candidates = self.get_candidates(sorted_positive_inputs)
 
@@ -290,7 +287,7 @@ class AviIslearn(InvariantLearner, PatternLearner):
         self.get_disjunctions()
         self.get_conjunctions(precision_truth_table, recall_truth_table)
 
-        result = self.get_result_dict(precision_truth_table, recall_truth_table)
+        result = self.get_result_list(precision_truth_table, recall_truth_table)
         return result  # , precision_truth_table, recall_truth_table
 
     @staticmethod
@@ -380,36 +377,34 @@ class AviIslearn(InvariantLearner, PatternLearner):
 
         assert len(precision_truth_table) == len(recall_truth_table)
 
-    def get_result_dict(
+    def get_result_list(
         self, precision_truth_table, recall_truth_table
-    ) -> Dict[Formula, Tuple[float, float]]:
+    ) -> List[Tuple[Formula, float, float]]:
         def meets_criteria(precision_value_, recall_value_):
             return (
                 precision_value_ >= self.min_specificity
                 and recall_value_ >= self.min_recall
             )
 
-        result = {}
+        result = []
         for idx, precision_row in enumerate(precision_truth_table):
             precision_value = 1 - precision_row.eval_result()
             recall_value = recall_truth_table[idx].eval_result()
 
             if meets_criteria(precision_value, recall_value):
-                result[precision_row.formula] = (precision_value, recall_value)
+                result.append((precision_row.formula, precision_value, recall_value))
 
-        sorted_result = dict(
-            sorted(result.items(), key=lambda p: (p[1], -len(p[0])), reverse=True)
+        result.sort(
+            key=lambda x: (x[1], x[2], -len(x[0])), reverse=True
         )
+
         logger.info(
             "Found %d invariants with precision >= %d%% and recall >= %d%%.",
-            len(
-                [p for p in result.values()]
-            ),  # if p[0] >= self.min_specificity and p[1] >= self.min_recall]),
+            len(result),  # if p[0] >= self.min_specificity and p[1] >= self.min_recall]),
             int(self.min_specificity * 100),
             int(self.min_recall * 100),
         )
-
-        return sorted_result
+        return result
 
     def get_disjunctions(self):
         pass
@@ -609,7 +604,7 @@ class AvicennaPatternLearner(AviIslearn):
          - Learn decision tree
         """
 
-        result = self.get_result_dict(precision_truth_table, recall_truth_table)
+        result = self.get_result_list(precision_truth_table, recall_truth_table)
         print(len(precision_truth_table), len(recall_truth_table))
         return result  # , precision_truth_table, recall_truth_table
 
