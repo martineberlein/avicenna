@@ -51,7 +51,7 @@ class Avicenna:
             initial_inputs: List[str],
             patterns: List[str] = None,
             max_iterations: int = 10,
-            top_n_relevant_features: int = 3,
+            top_n_relevant_features: int = 2,
             pattern_file: Path = None,
             max_conjunction_size: int = 2,
             use_multi_failure_report: bool = True,
@@ -92,7 +92,7 @@ class Avicenna:
         self.patterns = patterns
         self.oracle = oracle
         self._max_iterations: int = max_iterations
-        self._top_n: int = top_n_relevant_features - 1
+        self._top_n: int = top_n_relevant_features
         self._targeted_start_size: int = 10
         self._iteration = 0
         self.timeout_seconds = timeout_seconds
@@ -288,13 +288,14 @@ class Avicenna:
             exclusion_non_terminals,
         )
 
-        new_candidates = new_candidates.keys()
+        new_candidates = set([x[0] for x in new_candidates[:20]])
 
         self.best_candidates = new_candidates
         new_inputs = (
             Exceptional.of(lambda: new_candidates)
             .map(self.add_negated_constraints)
             .map(self.generate_inputs)
+            .reraise()
             .bind(check_empty)
             .recover(self.generate_inputs_with_grammar_fuzzer)
             .reraise()
