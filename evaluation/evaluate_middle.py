@@ -46,6 +46,8 @@ if __name__ == "__main__":
     print("Final Diagnosis:")
     print(ISLaUnparser(diagnosis[0]).unparse())
 
-    print("\nEquivalent Representations:")
-    for diagnosis in avicenna.get_equivalent_best_formulas():
-        print(ISLaUnparser(diagnosis[0]).unparse())
+    diagnoses = avicenna.get_equivalent_best_formulas()
+    if diagnoses:
+        print("\nEquivalent Representations:")
+        for diagnosis in avicenna.get_equivalent_best_formulas():
+            print(ISLaUnparser(diagnosis[0]).unparse())
