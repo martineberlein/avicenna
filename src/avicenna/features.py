@@ -14,20 +14,20 @@ class Feature(ABC):
         self.non_terminal = non_terminal
 
     def __repr__(self) -> str:
-     return (
-         self._repr()
-         .replace('"', "&quot;")
-         .replace(",", "&comma;")
-         .replace("[", "&lsqb;")
-         .replace("]", "&rsqb;")
-         .replace("{", "&lcub;")
-         .replace("}", "&rcub;")
-         .replace(":", "&colon;")
-     )
+        return (
+            self._repr()
+            .replace('"', "&quot;")
+            .replace(",", "&comma;")
+            .replace("[", "&lsqb;")
+            .replace("]", "&rsqb;")
+            .replace("{", "&lcub;")
+            .replace("}", "&rcub;")
+            .replace(":", "&colon;")
+        )
 
     @abstractmethod
     def _repr(self) -> str:
-     raise NotImplementedError
+        raise NotImplementedError
 
     def __hash__(self):
         return hash(self.__repr__())

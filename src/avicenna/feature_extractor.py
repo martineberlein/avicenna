@@ -179,7 +179,9 @@ class RandomForestRelevanceLearner(SKLearFeatureRelevanceLearner):
 
 class GradientBoostingTreeRelevanceLearner(SKLearFeatureRelevanceLearner):
     def fit(self, x_train: DataFrame, y_train: List[int]) -> Any:
-        classifier = LGBMClassifier(max_depth=5, n_estimators=1000, objective="binary", verbose=-1)
+        classifier = LGBMClassifier(
+            max_depth=5, n_estimators=1000, objective="binary", verbose=-1
+        )
         classifier.fit(x_train, y_train)
         return classifier
 

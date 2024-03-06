@@ -229,7 +229,9 @@ class AviIslearn(InvariantLearner):
 
     @staticmethod
     def categorize_inputs(test_inputs: Set[Input]) -> Tuple[Set[Input], Set[Input]]:
-        positive_inputs = {inp for inp in test_inputs if inp.oracle == OracleResult.FAILING}
+        positive_inputs = {
+            inp for inp in test_inputs if inp.oracle == OracleResult.FAILING
+        }
         negative_inputs = {
             inp for inp in test_inputs if inp.oracle == OracleResult.PASSING
         }
@@ -254,6 +256,7 @@ class AviIslearn(InvariantLearner):
         self.evaluate_precision(
             precision_truth_table, recall_truth_table, negative_inputs
         )
+
         self.get_disjunctions()
         self.get_conjunctions(precision_truth_table, recall_truth_table)
 

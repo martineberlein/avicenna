@@ -314,8 +314,8 @@ class Avicenna:
     def _gather_candidates_with_scores(self) -> List[Tuple[Formula, float, float]]:
         def meets_criteria(precision_value_, recall_value_):
             return (
-                precision_value_ >= self.min_precision
-                and recall_value_ >= self.min_recall
+                    precision_value_ >= self.min_precision
+                    and recall_value_ >= self.min_recall
             )
 
         candidates_with_scores = []
@@ -337,7 +337,7 @@ class Avicenna:
 
     @staticmethod
     def _get_best_candidates(
-        candidates_with_scores: List[Tuple[Formula, float, float]]
+            candidates_with_scores: List[Tuple[Formula, float, float]]
     ) -> List[Tuple[Formula, float, float]]:
         top_precision, top_recall = (
             candidates_with_scores[0][1],
