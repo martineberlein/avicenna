@@ -11,6 +11,7 @@ from islearn.learner import patterns_from_file
 from avicenna import feature_extractor
 from avicenna.feature_collector import GrammarFeatureCollector
 from avicenna.generator import (
+    Generator,
     ISLaGrammarBasedGenerator,
     FuzzingbookBasedGenerator,
     MutationBasedGenerator,
@@ -58,6 +59,7 @@ class Avicenna:
             use_batch_execution: bool = False,
             log: bool = False,
             feature_learner: feature_extractor.RelevantFeatureLearner = None,
+            input_generator: Type[Generator] = None,
             pattern_learner: Type[PatternLearner] = None,
             timeout_seconds: Optional[int] = None,
     ):
@@ -182,6 +184,14 @@ class Avicenna:
             .get()
         )
 
+        self.input_generator = (
+            input_generator(grammar)
+            if input_generator
+            else MutationBasedGenerator(grammar, oracle=self.oracle, initial_inputs=self.all_inputs, yield_negative=True)
+        )
+
+        print(type(self.input_generator))
+
         self.best_candidates = set()
 
     @staticmethod
@@ -292,7 +302,7 @@ class Avicenna:
 
         self.best_candidates = new_candidates
         new_inputs = (
-            Exceptional.of(lambda: new_candidates)
+            Exceptional.of(lambda: set(new_candidates))
             .map(self.add_negated_constraints)
             .map(self.generate_inputs)
             .reraise()
@@ -440,12 +450,10 @@ class Avicenna:
 
     def generate_inputs(self, candidate_set):
         generated_inputs = set()
-        for _ in candidate_set:
-            generator = MutationBasedGenerator(
-                self.grammar, self.oracle, self.all_inputs, yield_negative=True
-            )
-            for _ in range(1):
-                result_ = generator.generate()
+        for constraint in candidate_set:
+            self.input_generator.reset(constraint=constraint, seed=self.all_inputs)
+            for _ in range(2):
+                result_ = self.input_generator.generate()
                 if result_.is_just():
                     generated_inputs.add(result_.value())
                 else:
