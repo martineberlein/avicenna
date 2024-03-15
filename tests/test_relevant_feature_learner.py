@@ -1,17 +1,15 @@
-import string
 import unittest
 from flaky import flaky
 from typing import Set
 
 from isla.fuzzer import GrammarFuzzer
-from fuzzingbook.Grammars import srange
+from debugging_framework.oracle import OracleResult
 
 from avicenna_formalizations.calculator import (
     grammar as grammar_calculator,
     oracle as oracle_calculator,
 )
 from avicenna.input import Input
-from avicenna.oracle import OracleResult
 from avicenna.feature_collector import GrammarFeatureCollector
 from avicenna import feature_extractor
 from avicenna.features import (
@@ -26,12 +24,12 @@ from avicenna.monads import Exceptional
 class TestRelevantFeatureLearner(unittest.TestCase):
     def setUp(self) -> None:
         inputs = [
-            ("sqrt(-901)", OracleResult.BUG),
-            ("sqrt(-1)", OracleResult.BUG),
-            ("sqrt(10)", OracleResult.NO_BUG),
-            ("cos(1)", OracleResult.NO_BUG),
-            ("sin(99)", OracleResult.NO_BUG),
-            ("tan(-20)", OracleResult.NO_BUG),
+            ("sqrt(-901)", OracleResult.FAILING),
+            ("sqrt(-1)", OracleResult.FAILING),
+            ("sqrt(10)", OracleResult.PASSING),
+            ("cos(1)", OracleResult.PASSING),
+            ("sin(99)", OracleResult.PASSING),
+            ("tan(-20)", OracleResult.PASSING),
         ]
         collector = GrammarFeatureCollector(grammar_calculator)
 
@@ -181,6 +179,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
     @flaky(max_runs=3, min_passes=2)
     def test_relevant_feature_learner_middle(self):
         from avicenna_formalizations.middle import grammar, oracle
+
         features = [
             ExistenceFeature,
             NumericFeature,
@@ -244,7 +243,6 @@ class TestRelevantFeatureLearner(unittest.TestCase):
             )
         )
 
-
     def test_learner_heartbleed(self):
         from avicenna_formalizations.heartbeat import grammar, oracle
 
@@ -289,7 +287,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
 
         relevant_features = {
             NumericFeature("<payload-length>"),
-            LengthFeature("<payload>")
+            LengthFeature("<payload>"),
         }
 
         self.assertNotEqual(
@@ -313,9 +311,9 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         }
 
         inputs = [
-            ("1", OracleResult.BUG),
-            ("2", OracleResult.NO_BUG),
-            ("\"3\"", OracleResult.NO_BUG),
+            ("1", OracleResult.FAILING),
+            ("2", OracleResult.PASSING),
+            ('"3"', OracleResult.PASSING),
         ]
 
         collector = GrammarFeatureCollector(grammar_with_json_chars)
@@ -361,9 +359,9 @@ class TestRelevantFeatureLearner(unittest.TestCase):
 
         def xml_oracle(tree: DerivationTree) -> OracleResult:
             if xml_lang.validate_xml(tree) is False:
-                return OracleResult.BUG
+                return OracleResult.FAILING
             else:
-                return OracleResult.NO_BUG
+                return OracleResult.PASSING
 
         fuzzer = GrammarFuzzer(xml_lang.XML_GRAMMAR)
         test_inputs = set()
@@ -374,7 +372,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         test_inputs.update(
             set(
                 [
-                    Input.from_str(xml_lang.XML_GRAMMAR, inp, OracleResult.NO_BUG)
+                    Input.from_str(xml_lang.XML_GRAMMAR, inp, OracleResult.PASSING)
                     for inp in ["<a>as</b>", "<c>Text</c>"]
                 ]
             )

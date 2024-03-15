@@ -1,11 +1,11 @@
 import unittest
-from typing import Tuple, Set, List
+from typing import Set, List
 
-from isla.derivation_tree import DerivationTree
-from fuzzingbook.Parser import EarleyParser, is_valid_grammar, Grammar
+from fuzzingbook.Parser import is_valid_grammar, Grammar
+from debugging_framework.oracle import OracleResult
+
 
 from avicenna_formalizations.calculator import grammar, oracle
-from avicenna.oracle import OracleResult
 from avicenna.input import Input
 from avicenna.monads import Exceptional
 
@@ -14,7 +14,7 @@ class TestInputs(unittest.TestCase):
     def setUp(self) -> None:
         inputs = {"sqrt(-900)", "cos(10)"}
 
-        self.test_inputs = (
+        self.test_inputs: Set[Input] = (
             Exceptional.of(lambda: inputs)
             .map(lambda x: {Input.from_str(grammar, inp_) for inp_ in x})
             .reraise()
@@ -22,23 +22,25 @@ class TestInputs(unittest.TestCase):
         )
 
     def test_parsed_inputs_have_expected_trees_and_oracles(self):
-        inputs = {("sqrt(-900)", OracleResult.BUG),
-                  ("cos(10)", OracleResult.NO_BUG)}
+        inputs = {
+            ("sqrt(-900)", OracleResult.FAILING),
+            ("cos(10)", OracleResult.PASSING),
+        }
 
         parsed_inputs = (
-            Exceptional.of(lambda : self.test_inputs)
+            Exceptional.of(lambda: self.test_inputs)
             .map(lambda x: {inp_.update_oracle(oracle(inp_)) for inp_ in x})
             .reraise()
             .get()
         )
-        actual_trees = {(str(f.tree), f.oracle )for f in parsed_inputs}
+        actual_trees = {(str(f.tree), f.oracle) for f in parsed_inputs}
 
         self.assertEqual(actual_trees, inputs)
         self.assertNotIn("cos(X)", set(map(lambda f: str(f.tree), parsed_inputs)))
 
     def test_input_execution_is_oracle_result(self):
         parsed_inputs = (
-            Exceptional.of(lambda : self.test_inputs)
+            Exceptional.of(lambda: self.test_inputs)
             .map(lambda x: {inp_.update_oracle(oracle(inp_)) for inp_ in x})
             .reraise()
             .get()
@@ -50,15 +52,17 @@ class TestInputs(unittest.TestCase):
 
     def test_input_from_str(self):
         input_strings = ["sqrt(-900)"]
-        expected_oracle_result = [OracleResult.BUG]
+        expected_oracle_result = [OracleResult.FAILING]
 
         parsed_input: List[Input] = (
-            Exceptional.of(lambda : input_strings)
+            Exceptional.of(lambda: input_strings)
             .map(lambda x: [Input.from_str(grammar, inp_, oracle(inp_)) for inp_ in x])
             .reraise()
             .get()
         )
-        for inp, expected, expected_oracle in zip(parsed_input, input_strings, expected_oracle_result):
+        for inp, expected, expected_oracle in zip(
+            parsed_input, input_strings, expected_oracle_result
+        ):
             self.assertIsInstance(inp, Input)
             self.assertEqual(str(inp.tree), expected)
             self.assertEqual(inp.oracle, expected_oracle)
@@ -73,7 +77,7 @@ class TestInputs(unittest.TestCase):
             inp.tree = "new tree"
 
         with self.assertRaises(AttributeError):
-            inp.oracle = OracleResult.NO_BUG
+            inp.oracle = OracleResult.PASSING
 
         self.assertEqual(inp.tree, original_tree)
         self.assertEqual(inp.oracle, original_oracle)
@@ -103,13 +107,21 @@ class TestInputs(unittest.TestCase):
 
         initial_test_inputs = ["-8", "-8"]
         parsed_input: Set[Input] = (
-            Exceptional.of(lambda : initial_test_inputs)
+            Exceptional.of(lambda: initial_test_inputs)
             .map(lambda x: {Input.from_str(grammar_simple, inp_) for inp_ in x})
             .reraise()
             .get()
         )
 
         self.assertEqual(1, len(parsed_input))
+
+    def test_input_oracle_to_bool(self):
+        for inp in self.test_inputs:
+            inp.oracle = oracle(inp)
+            if inp.oracle == OracleResult.FAILING:
+                self.assertTrue(inp.oracle.to_bool())
+            else:
+                self.assertFalse(inp.oracle.to_bool())
 
 
 if __name__ == "__main__":

@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Mac OS
+.DS_Store
+
 # Distribution / packaging
 .Python
 build/
@@ -127,4 +130,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-/sandbox/
+.idea

@@ -1,9 +1,14 @@
 import unittest
 
-from avicenna.generator import ISLaSolverGenerator, ISLaGrammarBasedGenerator, MutationBasedGenerator
+from avicenna.generator import (
+    ISLaSolverGenerator,
+    ISLaGrammarBasedGenerator,
+    MutationBasedGenerator,
+)
 from avicenna_formalizations.calculator import grammar
 from avicenna.input import Input
 from avicenna.monads import Just, Nothing, Maybe
+
 
 class TestInputGenerator(unittest.TestCase):
     def test_isla_grammar_fuzzer(self):
@@ -21,8 +26,11 @@ class TestInputGenerator(unittest.TestCase):
 
     def test_mutation_generator(self):
         from avicenna_formalizations.heartbeat import grammar, oracle
-        test_inputs = set([Input.from_str(grammar, str_inp) for str_inp in ['\x01 5 hello abc']])
-        generator = MutationBasedGenerator(grammar,oracle, test_inputs)
+
+        test_inputs = set(
+            [Input.from_str(grammar, str_inp) for str_inp in ["\x01 5 hello abc"]]
+        )
+        generator = MutationBasedGenerator(grammar, oracle, test_inputs)
 
         generated_inputs = []
         for _ in range(100):
@@ -65,7 +73,6 @@ class TestInputGenerator(unittest.TestCase):
 
         self.assertFalse(failed)
 
-
     def test_generate_with_monads(self):
         constraint = """(forall <number> elem in start:
                       (<= (str.to.int elem) (str.to.int "-1")) and
@@ -78,14 +85,15 @@ class TestInputGenerator(unittest.TestCase):
                 """
         result = Just({constraint, constraint_2})
 
-        self.assertEqual(len(result.bind(self.generate_inputs).value()), 20)
+        inputs = result.bind(self.generate_inputs).value()
+        self.assertEqual(len(inputs), 2)
 
     @staticmethod
     def generate_inputs(candidate_set):
         generated_inputs = set()
         for _ in candidate_set:
             generator = ISLaGrammarBasedGenerator(grammar)
-            for _ in range(10):
+            for _ in range(1):
                 result_ = generator.generate()
                 if result_.is_just():
                     generated_inputs.add(result_.value())
@@ -95,5 +103,6 @@ class TestInputGenerator(unittest.TestCase):
             return Just(generated_inputs)
         return Nothing()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

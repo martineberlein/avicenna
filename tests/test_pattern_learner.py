@@ -3,26 +3,27 @@ import unittest
 from isla.language import ISLaUnparser
 from isla.fuzzer import GrammarFuzzer
 
+from debugging_framework.oracle import OracleResult
+
 from avicenna_formalizations.calculator import (
     grammar,
     oracle,
 )
 from avicenna_formalizations import get_pattern_file_path
 from avicenna.input import Input
-from avicenna.oracle import OracleResult
 from avicenna.pattern_learner import AviIslearn, AvicennaTruthTable
 
 
 class TestAvicennaIslearn(unittest.TestCase):
     def setUp(self) -> None:
         inputs = [
-            ("sqrt(-901)", OracleResult.BUG),
-            ("sqrt(-8)", OracleResult.BUG),
-            ("sqrt(10)", OracleResult.NO_BUG),
-            ("cos(1)", OracleResult.NO_BUG),
-            ("sin(99)", OracleResult.NO_BUG),
-            ("tan(-20)", OracleResult.NO_BUG),
-            ("sqrt(-20)", OracleResult.BUG),
+            ("sqrt(-901)", OracleResult.FAILING),
+            ("sqrt(-8)", OracleResult.FAILING),
+            ("sqrt(10)", OracleResult.PASSING),
+            ("cos(1)", OracleResult.PASSING),
+            ("sin(99)", OracleResult.PASSING),
+            ("tan(-20)", OracleResult.PASSING),
+            ("sqrt(-20)", OracleResult.FAILING),
         ]
         self.test_inputs = set(
             [Input.from_str(grammar, inp, inp_oracle) for inp, inp_oracle in inputs]
@@ -50,12 +51,12 @@ class TestAvicennaIslearn(unittest.TestCase):
         )
 
         inputs = [
-            ("sqrt(-20)", OracleResult.BUG),
-            ("sqrt(-3)", OracleResult.BUG),
-            ("sqrt(112)", OracleResult.NO_BUG),
-            ("cos(14)", OracleResult.NO_BUG),
-            ("sin(9123)", OracleResult.NO_BUG),
-            ("tan(-2)", OracleResult.NO_BUG),
+            ("sqrt(-20)", OracleResult.FAILING),
+            ("sqrt(-3)", OracleResult.FAILING),
+            ("sqrt(112)", OracleResult.PASSING),
+            ("cos(14)", OracleResult.PASSING),
+            ("sin(9123)", OracleResult.PASSING),
+            ("tan(-2)", OracleResult.PASSING),
         ]
         new_inputs = set(
             [Input.from_str(grammar, inp, inp_oracle) for inp, inp_oracle in inputs]
@@ -70,7 +71,7 @@ class TestAvicennaIslearn(unittest.TestCase):
         )
 
         failure_constraints = list(
-            map(lambda p: (p[1], ISLaUnparser(p[0]).unparse()), result.items())
+            map(lambda p: ((p[1], p[2]), ISLaUnparser(p[0]).unparse()), result)
         )
         for f in failure_constraints:
             print(f)
@@ -100,12 +101,12 @@ class TestAvicennaIslearn(unittest.TestCase):
         )
 
         inputs = [
-            ("sqrt(-20)", OracleResult.BUG),
-            ("sqrt(-3)", OracleResult.BUG),
-            ("sqrt(112)", OracleResult.NO_BUG),
-            ("cos(14)", OracleResult.NO_BUG),
-            ("sin(9123)", OracleResult.NO_BUG),
-            ("tan(-2)", OracleResult.NO_BUG),
+            ("sqrt(-20)", OracleResult.FAILING),
+            ("sqrt(-3)", OracleResult.FAILING),
+            ("sqrt(112)", OracleResult.PASSING),
+            ("cos(14)", OracleResult.PASSING),
+            ("sin(9123)", OracleResult.PASSING),
+            ("tan(-2)", OracleResult.PASSING),
         ]
         new_inputs = set(
             [Input.from_str(grammar, inp, inp_oracle) for inp, inp_oracle in inputs]
@@ -121,7 +122,7 @@ class TestAvicennaIslearn(unittest.TestCase):
         )
 
         failure_constraints = list(
-            map(lambda p: (p[1], ISLaUnparser(p[0]).unparse()), result.items())
+            map(lambda p: ((p[1], p[2]), ISLaUnparser(p[0]).unparse()), result)
         )
         for f in failure_constraints:
             print(f)

@@ -21,6 +21,9 @@ class Generator(ABC):
     def generate(self, **kwargs) -> Maybe[Input]:
         raise NotImplementedError
 
+    def reset(self, **kwargs):
+        pass
+
 
 class FuzzingbookBasedGenerator(Generator):
     def __init__(self, grammar: Grammar, **kwargs):
@@ -42,7 +45,11 @@ class ISLaGrammarBasedGenerator(Generator):
 
 class ISLaSolverGenerator(Generator):
     def __init__(
-        self, grammar: Grammar, constraint, enable_optimized_z3_queries=False, **kwargs
+        self,
+        grammar: Grammar,
+        constraint=None,
+        enable_optimized_z3_queries=False,
+        **kwargs
     ):
         super().__init__(grammar)
         self.solver = ISLaSolver(
@@ -60,21 +67,31 @@ class ISLaSolverGenerator(Generator):
         except (StopIteration, RuntimeError):
             return Nothing()
 
+    def reset(self, constraint, enable_optimized_z3_queries=False, **kwargs):
+        self.solver = ISLaSolver(
+            self.grammar,
+            constraint,
+            max_number_free_instantiations=10,
+            max_number_smt_instantiations=10,
+            enable_optimized_z3_queries=enable_optimized_z3_queries,
+        )
+
 
 class MutationBasedGenerator(Generator):
     def __init__(
         self,
         grammar: Grammar,
         oracle,
-        seed: Set[Input],
+        initial_inputs: Set[Input],
         yield_negative: bool = False,
         **kwargs
     ):
         super().__init__(grammar)
+        self.yield_negative = yield_negative
         self.oracle = oracle
-        self.seed = [inp.tree for inp in seed]
+        self.seed = [inp.tree for inp in initial_inputs]
         self.fuzzer = AvicennaMutationFuzzer(grammar, self.seed, oracle).run(
-            yield_negative=yield_negative
+            yield_negative=self.yield_negative
         )
 
     def generate(self, **kwargs) -> Maybe[Input]:
@@ -82,6 +99,12 @@ class MutationBasedGenerator(Generator):
             return Just(Input(tree=next(self.fuzzer)))
         except StopIteration:
             return Nothing()
+
+    def reset(self, seed, **kwargs):
+        self.seed = [inp.tree for inp in seed]
+        self.fuzzer = AvicennaMutationFuzzer(self.grammar, self.seed, self.oracle).run(
+            yield_negative=self.yield_negative
+        )
 
 
 class AvicennaMutationFuzzer(MutationFuzzer):

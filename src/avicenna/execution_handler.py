@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Union, Sequence, Optional, Set, List, Tuple
 
+from debugging_framework.oracle import OracleResult
+
 from avicenna.input import Input
-from avicenna.oracle import OracleResult
 from avicenna.report import TResultMonad, Report
 
 
@@ -14,16 +15,6 @@ class ExecutionHandler(ABC):
         ],
     ):
         self.oracle = oracle
-
-    @staticmethod
-    def map_result(result: OracleResult) -> bool:
-        match result:
-            case OracleResult.BUG:
-                return True
-            case OracleResult.NO_BUG:
-                return False
-            case _:
-                return False
 
     @staticmethod
     def add_to_report(
@@ -44,13 +35,13 @@ class SingleExecutionHandler(ExecutionHandler):
         for inp in test_inputs:
             label, exception = self._get_label(inp).value()
             inp.oracle = label
-            if self.map_result(label) and report:
+            if label.to_bool() and report:
                 self.add_to_report(report, inp, exception)
 
     def label_strings(self, test_inputs: Set[str], report: Report = None):
         for inp in test_inputs:
             label, exception = self._get_label(inp).value()
-            if self.map_result(label) and report:
+            if label.to_bool() and report:
                 self.add_to_report(report, inp, exception)
 
 
@@ -68,5 +59,5 @@ class BatchExecutionHandler(ExecutionHandler):
         for inp, test_result in test_results:
             label, exception = test_result.value()
             inp.oracle = label
-            if self.map_result(label) and report:
+            if label.to_bool() and report:
                 self.add_to_report(report, inp, exception)

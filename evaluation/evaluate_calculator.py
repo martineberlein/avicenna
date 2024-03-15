@@ -6,15 +6,7 @@ from avicenna import Avicenna
 from avicenna.feature_extractor import DecisionTreeRelevanceLearner
 from avicenna_formalizations.calculator import grammar, oracle, initial_inputs
 from avicenna.evaluation_setup import EvaluationSubject
-
-
-def eval_config() -> Dict[str, Any]:
-    return {
-        "grammar": grammar,
-        "oracle": oracle,
-        "initial_inputs": initial_inputs,
-        "feature_learner": DecisionTreeRelevanceLearner(grammar),
-    }
+from avicenna.generator import ISLaSolverGenerator
 
 
 class CalculatorSubject(EvaluationSubject):
@@ -36,5 +28,8 @@ if __name__ == "__main__":
     print(ISLaUnparser(diagnosis[0]).unparse())
 
     print("\nEquivalent Representations:")
-    for diagnosis in avicenna.get_equivalent_best_formulas():
-        print(ISLaUnparser(diagnosis[0]).unparse())
+    equivalent_representations = avicenna.get_equivalent_best_formulas()
+
+    if equivalent_representations:
+        for diagnosis in equivalent_representations:
+            print(ISLaUnparser(diagnosis[0]).unparse())

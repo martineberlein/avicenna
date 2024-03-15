@@ -3,7 +3,7 @@ import math
 
 from fuzzingbook.Grammars import Grammar
 
-from avicenna.oracle import OracleResult
+from debugging_framework.oracle import OracleResult
 from avicenna.input import Input
 
 
@@ -32,6 +32,6 @@ def arith_eval(inp) -> float:
 def oracle(inp: Input | str) -> OracleResult:
     try:
         arith_eval(inp)
-        return OracleResult.NO_BUG
+        return OracleResult.PASSING
     except ValueError:
-        return OracleResult.BUG
+        return OracleResult.FAILING
