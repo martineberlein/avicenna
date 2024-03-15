@@ -1,4 +1,6 @@
 from debugging_framework.oracle import OracleResult
+
+
 def map_to_bool(result: OracleResult) -> bool:
     match result:
         case OracleResult.FAILING:

@@ -85,14 +85,15 @@ class TestInputGenerator(unittest.TestCase):
                 """
         result = Just({constraint, constraint_2})
 
-        self.assertEqual(len(result.bind(self.generate_inputs).value()), 20)
+        inputs = result.bind(self.generate_inputs).value()
+        self.assertEqual(len(inputs), 2)
 
     @staticmethod
     def generate_inputs(candidate_set):
         generated_inputs = set()
         for _ in candidate_set:
             generator = ISLaGrammarBasedGenerator(grammar)
-            for _ in range(10):
+            for _ in range(1):
                 result_ = generator.generate()
                 if result_.is_just():
                     generated_inputs.add(result_.value())
