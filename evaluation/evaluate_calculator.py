@@ -28,5 +28,8 @@ if __name__ == "__main__":
     print(ISLaUnparser(diagnosis[0]).unparse())
 
     print("\nEquivalent Representations:")
-    for diagnosis in avicenna.get_equivalent_best_formulas():
-        print(ISLaUnparser(diagnosis[0]).unparse())
+    equivalent_representations = avicenna.get_equivalent_best_formulas()
+
+    if equivalent_representations:
+        for diagnosis in equivalent_representations:
+            print(ISLaUnparser(diagnosis[0]).unparse())
