@@ -44,9 +44,12 @@ class ISLaGrammarBasedGenerator(Generator):
 
 
 class ISLaSolverGenerator(Generator):
-
     def __init__(
-            self, grammar: Grammar, constraint=None, enable_optimized_z3_queries=False, **kwargs
+        self,
+        grammar: Grammar,
+        constraint=None,
+        enable_optimized_z3_queries=False,
+        **kwargs
     ):
         super().__init__(grammar)
         self.solver = ISLaSolver(
@@ -76,12 +79,12 @@ class ISLaSolverGenerator(Generator):
 
 class MutationBasedGenerator(Generator):
     def __init__(
-            self,
-            grammar: Grammar,
-            oracle,
-            initial_inputs: Set[Input],
-            yield_negative: bool = False,
-            **kwargs
+        self,
+        grammar: Grammar,
+        oracle,
+        initial_inputs: Set[Input],
+        yield_negative: bool = False,
+        **kwargs
     ):
         super().__init__(grammar)
         self.yield_negative = yield_negative
@@ -110,13 +113,13 @@ class AvicennaMutationFuzzer(MutationFuzzer):
         self.property = oracle
 
     def process_new_input(
-            self, inp: DerivationTree, extend_fragments: bool = True
+        self, inp: DerivationTree, extend_fragments: bool = True
     ) -> bool:
         new_coverage = self.coverages_seen - self.coverages_of(inp)
         if (
-                inp in self.population
-                or not map_to_bool(self.property(inp))
-                or not new_coverage
+            inp in self.population
+            or not map_to_bool(self.property(inp))
+            or not new_coverage
         ):
             return False
 

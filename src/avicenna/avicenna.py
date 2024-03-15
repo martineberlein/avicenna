@@ -46,22 +46,22 @@ class Avicenna:
     """
 
     def __init__(
-            self,
-            grammar: Grammar,
-            oracle: Callable[[Input], OracleResult],
-            initial_inputs: List[str],
-            patterns: List[str] = None,
-            max_iterations: int = 10,
-            top_n_relevant_features: int = 2,
-            pattern_file: Path = None,
-            max_conjunction_size: int = 2,
-            use_multi_failure_report: bool = True,
-            use_batch_execution: bool = False,
-            log: bool = False,
-            feature_learner: feature_extractor.RelevantFeatureLearner = None,
-            input_generator: Type[Generator] = None,
-            pattern_learner: Type[PatternLearner] = None,
-            timeout_seconds: Optional[int] = None,
+        self,
+        grammar: Grammar,
+        oracle: Callable[[Input], OracleResult],
+        initial_inputs: List[str],
+        patterns: List[str] = None,
+        max_iterations: int = 10,
+        top_n_relevant_features: int = 2,
+        pattern_file: Path = None,
+        max_conjunction_size: int = 2,
+        use_multi_failure_report: bool = True,
+        use_batch_execution: bool = False,
+        log: bool = False,
+        feature_learner: feature_extractor.RelevantFeatureLearner = None,
+        input_generator: Type[Generator] = None,
+        pattern_learner: Type[PatternLearner] = None,
+        timeout_seconds: Optional[int] = None,
     ):
         """
         The constructor of :class:`~avicenna.Avicenna.` accepts a large number of
@@ -187,7 +187,12 @@ class Avicenna:
         self.input_generator = (
             input_generator(grammar)
             if input_generator
-            else MutationBasedGenerator(grammar, oracle=self.oracle, initial_inputs=self.all_inputs, yield_negative=True)
+            else MutationBasedGenerator(
+                grammar,
+                oracle=self.oracle,
+                initial_inputs=self.all_inputs,
+                yield_negative=True,
+            )
         )
 
         self.best_candidates = set()
@@ -313,7 +318,7 @@ class Avicenna:
         return new_inputs
 
     def _learn_new_candidates(
-            self, test_inputs, exclusion_non_terminals
+        self, test_inputs, exclusion_non_terminals
     ) -> Exceptional[Exception, T]:
         new_candidates = Exceptional.of(
             self.pattern_learner.learn_failure_invariants(
@@ -356,7 +361,7 @@ class Avicenna:
         return Some(best_candidates) if best_candidates else Nothing
 
     def get_equivalent_best_formulas(
-            self,
+        self,
     ) -> Optional[List[Tuple[Formula, float, float]]]:
         return (
             self._calculate_best_formula()
@@ -371,8 +376,8 @@ class Avicenna:
     def _gather_candidates_with_scores(self) -> List[Tuple[Formula, float, float]]:
         def meets_criteria(precision_value_, recall_value_):
             return (
-                    precision_value_ >= self.min_precision
-                    and recall_value_ >= self.min_recall
+                precision_value_ >= self.min_precision
+                and recall_value_ >= self.min_recall
             )
 
         candidates_with_scores = []
@@ -395,7 +400,7 @@ class Avicenna:
 
     @staticmethod
     def _get_best_candidates(
-            candidates_with_scores: List[Tuple[Formula, float, float]]
+        candidates_with_scores: List[Tuple[Formula, float, float]]
     ) -> List[Tuple[Formula, float, float]]:
         top_precision, top_recall = (
             candidates_with_scores[0][1],
@@ -437,7 +442,9 @@ class Avicenna:
         if all([test_input.oracle.to_bool() for test_input in test_inputs]):
             raise AssertionError("Avicenna requires at least one passing input!")
         elif all([not (test_input.oracle.to_bool()) for test_input in test_inputs]):
-            raise AssertionError("Avicenna requires at least one failure-inducing input!")
+            raise AssertionError(
+                "Avicenna requires at least one failure-inducing input!"
+            )
         return test_inputs
 
     def assign_feature_vector(self, test_inputs: Set[Input]) -> Set[Input]:

@@ -18,17 +18,32 @@ class TestAvicenna(unittest.TestCase):
                 if expects_exception:
                     self.assertRaises(
                         AssertionError,
-                        lambda: Avicenna(grammar=grammar, oracle=oracle, initial_inputs=_initial_inputs),
+                        lambda: Avicenna(
+                            grammar=grammar,
+                            oracle=oracle,
+                            initial_inputs=_initial_inputs,
+                        ),
                     )
                 else:
                     # If no exception is expected, attempt instantiation and catch any unexpected exceptions.
                     try:
-                        Avicenna(grammar=grammar, oracle=oracle, initial_inputs=_initial_inputs)
+                        Avicenna(
+                            grammar=grammar,
+                            oracle=oracle,
+                            initial_inputs=_initial_inputs,
+                        )
                     except AssertionError:
-                        self.fail(f"Avicenna raised AssertionError unexpectedly with initial_inputs={_initial_inputs}")
+                        self.fail(
+                            f"Avicenna raised AssertionError unexpectedly with initial_inputs={_initial_inputs}"
+                        )
 
     def test_timeout(self):
-        avicenna = Avicenna(grammar=grammar, oracle=oracle, initial_inputs=initial_inputs, timeout_seconds=1)
+        avicenna = Avicenna(
+            grammar=grammar,
+            oracle=oracle,
+            initial_inputs=initial_inputs,
+            timeout_seconds=1,
+        )
         self.assertRaises(
             TimeoutError,
             lambda: avicenna.explain(),

@@ -394,13 +394,13 @@ class AviIslearn(InvariantLearner, PatternLearner):
             if meets_criteria(precision_value, recall_value):
                 result.append((precision_row.formula, precision_value, recall_value))
 
-        result.sort(
-            key=lambda x: (x[1], x[2], -len(x[0])), reverse=True
-        )
+        result.sort(key=lambda x: (x[1], x[2], -len(x[0])), reverse=True)
 
         logger.info(
             "Found %d invariants with precision >= %d%% and recall >= %d%%.",
-            len(result),  # if p[0] >= self.min_specificity and p[1] >= self.min_recall]),
+            len(
+                result
+            ),  # if p[0] >= self.min_specificity and p[1] >= self.min_recall]),
             int(self.min_specificity * 100),
             int(self.min_recall * 100),
         )
@@ -656,7 +656,7 @@ class AvicennaPatternLearner(AviIslearn):
             class_weight={
                 True: (1.0 / sample_bug_count),
                 False: (1.0 / (sample_count - sample_bug_count)),
-            }
+            },
         )
         clf = clf.fit(dataframe.drop("oracle", axis=1), dataframe["oracle"])
 
