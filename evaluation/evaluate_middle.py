@@ -26,7 +26,7 @@ class MiddleSubject(EvaluationSubject):
                 "grammar": self.grammar,
                 "oracle": self.oracle,
                 "initial_inputs": self.initial_inputs,
-                "top_n_relevant_features": 4,
+                "top_n_relevant_features": 3,
             }
         )
         return param

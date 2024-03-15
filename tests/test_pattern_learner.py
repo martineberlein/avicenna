@@ -71,7 +71,7 @@ class TestAvicennaIslearn(unittest.TestCase):
         )
 
         failure_constraints = list(
-            map(lambda p: (p[1], ISLaUnparser(p[0]).unparse()), result.items())
+            map(lambda p: ((p[1], p[2]), ISLaUnparser(p[0]).unparse()), result)
         )
         for f in failure_constraints:
             print(f)
@@ -122,7 +122,7 @@ class TestAvicennaIslearn(unittest.TestCase):
         )
 
         failure_constraints = list(
-            map(lambda p: (p[1], ISLaUnparser(p[0]).unparse()), result.items())
+            map(lambda p: ((p[1], p[2]), ISLaUnparser(p[0]).unparse()), result)
         )
         for f in failure_constraints:
             print(f)
