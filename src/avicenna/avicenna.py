@@ -190,8 +190,6 @@ class Avicenna:
             else MutationBasedGenerator(grammar, oracle=self.oracle, initial_inputs=self.all_inputs, yield_negative=True)
         )
 
-        print(type(self.input_generator))
-
         self.best_candidates = set()
 
     @staticmethod
