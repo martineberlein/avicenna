@@ -208,7 +208,7 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
     ) -> List[Feature]:
         x_train_normalized = self.normalize_learning_data(x_train)
         classifier = self.classifier.fit(x_train_normalized, y_train)
-        shap_values = self.get_shap_values(classifier, x_train)
+        shap_values: np.ndarray = self.get_shap_values(classifier, x_train)
         if self.show_beeswarm_plot:
             self.display_beeswarm_plot(shap_values, x_train)
         return self.get_sorted_features_by_importance(shap_values, x_train)[
@@ -223,7 +223,7 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
             return data
 
     @staticmethod
-    def get_shap_values(classifier, x_train):
+    def get_shap_values(classifier, x_train) -> np.ndarray:
         explainer = shap.TreeExplainer(classifier)
         return explainer.shap_values(x_train)
 
@@ -231,10 +231,10 @@ class SHAPRelevanceLearner(RelevantFeatureLearner):
     def get_sorted_features_by_importance(
         shap_values, x_train: DataFrame
     ) -> List[Feature]:
-        mean_shap_values = np.abs(shap_values[1]).mean(axis=0)
+        mean_shap_values = np.abs(shap_values).mean(axis=0)
         sorted_indices = mean_shap_values.argsort()[::-1]
         return x_train.columns[sorted_indices].tolist()
 
     @staticmethod
     def display_beeswarm_plot(shap_values, x_train):
-        return shap.summary_plot(shap_values[1], x_train.astype("float"))
+        return shap.summary_plot(shap_values, x_train.astype("float"))
