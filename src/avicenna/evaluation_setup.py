@@ -5,7 +5,7 @@ from abc import ABC
 from isla.solver import ISLaSolver
 from sklearn.metrics import confusion_matrix
 
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
 
 from avicenna.generator import MutationBasedGenerator
 from avicenna.input import Input
@@ -19,7 +19,7 @@ class EvaluationSubject(ABC):
 
     @staticmethod
     def default_param():
-        return {"max_iterations": 10, "timeout_seconds": 3600, "log": True}
+        return {"max_iterations": 20, "timeout_seconds": 3600, "log": True}
 
     def get_evaluation_config(self):
         param = self.default_param().copy()

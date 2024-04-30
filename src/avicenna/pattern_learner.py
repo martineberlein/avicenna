@@ -17,7 +17,7 @@ from islearn.learner import InvariantLearner
 STANDARD_PATTERNS_REPO = "patterns.toml"
 logger = logging.getLogger("learner")
 
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
 from avicenna.input import Input
 
 

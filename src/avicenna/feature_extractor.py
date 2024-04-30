@@ -13,7 +13,7 @@ from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
 
 from avicenna.feature_collector import Feature, FeatureFactory, DEFAULT_FEATURE_TYPES
 from avicenna.input import Input

@@ -1,4 +1,4 @@
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
 
 
 def map_to_bool(result: OracleResult) -> bool:

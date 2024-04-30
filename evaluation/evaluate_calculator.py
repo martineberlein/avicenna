@@ -1,25 +1,18 @@
-from typing import Dict, Any
-
 from isla.language import ISLaUnparser
 
 from avicenna import Avicenna
-from avicenna.feature_extractor import DecisionTreeRelevanceLearner
-from avicenna_formalizations.calculator import grammar, oracle, initial_inputs
-from avicenna.evaluation_setup import EvaluationSubject
-from avicenna.generator import ISLaSolverGenerator
-
-
-class CalculatorSubject(EvaluationSubject):
-    name = "Calculator"
-
-    @classmethod
-    def build(cls):
-        return cls(grammar, oracle, initial_inputs)
+from debugging_benchmark.calculator.calculator import CalculatorBenchmarkRepository
 
 
 if __name__ == "__main__":
-    calculator_subject = CalculatorSubject.build()
-    param = calculator_subject.get_evaluation_config()
+    default_param = {
+        "log": True,
+        "max_iterations": 10,
+    }
+
+    calculator_subject = CalculatorBenchmarkRepository().build()
+    param = calculator_subject[0].to_dict()
+    param.update(default_param)
 
     avicenna = Avicenna(**param)
 

@@ -1,7 +1,7 @@
 from typing import Callable, Dict, Type, Optional
 import signal
 
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
 
 from avicenna.input import Input
 

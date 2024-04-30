@@ -3,7 +3,7 @@ import math
 
 from fuzzingbook.Grammars import Grammar
 
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
 from avicenna.input import Input
 
 

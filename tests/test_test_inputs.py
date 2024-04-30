@@ -2,7 +2,7 @@ import unittest
 from typing import Set, List
 
 from fuzzingbook.Parser import is_valid_grammar, Grammar
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
 
 
 from avicenna_formalizations.calculator import grammar, oracle
@@ -115,13 +115,13 @@ class TestInputs(unittest.TestCase):
 
         self.assertEqual(1, len(parsed_input))
 
-    def test_input_oracle_to_bool(self):
+    def test_input_oracle_is_failing(self):
         for inp in self.test_inputs:
             inp.oracle = oracle(inp)
             if inp.oracle == OracleResult.FAILING:
-                self.assertTrue(inp.oracle.to_bool())
+                self.assertTrue(inp.oracle.is_failing())
             else:
-                self.assertFalse(inp.oracle.to_bool())
+                self.assertFalse(inp.oracle.is_failing())
 
 
 if __name__ == "__main__":
