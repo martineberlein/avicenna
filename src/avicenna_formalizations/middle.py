@@ -1,6 +1,6 @@
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
 
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
 from avicenna.input import Input
 
 

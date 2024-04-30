@@ -6,7 +6,7 @@ from typing import Union
 
 from fuzzingbook.Grammars import srange
 
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
 from avicenna.input import Input
 
 
