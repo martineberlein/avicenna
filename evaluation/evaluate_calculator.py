@@ -7,7 +7,7 @@ from debugging_benchmark.calculator.calculator import CalculatorBenchmarkReposit
 if __name__ == "__main__":
     default_param = {
         "log": True,
-        "max_iterations": 20,
+        "max_iterations": 10,
     }
 
     calculator_subject = CalculatorBenchmarkRepository().build()
