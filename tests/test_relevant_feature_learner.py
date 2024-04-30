@@ -3,7 +3,7 @@ from flaky import flaky
 from typing import Set
 
 from isla.fuzzer import GrammarFuzzer
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
 
 from avicenna_formalizations.calculator import (
     grammar as grammar_calculator,

@@ -7,7 +7,7 @@ from avicenna.generator import (
 )
 from avicenna_formalizations.calculator import grammar
 from avicenna.input import Input
-from avicenna.monads import Just, Nothing, Maybe
+from avicenna.monads import Just, Nothing
 
 
 class TestInputGenerator(unittest.TestCase):

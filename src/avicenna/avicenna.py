@@ -1,7 +1,7 @@
 import logging
 import time
 from pathlib import Path
-from typing import List, Dict, Set, Callable, Tuple, Iterable, Optional, Type
+from typing import List, Dict, Set, Tuple, Iterable, Optional, Type
 
 from fuzzingbook.Grammars import Grammar, is_valid_grammar
 from isla.language import ISLaUnparser, Formula
@@ -31,7 +31,8 @@ from avicenna.logger import LOGGER, configure_logging
 from avicenna.monads import Exceptional, check_empty, T
 from returns.maybe import Maybe, Some, Nothing
 
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
+from debugging_framework.types import OracleType
 
 
 class Avicenna:
@@ -48,7 +49,7 @@ class Avicenna:
     def __init__(
         self,
         grammar: Grammar,
-        oracle: Callable[[Input], OracleResult],
+        oracle: OracleType,
         initial_inputs: List[str],
         patterns: List[str] = None,
         max_iterations: int = 10,
@@ -439,9 +440,9 @@ class Avicenna:
 
     @staticmethod
     def check_initial_inputs(test_inputs: Set[Input]) -> Set[Input]:
-        if all([test_input.oracle.to_bool() for test_input in test_inputs]):
+        if all([test_input.oracle.is_failing() for test_input in test_inputs]):
             raise AssertionError("Avicenna requires at least one passing input!")
-        elif all([not (test_input.oracle.to_bool()) for test_input in test_inputs]):
+        elif all([not (test_input.oracle.is_failing()) for test_input in test_inputs]):
             raise AssertionError(
                 "Avicenna requires at least one failure-inducing input!"
             )

@@ -1,6 +1,7 @@
 import unittest
 
-from avicenna_formalizations.calculator import oracle, grammar, initial_inputs
+# from avicenna_formalizations.calculator import oracle, grammar, initial_inputs
+from debugging_benchmark.calculator.calculator import calculator_oracle, calculator_grammar, calculator_initial_inputs
 from avicenna.avicenna import Avicenna
 
 
@@ -19,8 +20,8 @@ class TestAvicenna(unittest.TestCase):
                     self.assertRaises(
                         AssertionError,
                         lambda: Avicenna(
-                            grammar=grammar,
-                            oracle=oracle,
+                            grammar=calculator_grammar,
+                            oracle=calculator_oracle,
                             initial_inputs=_initial_inputs,
                         ),
                     )
@@ -28,8 +29,8 @@ class TestAvicenna(unittest.TestCase):
                     # If no exception is expected, attempt instantiation and catch any unexpected exceptions.
                     try:
                         Avicenna(
-                            grammar=grammar,
-                            oracle=oracle,
+                            grammar=calculator_grammar,
+                            oracle=calculator_oracle,
                             initial_inputs=_initial_inputs,
                         )
                     except AssertionError:
@@ -39,9 +40,9 @@ class TestAvicenna(unittest.TestCase):
 
     def test_timeout(self):
         avicenna = Avicenna(
-            grammar=grammar,
-            oracle=oracle,
-            initial_inputs=initial_inputs,
+            grammar=calculator_grammar,
+            oracle=calculator_oracle,
+            initial_inputs=calculator_initial_inputs,
             timeout_seconds=1,
         )
         self.assertRaises(

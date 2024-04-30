@@ -34,17 +34,17 @@ def arith_eval(inp) -> float:
 To identify bugs in The Calculator, we'll implement an oracle function. This function tests inputs and categorizes them as producing expected behavior (`OracleResult.NO_BUG`) or a bug (`OracleResult.BUG`):
 
 ```python 
-from avicenna.oracle import OracleResult
+from avicenna.avicenna import OracleResult
 from avicenna.input import Input
 
 def oracle(inp: str | Input) -> OracleResult:
     try:
         arith_eval(inp)
-        return OracleResult.NO_BUG
+        return OracleResult.PASSING
     except ValueError:
-        return OracleResult.BUG
+        return OracleResult.FAILING
 
-    return OracleResult.NO_BUG
+    return OracleResult.PASSING
 ``` 
 
 To see the oracle function in action, we'll test a few sample inputs:
@@ -59,10 +59,10 @@ for inp in initial_inputs:
 Executing this code provides the following output:
 
 ```
-sqrt(1)                        NO_BUG
-cos(912)                       NO_BUG
-tan(4)                         NO_BUG
-sqrt(-3)                       BUG
+sqrt(1)                        PASSING
+cos(912)                       PASSING
+tan(4)                         PASSING
+sqrt(-3)                       FAILING
 ```
 
 As we can see, the input `sqrt(-3)` triggers a bug in The Calculator. 

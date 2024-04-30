@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Union, Sequence, Optional, Set, List, Tuple
 
-from debugging_framework.oracle import OracleResult
+from debugging_framework.input.oracle import OracleResult
 
 from avicenna.input import Input
 from avicenna.report import TResultMonad, Report
@@ -35,13 +35,13 @@ class SingleExecutionHandler(ExecutionHandler):
         for inp in test_inputs:
             label, exception = self._get_label(inp).value()
             inp.oracle = label
-            if label.to_bool() and report:
+            if label.is_failing() and report:
                 self.add_to_report(report, inp, exception)
 
     def label_strings(self, test_inputs: Set[str], report: Report = None):
         for inp in test_inputs:
             label, exception = self._get_label(inp).value()
-            if label.to_bool() and report:
+            if label.is_failing() and report:
                 self.add_to_report(report, inp, exception)
 
 
@@ -59,5 +59,5 @@ class BatchExecutionHandler(ExecutionHandler):
         for inp, test_result in test_results:
             label, exception = test_result.value()
             inp.oracle = label
-            if label.to_bool() and report:
+            if label.is_failing() and report:
                 self.add_to_report(report, inp, exception)
