@@ -23,6 +23,10 @@ class Feature(ABC):
             .replace("{", "&lcub;")
             .replace("}", "&rcub;")
             .replace(":", "&colon;")
+            .replace("'", "&#39;")
+            .replace(" ", "&nbsp;")
+            .replace("\r", "&#60;")
+            .replace("\\", "")
         )
 
     @abstractmethod
