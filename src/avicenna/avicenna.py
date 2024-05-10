@@ -378,6 +378,14 @@ class Avicenna:
             .value_or(None)
         )
 
+    def get_learned_formulas(
+            self
+    ) -> Optional[List[Tuple[Formula, float, float]]]:
+        candidates_with_scores = self._gather_candidates_with_scores()
+        if not candidates_with_scores:
+            return None
+        return candidates_with_scores
+
     def _gather_candidates_with_scores(self) -> List[Tuple[Formula, float, float]]:
         def meets_criteria(precision_value_, recall_value_):
             return (
@@ -398,7 +406,7 @@ class Avicenna:
                 )
 
         candidates_with_scores.sort(
-            key=lambda x: (x[1], x[2], -len(x[0])), reverse=True
+            key=lambda x: (x[2], x[1], len(x[0])), reverse=True
         )
 
         return candidates_with_scores
