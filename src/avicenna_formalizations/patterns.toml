@@ -61,7 +61,7 @@ forall <?NONTERMINAL> container in start:
 
 [[Existential]]
 
-name = "Existence Numeric String Smaller Than"
+name = "Existence Numeric String Smaller or Equal Than"
 constraint = '''
 forall <?NONTERMINAL> elem in start:
     (<= (str.to.int elem) (str.to.int <?STRING>))
@@ -69,10 +69,27 @@ forall <?NONTERMINAL> elem in start:
 
 [[Existential]]
 
-name = "Existence Numeric String Larger Than"
+name = "Existence Numeric String Smaller Than"
+constraint = '''
+forall <?NONTERMINAL> elem in start:
+    (< (str.to.int elem) (str.to.int <?STRING>))
+'''
+
+[[Existential]]
+
+name = "Existence Numeric String Larger or Equal Than"
 constraint = '''
 forall <?NONTERMINAL> elem in start:
     (>= (str.to.int elem) (str.to.int <?STRING>))
+'''
+
+
+[[Existential]]
+
+name = "Existence Numeric String Smaller Than"
+constraint = '''
+forall <?NONTERMINAL> elem in start:
+    (> (str.to.int elem) (str.to.int <?STRING>))
 '''
 
 #[[Existential]]
@@ -92,13 +109,13 @@ exists <?NONTERMINAL> elem in start:
     (= elem <?STRING>)
 '''
 
-#[[Existential]]
-#
-#name = "Occurrence 2"
-#constraint = '''
-#exists <?NONTERMINAL> elem_xy in start:
-#    (inside(elem_xy, start))
-#'''
+[[Existential]]
+
+name = "Occurrence 2"
+constraint = '''
+exists <?NONTERMINAL> elem_xy in start:
+    (inside(elem_xy, start))
+'''
 
 #[[Misc]]
 #

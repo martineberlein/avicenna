@@ -217,6 +217,8 @@ class AviIslearn(InvariantLearner, PatternLearner):
         patterns: Optional[List[Formula]] = None,
         activated_patterns: Optional[Iterable[str]] = None,
         deactivated_patterns: Optional[Iterable[str]] = None,
+        min_recall: float = 0.9,
+        min_specificity: float = 0.6
     ):
         super().__init__(
             grammar,
@@ -224,6 +226,8 @@ class AviIslearn(InvariantLearner, PatternLearner):
             pattern_file=pattern_file,
             activated_patterns=activated_patterns,
             deactivated_patterns=deactivated_patterns,
+            min_recall=min_recall,
+            min_specificity=min_specificity
         )
         self.all_negative_inputs: Set[Input] = set()
         self.all_positive_inputs: Set[Input] = set()

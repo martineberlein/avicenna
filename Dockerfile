@@ -40,7 +40,7 @@ RUN git clone --depth=1 https://github.com/pyenv/pyenv.git $PYENV_ROOT
 WORKDIR /home/avicenna
 
 RUN pip3 install --upgrade pip wheel setuptools
-RUN pip3 install scipy fuzzingbook
+# RUN pip3 install scipy fuzzingbook==1.1
 
 WORKDIR /home/avicenna
 # Clone and install Tests4Py

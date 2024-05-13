@@ -63,6 +63,8 @@ class Avicenna:
         input_generator: Type[Generator] = None,
         pattern_learner: Type[PatternLearner] = None,
         timeout_seconds: Optional[int] = None,
+        min_recall: float = 0.9,
+        min_min_specificity: float = 0.6
     ):
         """
         The constructor of :class:`~avicenna.Avicenna.` accepts a large number of
@@ -104,8 +106,8 @@ class Avicenna:
         self._all_data = None
         self._learned_invariants: Dict[str, List[float]] = {}
         self._best_candidates: Dict[str, List[float]] = {}
-        self.min_precision = 0.6
-        self.min_recall = 0.9
+        self.min_precision = min_min_specificity
+        self.min_recall = min_recall
 
         if log:
             configure_logging()
@@ -152,6 +154,8 @@ class Avicenna:
             "grammar": grammar,
             "pattern_file": str(self.pattern_file),
             "patterns": self.patterns,
+            "min_recall": self.min_recall,
+            "min_specificity": self.min_precision
         }
 
         self.pattern_learner = (
@@ -374,6 +378,14 @@ class Avicenna:
             .value_or(None)
         )
 
+    def get_learned_formulas(
+            self
+    ) -> Optional[List[Tuple[Formula, float, float]]]:
+        candidates_with_scores = self._gather_candidates_with_scores()
+        if not candidates_with_scores:
+            return None
+        return candidates_with_scores
+
     def _gather_candidates_with_scores(self) -> List[Tuple[Formula, float, float]]:
         def meets_criteria(precision_value_, recall_value_):
             return (
@@ -394,7 +406,7 @@ class Avicenna:
                 )
 
         candidates_with_scores.sort(
-            key=lambda x: (x[1], x[2], -len(x[0])), reverse=True
+            key=lambda x: (x[2], x[1], len(x[0])), reverse=True
         )
 
         return candidates_with_scores
