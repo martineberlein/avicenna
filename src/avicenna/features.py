@@ -27,7 +27,7 @@ class Feature(ABC):
             .replace(" ", "&nbsp;")
             .replace("\n", "&#13;")
             #.replace("\r", "&#60;")
-            #.replace("\\", "")
+            .replace("\\", "")
         )
 
     @abstractmethod

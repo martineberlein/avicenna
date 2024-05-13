@@ -16,16 +16,25 @@ def divide_by_zero_oracle(inp: str):
 
 
 # Initial inputs for Avicenna
-divide_by_zero_inputs = ['1/0', '5/(3-3)', '(2+3)/5', '7/(2*0)', '9/(0/3)']
+divide_by_zero_inputs = ["1/0", "5/(3-3)", "(2+3)/5", "7/(2*0)", "9/(0/3)"]
 
 divide_by_zero_grammar = {
     "<start>": ["<arith_expr>"],
-    "<arith_expr>": ["<arith_expr><operator><arith_expr>", "<number>", "(<arith_expr>)"],
+    "<arith_expr>": [
+        "<arith_expr><operator><arith_expr>",
+        "<number>",
+        "(<arith_expr>)",
+    ],
     "<operator>": ["+", "-", "*", "/"],
-    "<number>": ["<maybe_minus><non_zero_digit><maybe_digits><maybe_frac>", "<maybe_minus>0.<digits>",
-                 "<maybe_minus>0"],
+    "<number>": [
+        "<maybe_minus><non_zero_digit><maybe_digits><maybe_frac>",
+        "<maybe_minus>0.<digits>",
+        "<maybe_minus>0",
+    ],
     "<maybe_minus>": ["", "-"],
-    "<non_zero_digit>": [str(num) for num in range(1, 10)],  # Exclude 0 from starting digits
+    "<non_zero_digit>": [
+        str(num) for num in range(1, 10)
+    ],  # Exclude 0 from starting digits
     "<digit>": list(string.digits),
     "<maybe_digits>": ["", "<digits>"],
     "<digits>": ["<digit>", "<digit><digits>"],
@@ -61,7 +70,8 @@ if __name__ == "__main__":
     print("All Learned Formulas (that meet min criteria)", end="\n\n")
     cand = avicenna.get_learned_formulas()
     for can in cand:
-        print(f"Avicenna calculated a precision of {can[1] * 100:.2f}% and a recall of {can[2] * 100:.2f}%")
+        print(
+            f"Avicenna calculated a precision of {can[1] * 100:.2f}% and a recall of {can[2] * 100:.2f}%"
+        )
         print(ISLaUnparser(can[0]).unparse(), end="\n\n")
         print(len(can[0]))
-

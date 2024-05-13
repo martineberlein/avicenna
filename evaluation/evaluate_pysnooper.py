@@ -22,14 +22,14 @@ if __name__ == "__main__":
 
         diagnosis = avicenna.explain()
         print(f"Final Diagnosis for {program}:")
-        print(ISLaUnparser(diagnosis[0]).unparse())
+        print(ISLaUnparser(diagnosis[0]).unparse(), end="\n\n")
 
         equivalent_representations = avicenna.get_equivalent_best_formulas()
 
         if equivalent_representations:
             print("\nEquivalent Representations:")
             for diagnosis in equivalent_representations:
-                print(ISLaUnparser(diagnosis[0]).unparse(), end="\n\n")
+                print(ISLaUnparser(diagnosis[0]).unparse())
 
         print(f"All Learned Formulas (that meet min criteria) for {program}:")
         cand = avicenna.get_learned_formulas()
