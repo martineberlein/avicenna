@@ -25,8 +25,9 @@ class Feature(ABC):
             .replace(":", "&colon;")
             .replace("'", "&#39;")
             .replace(" ", "&nbsp;")
-            .replace("\r", "&#60;")
-            .replace("\\", "")
+            .replace("\n", "&#13;")
+            #.replace("\r", "&#60;")
+            #.replace("\\", "")
         )
 
     @abstractmethod
