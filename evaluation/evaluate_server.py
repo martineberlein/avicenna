@@ -81,3 +81,8 @@ if __name__ == "__main__":
                 f.write("No learned formulas were found.\n")
 
         print(f"Diagnosis saved to {output_file}")
+
+        print(f"All Learned Formulas (that meet min criteria) for {program}:")
+        for can in cand:
+            print(f"Avicenna calculated a precision of {can[1] * 100:.2f}% and a recall of {can[2] * 100:.2f}%")
+            print(ISLaUnparser(can[0]).unparse(), end="\n\n")
