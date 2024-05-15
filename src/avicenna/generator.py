@@ -37,7 +37,7 @@ class FuzzingbookBasedGenerator(Generator):
 class ISLaGrammarBasedGenerator(Generator):
     def __init__(self, grammar: Grammar, **kwargs):
         super().__init__(grammar)
-        self.fuzzer = GrammarFuzzer(grammar)
+        self.fuzzer = GrammarFuzzer(grammar, max_nonterminals=20)
 
     def generate(self) -> Maybe[Input]:
         return Just(Input(tree=self.fuzzer.fuzz_tree()))

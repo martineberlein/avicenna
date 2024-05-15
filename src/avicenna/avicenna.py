@@ -247,6 +247,9 @@ class Avicenna:
         if self.timeout_seconds is not None and self.start_time is None:
             self.start_time = int(time.time())
 
+        num_failing = len([inp for inp in self.all_inputs if inp.oracle == OracleResult.FAILING])
+        LOGGER.info(f"Starting Avicenna with {num_failing} failing inputs and {len(self.all_inputs)-num_failing} passing inputs.")
+
         new_inputs: Set[Input] = self.all_inputs.union(self.generate_more_inputs())
         while self._do_more_iterations():
             if self.timeout_seconds is not None:
