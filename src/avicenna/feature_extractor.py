@@ -17,6 +17,7 @@ from debugging_framework.input.oracle import OracleResult
 
 from avicenna.feature_collector import Feature, FeatureFactory, DEFAULT_FEATURE_TYPES
 from avicenna.input import Input
+from avicenna.defaults import MAX_CORRELATED_FEATURES
 
 # Suppress the specific SHAP warning
 warnings.filterwarnings(
@@ -56,7 +57,15 @@ class RelevantFeatureLearner(ABC):
             )
 
         x_train, y_train = self.get_learning_data(test_input)
-        primary_features = set(self.get_relevant_features(test_input, x_train, y_train))
+        primary_features_ = set(self.get_relevant_features(test_input, x_train, y_train))
+
+        primary_features = set()
+        for feature in primary_features_:
+            if feature.non_terminal != "<start>":
+                primary_features.add(feature)
+            else:
+                logging.info(f"Removing {feature} as most relevant.")
+
         logging.info(f"Determined {primary_features} as most relevant.")
         correlated_features = self.find_correlated_features(x_train, primary_features)
 
@@ -78,6 +87,7 @@ class RelevantFeatureLearner(ABC):
             if abs(value) > 0.7
             and self.determine_correlating_parent_non_terminal(primary, feature)
         }
+        correlated_features = set(list(correlated_features)[:MAX_CORRELATED_FEATURES])
         logging.info(f"Added Features: {correlated_features} due to high correlation.")
         return correlated_features
 
@@ -94,7 +104,7 @@ class RelevantFeatureLearner(ABC):
                     correlating_feature.non_terminal, primary_feature.non_terminal
                 )
             )
-            and not correlating_feature.non_terminal == "<start>"
+            and not (correlating_feature.non_terminal == "<start>")
         ):
             return False
         return True
