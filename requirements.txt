@@ -1,4 +1,4 @@
-git+https://github.com/martineberlein/debugging-benchmark.git@stable
+git+https://github.com/martineberlein/debugging-benchmark.git@dev
 git+https://github.com/martineberlein/islearn.git
 git+https://github.com/martineberlein/Tests4Py
 
