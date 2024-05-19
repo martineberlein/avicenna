@@ -20,6 +20,32 @@ from avicenna.input import OracleResult
 from avicenna.pattern_learner import AvicennaPatternLearner
 
 
+EvalDict = {
+    "middle_1": {
+        "top_n_relevant_features": 3,
+    },
+    "middle_2": {
+        "top_n_relevant_features": 3,
+    },
+    "markup_1": {
+        "min_recall": .7
+    },
+    "markup_2": {
+        "min_recall": .7
+    },
+    "cookiecutter_2": {
+        "min_recall": .7
+    },
+    "cookiecutter_3": {
+        "min_recall": .7
+    },
+    "cookiecutter_4": {
+        "min_recall": .7
+    }
+
+}
+
+
 if __name__ == "__main__":
     # Get the current timestamp and format it
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -48,6 +74,10 @@ if __name__ == "__main__":
         print(f"Starting Avicenna for {program}")
 
         param = program.to_dict()
+        # load additional evaluation parameter
+        default_param = EvalDict.get(program.name, {})  # Use {} as the default value
+        param.update(default_param)
+
         avicenna = Avicenna(
             **param,
         )
