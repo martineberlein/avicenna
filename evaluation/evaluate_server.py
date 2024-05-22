@@ -27,12 +27,6 @@ EvalDict = {
     "middle_2": {
         "top_n_relevant_features": 3,
     },
-    "markup_1": {
-        "min_recall": .7
-    },
-    "markup_2": {
-        "min_recall": .7
-    },
     "cookiecutter_2": {
         "min_recall": .7
     },

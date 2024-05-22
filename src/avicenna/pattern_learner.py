@@ -345,6 +345,7 @@ class AviIslearn(InvariantLearner, PatternLearner):
                 new_row = AvicennaTruthTableRow(candidate)
                 new_row.evaluate(self.all_positive_inputs, self.graph)
                 recall_truth_table.append(new_row)
+        logger.info("Done.")
 
     def filter_candidates(
         self,
