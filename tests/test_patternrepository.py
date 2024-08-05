@@ -2,8 +2,8 @@ import unittest
 from pathlib import Path
 
 from islearn.language import Formula
-from avicenna.learner.repository import PatternRepository
-from avicenna.learner import get_pattern_file_path, get_islearn_pattern_file_path
+from avicenna.learning.repository import PatternRepository
+from avicenna.learning import get_pattern_file_path, get_islearn_pattern_file_path
 
 
 class TestPatternRepository(unittest.TestCase):
