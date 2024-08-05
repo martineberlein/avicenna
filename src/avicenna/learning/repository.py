@@ -5,7 +5,7 @@ import logging
 from islearn.language import AbstractISLaUnparser, parse_abstract_isla
 import isla.language as language
 
-from avicenna.learner import get_pattern_file_path
+from avicenna.learning import get_pattern_file_path
 
 logger = logging.getLogger("learner")
 
@@ -13,12 +13,15 @@ logger = logging.getLogger("learner")
 class PatternRepository:
     def __init__(self, data: Dict[str, List[Dict[str, str]]]):
         self.groups: Dict[str, Dict[str, language.Formula]] = {
-            group_name: {entry["name"]: parse_abstract_isla(entry["constraint"]) for entry in elements}
+            group_name: {
+                entry["name"]: parse_abstract_isla(entry["constraint"])
+                for entry in elements
+            }
             for group_name, elements in data.items()
         }
 
     @classmethod
-    def from_file(cls, file_path: str = None) -> 'PatternRepository':
+    def from_file(cls, file_path: str = None) -> "PatternRepository":
         file_name = file_path if file_path else get_pattern_file_path()
         try:
             with open(file_name, "r") as f:
@@ -27,11 +30,13 @@ class PatternRepository:
             logger.warning(f"Could not find pattern file at {file_name}.")
             return cls(dict())
 
-        data: Dict[str, List[Dict[str, str]]] = cast(Dict[str, List[Dict[str, str]]], toml.loads(contents))
+        data: Dict[str, List[Dict[str, str]]] = cast(
+            Dict[str, List[Dict[str, str]]], toml.loads(contents)
+        )
         return cls(data)
 
     @classmethod
-    def from_data(cls, data: Dict[str, List[Dict[str, str]]]) -> 'PatternRepository':
+    def from_data(cls, data: Dict[str, List[Dict[str, str]]]) -> "PatternRepository":
         return cls(data)
 
     def __getitem__(self, item: str) -> Set[language.Formula]:
@@ -49,7 +54,9 @@ class PatternRepository:
 
     def get_all(self, but: Iterable[str] = tuple()) -> Set[language.Formula]:
         exclude = {formula for pattern in but for formula in self[pattern]}
-        all_patterns = {formula for group in self.groups.values() for formula in group.values()}
+        all_patterns = {
+            formula for group in self.groups.values() for formula in group.values()
+        }
         return all_patterns - exclude
 
     def __str__(self) -> str:
@@ -57,5 +64,7 @@ class PatternRepository:
         for group, patterns in self.groups.items():
             for name, constraint in patterns.items():
                 unparsed_constraint = AbstractISLaUnparser(constraint).unparse()
-                result.append(f"[[{group}]]\n\nname = \"{name}\"\nconstraint = '''\n{unparsed_constraint}\n'''\n")
-        return '\n'.join(result).strip()
+                result.append(
+                    f"[[{group}]]\n\nname = \"{name}\"\nconstraint = '''\n{unparsed_constraint}\n'''\n"
+                )
+        return "\n".join(result).strip()

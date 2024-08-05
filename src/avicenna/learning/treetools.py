@@ -165,7 +165,7 @@ def rules(clf, class_names=None, feature_names=None):
             "IF {2} THEN PREDICT '{3}' ({0}: {4:.4f}, support: {5} / {1})".format(
                 clf.criterion,
                 samples,
-                *rule(clf, path, feature_names, class_names=class_names)
+                *rule(clf, path, feature_names, class_names=class_names),
             )
             for path in all_path(clf)
         ]
