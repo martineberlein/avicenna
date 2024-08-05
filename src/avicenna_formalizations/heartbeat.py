@@ -7,7 +7,7 @@ from typing import Union
 from fuzzingbook.Grammars import srange
 
 from debugging_framework.input.oracle import OracleResult
-from avicenna.input import Input
+from avicenna.input.input import Input
 
 
 def vulnerable_heartbeat(payload, fake_length):

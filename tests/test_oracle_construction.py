@@ -1,5 +1,5 @@
 import unittest
-from avicenna.oracle_construction import (
+from avicenna.input.oracle_construction import (
     construct_oracle,
     OracleResult,
     Input,

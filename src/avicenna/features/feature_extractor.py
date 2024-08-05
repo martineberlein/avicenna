@@ -15,8 +15,8 @@ from sklearn.tree import DecisionTreeClassifier
 
 from debugging_framework.input.oracle import OracleResult
 
-from avicenna.feature_collector import Feature, FeatureFactory, DEFAULT_FEATURE_TYPES
-from avicenna.input import Input
+from avicenna.features.feature_collector import Feature, FeatureFactory, DEFAULT_FEATURE_TYPES
+from avicenna.input.input import Input
 from avicenna.defaults import MAX_CORRELATED_FEATURES
 
 # Suppress the specific SHAP warning

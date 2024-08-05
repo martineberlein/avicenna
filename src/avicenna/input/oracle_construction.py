@@ -3,7 +3,7 @@ import signal
 
 from debugging_framework.input.oracle import OracleResult
 
-from avicenna.input import Input
+from avicenna.input.input import Input
 
 
 class ManageTimeout:

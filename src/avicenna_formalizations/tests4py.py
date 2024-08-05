@@ -12,7 +12,7 @@ import tests4py.constants
 
 from avicenna.input import Input
 from avicenna.oracle import OracleResult
-from avicenna.feature_extractor import DecisionTreeRelevanceLearner
+from avicenna.features.feature_extractor import DecisionTreeRelevanceLearner
 
 
 DEFAULT_WORK_DIR = Path("/tmp")

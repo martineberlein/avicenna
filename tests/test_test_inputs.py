@@ -6,7 +6,7 @@ from debugging_framework.input.oracle import OracleResult
 
 
 from avicenna_formalizations.calculator import grammar, oracle
-from avicenna.input import Input
+from avicenna.input.input import Input
 from avicenna.monads import Exceptional
 
 

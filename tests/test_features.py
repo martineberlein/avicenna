@@ -4,8 +4,8 @@ import unittest
 from numpy import inf
 from fuzzingbook.Grammars import Grammar, is_valid_grammar, srange
 
-from avicenna.input import Input
-from avicenna.feature_collector import (
+from avicenna.input.input import Input
+from avicenna.features.feature_collector import (
     FeatureFactory,
     ExistenceFeature,
     DerivationFeature,

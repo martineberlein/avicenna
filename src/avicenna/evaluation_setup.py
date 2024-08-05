@@ -7,8 +7,8 @@ from sklearn.metrics import confusion_matrix
 
 from debugging_framework.input.oracle import OracleResult
 
-from avicenna.generator import MutationBasedGenerator
-from avicenna.input import Input
+from avicenna.generator.generator import MutationBasedGenerator
+from avicenna.input.input import Input
 
 
 class EvaluationSubject(ABC):

@@ -1,12 +1,12 @@
 import unittest
 
-from avicenna.generator import (
+from avicenna.generator.generator import (
     ISLaSolverGenerator,
     ISLaGrammarBasedGenerator,
     MutationBasedGenerator,
 )
 from avicenna_formalizations.calculator import grammar
-from avicenna.input import Input
+from avicenna.input.input import Input
 from avicenna.monads import Just, Nothing
 
 

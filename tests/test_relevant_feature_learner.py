@@ -9,16 +9,17 @@ from avicenna_formalizations.calculator import (
     grammar as grammar_calculator,
     oracle as oracle_calculator,
 )
-from avicenna.input import Input
-from avicenna.feature_collector import GrammarFeatureCollector
-from avicenna import feature_extractor
-from avicenna.features import (
+from avicenna.input.input import Input
+from avicenna.features.feature_collector import GrammarFeatureCollector
+from avicenna.features.features import (
     ExistenceFeature,
     NumericFeature,
     LengthFeature,
-    DerivationFeature,
+    DerivationFeature
 )
+import avicenna.features.feature_extractor as feature_extractor
 from avicenna.monads import Exceptional
+
 
 
 class TestRelevantFeatureLearner(unittest.TestCase):

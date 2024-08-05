@@ -4,7 +4,7 @@ from isla.derivation_tree import DerivationTree
 
 from debugging_framework.input.oracle import OracleResult
 from debugging_framework.input.input import Input as TestInput
-from avicenna.features import FeatureVector
+from avicenna.features.features import FeatureVector
 
 
 class Input(TestInput):

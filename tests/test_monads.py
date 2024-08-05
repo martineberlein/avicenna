@@ -1,12 +1,12 @@
 import unittest
-from typing import Set, Iterable, Type
+from typing import Set, Iterable
 
 from debugging_framework.input.oracle import OracleResult
-from avicenna.input import Input
+from avicenna.input.input import Input
 from avicenna.monads import Maybe, Exceptional, Success, Failure, T
 from avicenna_formalizations.calculator import grammar, oracle
-from avicenna.feature_collector import GrammarFeatureCollector
-from avicenna.execution_handler import SingleExecutionHandler
+from avicenna.features.feature_collector import GrammarFeatureCollector
+from avicenna.runner.execution_handler import SingleExecutionHandler
 
 
 class MyTestCase(unittest.TestCase):

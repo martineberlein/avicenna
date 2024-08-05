@@ -9,7 +9,7 @@ from fuzzingbook.Coverage import Coverage, Location, BranchCoverage
 
 from fuzzingbook.Grammars import Grammar
 from debugging_framework.oracle import OracleResult
-from avicenna.oracle_construction import construct_oracle
+from avicenna.input.oracle_construction import construct_oracle
 
 
 class TestSubject:

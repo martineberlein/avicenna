@@ -8,8 +8,8 @@ from isla.solver import ISLaSolver
 from fuzzingbook.Grammars import Grammar
 from fuzzingbook.GrammarFuzzer import GrammarFuzzer as FuzzingbookGrammarFuzzer
 
-from avicenna.input import Input
-from avicenna.helpers import map_to_bool
+from avicenna.input.input import Input
+from avicenna.input.helpers import map_to_bool
 from avicenna.monads import Maybe, Just, Nothing
 
 

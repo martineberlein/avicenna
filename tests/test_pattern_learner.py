@@ -10,8 +10,8 @@ from avicenna_formalizations.calculator import (
     oracle,
 )
 from avicenna_formalizations import get_pattern_file_path
-from avicenna.input import Input
-from avicenna.pattern_learner import AviIslearn, AvicennaTruthTable
+from avicenna.input.input import Input
+from avicenna.learner.pattern_learner import AviIslearn, AvicennaTruthTable
 
 
 class TestAvicennaIslearn(unittest.TestCase):

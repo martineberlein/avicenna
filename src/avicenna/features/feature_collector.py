@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 from fuzzingbook.Grammars import is_nonterminal, Grammar
 from isla.language import DerivationTree
 
-from avicenna.input import Input
-from avicenna.features import (
+from avicenna.input.input import Input
+from avicenna.features.features import (
     ExistenceFeature,
     DerivationFeature,
     NumericFeature,

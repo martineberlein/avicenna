@@ -18,7 +18,7 @@ STANDARD_PATTERNS_REPO = "patterns.toml"
 logger = logging.getLogger("learner")
 
 from debugging_framework.input.oracle import OracleResult
-from avicenna.input import Input
+from avicenna.input.input import Input
 
 
 class AvicennaTruthTableRow:
@@ -639,9 +639,7 @@ class AvicennaPatternLearner(AviIslearn):
     def learn_decision_tree(dataframe: pandas.DataFrame, precision_truth_table):
         from sklearn.tree import DecisionTreeClassifier, export_text
         from isla.language import ISLaUnparser
-        from avicenna.treetools import (
-            grouped_rules,
-            remove_unequal_decisions,
+        from avicenna.learner.treetools import (
             all_path,
             prediction_for_path,
         )

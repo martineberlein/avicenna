@@ -8,24 +8,24 @@ from isla.language import ISLaUnparser, Formula
 from islearn.language import parse_abstract_isla
 from islearn.learner import patterns_from_file
 
-from avicenna import feature_extractor
-from avicenna.feature_collector import GrammarFeatureCollector
-from avicenna.generator import (
+from avicenna.features import feature_extractor
+from avicenna.features.feature_collector import GrammarFeatureCollector
+from avicenna.generator.generator import (
     Generator,
     ISLaGrammarBasedGenerator,
     FuzzingbookBasedGenerator,
     MutationBasedGenerator,
 )
 
-from avicenna.input import Input
-from avicenna.pattern_learner import (
+from avicenna.input.input import Input
+from avicenna.learner.pattern_learner import (
     AvicennaTruthTable,
     AvicennaTruthTableRow,
     PatternLearner,
     AviIslearn,
 )
 from avicenna_formalizations import get_pattern_file_path
-from avicenna.execution_handler import SingleExecutionHandler, BatchExecutionHandler
+from avicenna.runner.execution_handler import SingleExecutionHandler, BatchExecutionHandler
 from avicenna.report import SingleFailureReport, MultipleFailureReport
 from avicenna.logger import LOGGER, configure_logging
 from avicenna.monads import Exceptional, check_empty, T
