@@ -1,10 +1,6 @@
-import string
 from isla.language import ISLaUnparser
 
 from avicenna import Avicenna
-from avicenna.input import OracleResult
-from avicenna.pattern_learner import AvicennaPatternLearner
-
 
 if __name__ == "__main__":
     from debugging_benchmark.tests4py_benchmark.repository import (

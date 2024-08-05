@@ -2,8 +2,7 @@ import string
 from isla.language import ISLaUnparser
 
 from avicenna import Avicenna
-from avicenna.input import OracleResult
-from avicenna.pattern_learner import AvicennaPatternLearner
+from avicenna.input.input import OracleResult
 
 
 # Oracle for divide by zero
