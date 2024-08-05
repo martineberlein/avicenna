@@ -2,6 +2,7 @@ from isla.language import ISLaUnparser
 
 from avicenna import Avicenna
 from debugging_benchmark.calculator.calculator import CalculatorBenchmarkRepository
+from avicenna.learning.heuristic import HeuristicTreePatternLearner
 
 
 if __name__ == "__main__":
@@ -19,6 +20,7 @@ if __name__ == "__main__":
     diagnosis = avicenna.explain()
     print("Final Diagnosis:")
     print(ISLaUnparser(diagnosis[0]).unparse())
+    print(f"Precision: {diagnosis[1]} Recall: {diagnosis[2]}")
 
     print("\nEquivalent Representations:")
     equivalent_representations = avicenna.get_equivalent_best_formulas()
