@@ -86,7 +86,7 @@ forall <?NONTERMINAL> elem in start:
 
 [[Existential]]
 
-name = "Existence Numeric String Smaller Than"
+name = "Existence Numeric String Larger Than"
 constraint = '''
 forall <?NONTERMINAL> elem in start:
     (> (str.to.int elem) (str.to.int <?STRING>))

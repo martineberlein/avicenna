@@ -24,7 +24,8 @@ from avicenna.learner.pattern_learner import (
     PatternLearner,
     AviIslearn,
 )
-from avicenna_formalizations import get_pattern_file_path
+
+from avicenna.learner import get_pattern_file_path
 from avicenna.runner.execution_handler import SingleExecutionHandler, BatchExecutionHandler
 from avicenna.report import SingleFailureReport, MultipleFailureReport
 from avicenna.logger import LOGGER, configure_logging
@@ -149,6 +150,7 @@ class Avicenna:
                 else parse_abstract_isla(pattern, grammar)
                 for pattern in patterns
             ]
+        assert len(self.patterns) > 0
 
         pattern_learner_param = {
             "grammar": grammar,

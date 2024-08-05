@@ -9,7 +9,7 @@ from avicenna_formalizations.calculator import (
     grammar,
     oracle,
 )
-from avicenna_formalizations import get_pattern_file_path
+from avicenna.learner import get_pattern_file_path
 from avicenna.input.input import Input
 from avicenna.learner.pattern_learner import AviIslearn, AvicennaTruthTable
 
