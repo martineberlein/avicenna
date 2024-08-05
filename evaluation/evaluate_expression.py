@@ -42,7 +42,7 @@ divide_by_zero_grammar = {
 
 
 if __name__ == "__main__":
-    default_param = {
+    param = {
         "log": True,
         "max_iterations": 5,
         "grammar": divide_by_zero_grammar,
@@ -50,10 +50,8 @@ if __name__ == "__main__":
         "oracle": divide_by_zero_oracle,
     }
 
-    avicenna = Avicenna(
-        **default_param,
-        # pattern_learner=AvicennaPatternLearner
-    )
+    from avicenna.learning.heuristic import HeuristicTreePatternLearner
+    avicenna = Avicenna(**param)
 
     diagnosis = avicenna.explain()
     print("Final Diagnosis:")
