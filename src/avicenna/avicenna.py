@@ -18,14 +18,14 @@ from avicenna.generator.generator import (
 )
 
 from avicenna.input.input import Input
-from avicenna.learner.pattern_learner import (
+from avicenna.learning.table import (
     AvicennaTruthTable,
     AvicennaTruthTableRow,
-    PatternLearner,
-    AviIslearn,
 )
+from avicenna.learning.learner import PatternCandidateLearner
+from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
 
-from avicenna.learner import get_pattern_file_path
+from avicenna.learning import get_pattern_file_path
 from avicenna.runner.execution_handler import SingleExecutionHandler, BatchExecutionHandler
 from avicenna.report import SingleFailureReport, MultipleFailureReport
 from avicenna.logger import LOGGER, configure_logging
@@ -62,7 +62,7 @@ class Avicenna:
         log: bool = False,
         feature_learner: feature_extractor.RelevantFeatureLearner = None,
         input_generator: Type[Generator] = None,
-        pattern_learner: Type[PatternLearner] = None,
+        pattern_learner: Type[PatternCandidateLearner] = None,
         timeout_seconds: Optional[int] = None,
         min_recall: float = 0.9,
         min_min_specificity: float = 0.6
@@ -156,19 +156,15 @@ class Avicenna:
             "grammar": grammar,
             "pattern_file": str(self.pattern_file),
             "patterns": self.patterns,
-            "min_recall": self.min_recall,
-            "min_specificity": self.min_precision
+            #"min_recall": self.min_recall,
+            #"min_specificity": self.min_precision
         }
 
         self.pattern_learner = (
             pattern_learner(**pattern_learner_param)
             if pattern_learner
-            else AviIslearn(**pattern_learner_param)
+            else ExhaustivePatternCandidateLearner(**pattern_learner_param)
         )
-
-        # TruthTable
-        self.precision_truth_table = AvicennaTruthTable()
-        self.recall_truth_table = AvicennaTruthTable()
 
         self.report = (
             MultipleFailureReport()
@@ -304,10 +300,8 @@ class Avicenna:
         test_inputs = self.construct_inputs(test_inputs)
         exclusion_non_terminals = self.learn_relevant_features()
 
-        new_candidates = self.pattern_learner.learn_failure_invariants(
+        new_candidates = self.pattern_learner.learn_candidates(
             test_inputs,
-            self.precision_truth_table,
-            self.recall_truth_table,
             exclusion_non_terminals,
         )
 
@@ -331,10 +325,8 @@ class Avicenna:
         self, test_inputs, exclusion_non_terminals
     ) -> Exceptional[Exception, T]:
         new_candidates = Exceptional.of(
-            self.pattern_learner.learn_failure_invariants(
+            self.pattern_learner.learn_candidates(
                 test_inputs,
-                self.precision_truth_table,
-                self.recall_truth_table,
                 exclusion_non_terminals,
             )
         ).bind(check_empty)
@@ -400,10 +392,13 @@ class Avicenna:
 
         candidates_with_scores = []
 
-        for idx, precision_row in enumerate(self.precision_truth_table):
+        precision_truth_table = self.pattern_learner.precision_truth_table
+        recall_truth_table = self.pattern_learner.recall_truth_table
+
+        for idx, precision_row in enumerate(precision_truth_table):
             assert isinstance(precision_row, AvicennaTruthTableRow)
             precision_value = 1 - precision_row.eval_result()
-            recall_value = self.recall_truth_table[idx].eval_result()
+            recall_value = recall_truth_table[idx].eval_result()
 
             if meets_criteria(precision_value, recall_value):
                 candidates_with_scores.append(
