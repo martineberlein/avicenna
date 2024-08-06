@@ -38,26 +38,4 @@ class Candidate:
         return strategy.compare(self, other) > 0
 
     def __repr__(self):
-        return f"Candidate(precision={self.precision}, recall={self.recall})"
-
-
-if __name__ == "__main__":
-    # Example candidates
-    candidates = [
-        Candidate(formula="formula1", precision=0.75, recall=0.85),
-        Candidate(formula="formula2", precision=0.70, recall=0.95),
-        Candidate(formula="formula3", precision=0.80, recall=0.85),
-        Candidate(formula="formula3", precision=0.60, recall=0.85),
-        Candidate(formula="formula3", precision=0.62, recall=0.85),
-        Candidate(formula="formula3", precision=0.60, recall=0.85),
-        Candidate(formula="formula3", precision=0.95, recall=0.7),
-    ]
-
-    # Select the fitness strategy
-    fitness_strategy = RecallPriorityFitness()
-
-    # Sort candidates based on the selected fitness strategy
-    sorted_candidates = sorted(
-        candidates, key=lambda c: c.with_strategy(fitness_strategy), reverse=True
-    )
-    print(sorted_candidates)
+        return f"Candidate(formula={self.formula}, precision={self.precision}, recall={self.recall})"

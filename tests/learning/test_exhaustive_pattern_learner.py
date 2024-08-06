@@ -12,8 +12,10 @@ from avicenna.learning.candidate import Candidate
 
 
 class TestExhaustivePatternLearner(unittest.TestCase):
-    def setUp(self) -> None:
-        self.test_inputs = set([
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.test_inputs = set([
             Input.from_str(grammar, inp, inp_oracle)
             for inp, inp_oracle in [
                 ("sqrt(-901)", OracleResult.FAILING),
@@ -25,7 +27,7 @@ class TestExhaustivePatternLearner(unittest.TestCase):
                 ("sqrt(-20)", OracleResult.FAILING),
             ]
         ])
-        self.exclude_nonterminals = [
+        cls.exclude_nonterminals = [
             "<digits>",
             "<maybe_digits>",
             "<onenine>",
@@ -33,7 +35,7 @@ class TestExhaustivePatternLearner(unittest.TestCase):
             "<start>",
             "<digit>",
         ]
-        self.exhaustive_learner = ExhaustivePatternCandidateLearner(grammar)
+        cls.exhaustive_learner = ExhaustivePatternCandidateLearner(grammar)
 
     def verify_candidates(self, result: List[Candidate], expected_length: int):
         self.assertEqual(len(result), expected_length)
