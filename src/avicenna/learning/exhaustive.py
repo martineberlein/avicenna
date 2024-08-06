@@ -19,6 +19,7 @@ from avicenna.input.input import Input
 
 from avicenna.learning.learner import TruthTablePatternCandidateLearner
 from avicenna.learning.table import AvicennaTruthTable, AvicennaTruthTableRow
+from avicenna.learning.candidate import Candidate
 
 logger = logging.getLogger("learner")
 
@@ -52,7 +53,7 @@ class ExhaustivePatternCandidateLearner(TruthTablePatternCandidateLearner, Invar
         self,
         test_inputs: Set[Input],
         exclude_nonterminals: Optional[Iterable[str]] = None,
-    ) -> List[Tuple[Formula, float, float]]:
+    ) -> List[Candidate]:
         positive_inputs, negative_inputs = self.categorize_inputs(test_inputs)
         self.update_inputs(positive_inputs, negative_inputs)
         self.exclude_nonterminals = exclude_nonterminals or set()
@@ -78,7 +79,7 @@ class ExhaustivePatternCandidateLearner(TruthTablePatternCandidateLearner, Invar
         self,
         positive_inputs: Set[Input],
         negative_inputs: Set[Input],
-    ) -> List[Tuple[Formula, float, float]]:
+    ) -> List[Candidate]:
         sorted_positive_inputs = self.sort_and_filter_inputs(self.all_positive_inputs)
         candidates = self.get_recall_candidates(sorted_positive_inputs)
 
@@ -90,7 +91,7 @@ class ExhaustivePatternCandidateLearner(TruthTablePatternCandidateLearner, Invar
         self.get_conjunctions()
 
         result = self.get_result_list()
-        return result  # , precision_truth_table, recall_truth_table
+        return result
 
     @staticmethod
     def clean_up_tables(candidates, precision_truth_table, recall_truth_table):
@@ -177,32 +178,33 @@ class ExhaustivePatternCandidateLearner(TruthTablePatternCandidateLearner, Invar
 
     def get_result_list(
         self,
-    ) -> List[Tuple[Formula, float, float]]:
+    ) -> List[Candidate]:
         def meets_criteria(precision_value_, recall_value_):
             return (
                 precision_value_ >= self.min_specificity
                 and recall_value_ >= self.min_recall
             )
 
-        result = []
+        result: List[Candidate] = []
         for idx, precision_row in enumerate(self.precision_truth_table):
             precision_value = 1 - precision_row.eval_result()
             recall_value = self.recall_truth_table[idx].eval_result()
 
             if meets_criteria(precision_value, recall_value):
-                result.append((precision_row.formula, precision_value, recall_value))
+                result.append(Candidate(precision_row.formula, precision_value, recall_value))
 
-        result.sort(key=lambda x: (x[1], x[2], -len(x[0])), reverse=True)
+        #result.sort(key=lambda x: (x[1], x[2], -len(x[0])), reverse=True)
+        sorted_ = sorted(result, key=lambda c: c.with_strategy(self.sorting_strategy), reverse=True)
 
         logger.info(
             "Found %d invariants with precision >= %d%% and recall >= %d%%.",
             len(
-                result
+                sorted_
             ),  # if p[0] >= self.min_specificity and p[1] >= self.min_recall]),
             int(self.min_specificity * 100),
             int(self.min_recall * 100),
         )
-        return result
+        return sorted_
 
     def get_disjunctions(self):
         pass

@@ -8,6 +8,7 @@ from avicenna_formalizations.calculator import grammar
 
 from avicenna.input.input import Input
 from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
+from avicenna.learning.candidate import Candidate
 
 
 class TestExhaustivePatternLearner(unittest.TestCase):
@@ -34,12 +35,14 @@ class TestExhaustivePatternLearner(unittest.TestCase):
         ]
         self.exhaustive_learner = ExhaustivePatternCandidateLearner(grammar)
 
-    def verify_candidates(self, result: List[Tuple[language.Formula, float, float]], expected_length: int):
+    def verify_candidates(self, result: List[Candidate], expected_length: int):
         self.assertEqual(len(result), expected_length)
         for candidate in result:
-            self.assertIsInstance(candidate[0], language.Formula)
-            self.assertIsInstance(candidate[1], float)
-            self.assertIsInstance(candidate[2], float)
+            print(language.ISLaUnparser(candidate.formula).unparse())
+            print("Precision: ", candidate.precision, " Recall: ", candidate.recall)
+            self.assertIsInstance(candidate.formula, language.Formula)
+            self.assertIsInstance(candidate.precision, float)
+            self.assertIsInstance(candidate.recall, float)
 
     def test_exhaustive_pattern_learner(self):
         """Test the exhaustive pattern learner with initial inputs."""
@@ -73,7 +76,9 @@ class TestExhaustivePatternLearner(unittest.TestCase):
             ]
         ])
         result = self.exhaustive_learner.learn_candidates(more_inputs, self.exclude_nonterminals)
-        self.verify_candidates(result, expected_length=4)
+        self.verify_candidates(result, expected_length=15)
+        best_candidates = self.exhaustive_learner.get_best_candidates()
+        self.verify_candidates(best_candidates, expected_length=4)
         self.exhaustive_learner.reset()
 
     def test_get_candidates(self):
