@@ -17,13 +17,13 @@ from islearn.learner import InvariantLearner
 from debugging_framework.input.oracle import OracleResult
 from avicenna.input.input import Input
 
-from avicenna.learning.learner import PatternCandidateLearner
+from avicenna.learning.learner import TruthTablePatternCandidateLearner
 from avicenna.learning.table import AvicennaTruthTable, AvicennaTruthTableRow
 
 logger = logging.getLogger("learner")
 
 
-class ExhaustivePatternCandidateLearner(PatternCandidateLearner, InvariantLearner):
+class ExhaustivePatternCandidateLearner(TruthTablePatternCandidateLearner, InvariantLearner):
     def __init__(
         self,
         grammar: Grammar,
@@ -32,10 +32,10 @@ class ExhaustivePatternCandidateLearner(PatternCandidateLearner, InvariantLearne
         min_recall: float = 0.9,
         min_specificity: float = 0.6,
     ):
-        PatternCandidateLearner.__init__(
-            self, grammar, patterns=patterns, pattern_file=pattern_file
+        TruthTablePatternCandidateLearner.__init__(
+            self, grammar, patterns=patterns, pattern_file=pattern_file, min_recall=min_recall, min_precision=min_specificity
         )
-        InvariantLearner.__init__(self, grammar, patterns=list(self.patterns))
+        InvariantLearner.__init__(self, grammar, patterns=list(self.patterns), filter_inputs_for_learning_by_kpaths=False)
         self.min_recall = min_recall
         self.min_specificity = min_specificity
         self.all_negative_inputs: Set[Input] = set()
@@ -43,9 +43,6 @@ class ExhaustivePatternCandidateLearner(PatternCandidateLearner, InvariantLearne
         self.graph = gg.GrammarGraph.from_grammar(grammar)
         self.exclude_nonterminals: Set[str] = set()
         self.positive_examples_for_learning: List[language.DerivationTree] = []
-
-        self.precision_truth_table: AvicennaTruthTable = AvicennaTruthTable()
-        self.recall_truth_table: AvicennaTruthTable = AvicennaTruthTable()
 
         not_patterns = []
         for pattern in self.patterns:
@@ -83,7 +80,7 @@ class ExhaustivePatternCandidateLearner(PatternCandidateLearner, InvariantLearne
         negative_inputs: Set[Input],
     ) -> List[Tuple[Formula, float, float]]:
         sorted_positive_inputs = self.sort_and_filter_inputs(self.all_positive_inputs)
-        candidates = self.get_candidates(sorted_positive_inputs)
+        candidates = self.get_recall_candidates(sorted_positive_inputs)
 
         self.evaluate_recall(candidates, positive_inputs)
         self.filter_candidates()
@@ -104,7 +101,7 @@ class ExhaustivePatternCandidateLearner(PatternCandidateLearner, InvariantLearne
             recall_truth_table.remove(row)
             precision_truth_table.remove(row)
 
-    def get_candidates(self, sorted_positive_inputs) -> Set[Formula]:
+    def get_recall_candidates(self, sorted_positive_inputs) -> Set[Formula]:
         candidates = self.generate_candidates(
             self.patterns, [inp.tree for inp in sorted_positive_inputs]
         )
@@ -373,3 +370,12 @@ class ExhaustivePatternCandidateLearner(PatternCandidateLearner, InvariantLearne
         self, test_inputs: Set[Input], negative_inputs: Set[Input]
     ) -> Tuple[Set[Input], Set[Input]]:
         raise NotImplementedError()
+
+    def reset(self):
+        self.all_negative_inputs: Set[Input] = set()
+        self.all_positive_inputs: Set[Input] = set()
+        self.exclude_nonterminals: Set[str] = set()
+        self.positive_examples_for_learning: List[language.DerivationTree] = []
+        super().reset()
+
+
