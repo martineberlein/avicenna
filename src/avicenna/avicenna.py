@@ -18,12 +18,10 @@ from avicenna.generator.generator import (
 )
 
 from avicenna.input.input import Input
-from avicenna.learning.table import (
-    AvicennaTruthTable,
-    AvicennaTruthTableRow,
-)
-from avicenna.learning.learner import PatternCandidateLearner
+
+from avicenna.learning.learner import CandidateLearner
 from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
+from avicenna.learning.candidate import Candidate
 
 from avicenna.learning import get_pattern_file_path
 from avicenna.runner.execution_handler import SingleExecutionHandler, BatchExecutionHandler
@@ -62,7 +60,7 @@ class Avicenna:
         log: bool = False,
         feature_learner: feature_extractor.RelevantFeatureLearner = None,
         input_generator: Type[Generator] = None,
-        pattern_learner: Type[PatternCandidateLearner] = None,
+        pattern_learner: CandidateLearner = None,
         timeout_seconds: Optional[int] = None,
         min_recall: float = 0.9,
         min_min_specificity: float = 0.6
@@ -156,12 +154,12 @@ class Avicenna:
             "grammar": grammar,
             "pattern_file": str(self.pattern_file),
             "patterns": self.patterns,
-            #"min_recall": self.min_recall,
-            #"min_specificity": self.min_precision
+            "min_recall": self.min_recall,
+            "min_specificity": self.min_precision
         }
 
         self.pattern_learner = (
-            pattern_learner(**pattern_learner_param)
+            pattern_learner
             if pattern_learner
             else ExhaustivePatternCandidateLearner(**pattern_learner_param)
         )
@@ -233,7 +231,7 @@ class Avicenna:
             return Maybe.from_value(generated_inputs)
         return Nothing
 
-    def explain(self) -> Optional[Tuple[Formula, float, float]]:
+    def explain(self) -> Optional[Candidate]:
         """
         Attempts to compute a failure diagnosis as an ISLa Formula. It returns that solution, if there is one.
         The result is a tuple with the learned failure constraint and the calculated precision and recall.
@@ -305,7 +303,7 @@ class Avicenna:
             exclusion_non_terminals,
         )
 
-        new_candidates = set([x[0] for x in new_candidates[:20]])
+        new_candidates = set([x.formula for x in new_candidates[:20]])
 
         self.best_candidates = new_candidates
         new_inputs = (
@@ -320,17 +318,6 @@ class Avicenna:
         )
         LOGGER.info(f"Generated {len(new_inputs)} new inputs.")
         return new_inputs
-
-    def _learn_new_candidates(
-        self, test_inputs, exclusion_non_terminals
-    ) -> Exceptional[Exception, T]:
-        new_candidates = Exceptional.of(
-            self.pattern_learner.learn_candidates(
-                test_inputs,
-                exclusion_non_terminals,
-            )
-        ).bind(check_empty)
-        return new_candidates
 
     def generate_inputs_with_grammar_fuzzer(self, _) -> Set[Input]:
         generator = ISLaGrammarBasedGenerator(self.grammar)
@@ -348,95 +335,18 @@ class Avicenna:
         logging.info("Removing infeasible constraint")
         logging.debug(f"Infeasible constraint: {constraint}")
 
-    def finalize(self) -> Optional[Tuple[Formula, float, float]]:
-        return (
-            self._calculate_best_formula()
-            .map(lambda candidates: candidates[0])
-            .value_or(None)
-        )
-
-    def _calculate_best_formula(self) -> Maybe(List[Tuple[Formula, float, float]]):
-        candidates_with_scores = self._gather_candidates_with_scores()
-        if not candidates_with_scores:
-            return Nothing
-        best_candidates = self._get_best_candidates(candidates_with_scores)
-        return Some(best_candidates) if best_candidates else Nothing
+    def finalize(self) -> Optional[Candidate]:
+        return self.pattern_learner.get_best_candidates()[0]
 
     def get_equivalent_best_formulas(
         self,
-    ) -> Optional[List[Tuple[Formula, float, float]]]:
-        return (
-            self._calculate_best_formula()
-            .bind(
-                lambda candidates: Some(candidates[1:])
-                if len(candidates) > 1
-                else Nothing
-            )
-            .value_or(None)
-        )
+    ) -> Optional[List[Candidate]]:
+        return self.pattern_learner.get_best_candidates()[1:]
 
     def get_learned_formulas(
             self
-    ) -> Optional[List[Tuple[Formula, float, float]]]:
-        candidates_with_scores = self._gather_candidates_with_scores()
-        if not candidates_with_scores:
-            return None
-        return candidates_with_scores
-
-    def _gather_candidates_with_scores(self) -> List[Tuple[Formula, float, float]]:
-        def meets_criteria(precision_value_, recall_value_):
-            return (
-                precision_value_ >= self.min_precision
-                and recall_value_ >= self.min_recall
-            )
-
-        candidates_with_scores = []
-
-        precision_truth_table = self.pattern_learner.precision_truth_table
-        recall_truth_table = self.pattern_learner.recall_truth_table
-
-        for idx, precision_row in enumerate(precision_truth_table):
-            assert isinstance(precision_row, AvicennaTruthTableRow)
-            precision_value = 1 - precision_row.eval_result()
-            recall_value = recall_truth_table[idx].eval_result()
-
-            if meets_criteria(precision_value, recall_value):
-                candidates_with_scores.append(
-                    (precision_row.formula, precision_value, recall_value)
-                )
-
-        candidates_with_scores.sort(
-            key=lambda x: (x[2], x[1], len(x[0])), reverse=True
-        )
-
-        return candidates_with_scores
-
-    @staticmethod
-    def _get_best_candidates(
-        candidates_with_scores: List[Tuple[Formula, float, float]]
-    ) -> List[Tuple[Formula, float, float]]:
-        top_precision, top_recall = (
-            candidates_with_scores[0][1],
-            candidates_with_scores[0][2],
-        )
-
-        return [
-            candidate
-            for candidate in candidates_with_scores
-            if candidate[1] == top_precision and candidate[2] == top_recall
-        ]
-
-    @staticmethod
-    def _log_best_candidates(best_candidates: List[Tuple[Formula, float, float]]):
-        LOGGER.info(
-            "\n".join(
-                [
-                    f"({candidate[1], candidate[2]}) "
-                    + ISLaUnparser(candidate[0]).unparse()
-                    for candidate in best_candidates
-                ]
-            )
-        )
+    ) -> Optional[List[Candidate]]:
+        return self.pattern_learner.get_candidates()
 
     def parse_to_input(self, test_inputs: Iterable[str]) -> Set[Input]:
         return set([Input.from_str(self.grammar, inp_) for inp_ in test_inputs])
