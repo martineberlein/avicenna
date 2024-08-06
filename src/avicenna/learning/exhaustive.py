@@ -24,7 +24,9 @@ from avicenna.learning.candidate import Candidate
 logger = logging.getLogger("learner")
 
 
-class ExhaustivePatternCandidateLearner(TruthTablePatternCandidateLearner, InvariantLearner):
+class ExhaustivePatternCandidateLearner(
+    TruthTablePatternCandidateLearner, InvariantLearner
+):
     def __init__(
         self,
         grammar: Grammar,
@@ -34,9 +36,19 @@ class ExhaustivePatternCandidateLearner(TruthTablePatternCandidateLearner, Invar
         min_specificity: float = 0.6,
     ):
         TruthTablePatternCandidateLearner.__init__(
-            self, grammar, patterns=patterns, pattern_file=pattern_file, min_recall=min_recall, min_precision=min_specificity
+            self,
+            grammar,
+            patterns=patterns,
+            pattern_file=pattern_file,
+            min_recall=min_recall,
+            min_precision=min_specificity,
         )
-        InvariantLearner.__init__(self, grammar, patterns=list(self.patterns), filter_inputs_for_learning_by_kpaths=False)
+        InvariantLearner.__init__(
+            self,
+            grammar,
+            patterns=list(self.patterns),
+            filter_inputs_for_learning_by_kpaths=False,
+        )
         self.min_recall = min_recall
         self.min_specificity = min_specificity
         self.all_negative_inputs: Set[Input] = set()
@@ -191,10 +203,14 @@ class ExhaustivePatternCandidateLearner(TruthTablePatternCandidateLearner, Invar
             recall_value = self.recall_truth_table[idx].eval_result()
 
             if meets_criteria(precision_value, recall_value):
-                result.append(Candidate(precision_row.formula, precision_value, recall_value))
+                result.append(
+                    Candidate(precision_row.formula, precision_value, recall_value)
+                )
 
-        #result.sort(key=lambda x: (x[1], x[2], -len(x[0])), reverse=True)
-        sorted_ = sorted(result, key=lambda c: c.with_strategy(self.sorting_strategy), reverse=True)
+        # result.sort(key=lambda x: (x[1], x[2], -len(x[0])), reverse=True)
+        sorted_ = sorted(
+            result, key=lambda c: c.with_strategy(self.sorting_strategy), reverse=True
+        )
 
         logger.info(
             "Found %d invariants with precision >= %d%% and recall >= %d%%.",
@@ -379,5 +395,3 @@ class ExhaustivePatternCandidateLearner(TruthTablePatternCandidateLearner, Invar
         self.exclude_nonterminals: Set[str] = set()
         self.positive_examples_for_learning: List[language.DerivationTree] = []
         super().reset()
-
-

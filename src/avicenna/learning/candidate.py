@@ -1,4 +1,10 @@
-from avicenna.learning.metric import FitnessStrategy, RecallPriorityFitness, F1ScoreFitness, PrecisionFitness, RecallFitness
+from avicenna.learning.metric import (
+    FitnessStrategy,
+    RecallPriorityFitness,
+    F1ScoreFitness,
+    PrecisionFitness,
+    RecallFitness,
+)
 
 
 class Candidate:
@@ -51,5 +57,7 @@ if __name__ == "__main__":
     fitness_strategy = RecallPriorityFitness()
 
     # Sort candidates based on the selected fitness strategy
-    sorted_candidates = sorted(candidates, key=lambda c: c.with_strategy(fitness_strategy), reverse=True)
+    sorted_candidates = sorted(
+        candidates, key=lambda c: c.with_strategy(fitness_strategy), reverse=True
+    )
     print(sorted_candidates)

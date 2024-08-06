@@ -5,6 +5,7 @@ class FitnessStrategy(ABC):
     """
     Fitness strategy is responsible for evaluating and comparing candidates based on a specific fitness metric.
     """
+
     @abstractmethod
     def evaluate(self, candidate):
         """
@@ -27,6 +28,7 @@ class PrecisionFitness(FitnessStrategy):
     """
     Precision fitness strategy evaluates and compares candidates based on precision.
     """
+
     def evaluate(self, candidate):
         return candidate.precision
 
@@ -51,6 +53,7 @@ class RecallPriorityFitness(FitnessStrategy):
     Recall priority fitness strategy evaluates and compares candidates based on recall and precision.
     It ranks candidates based on recall first and then precision.
     """
+
     def evaluate(self, candidate):
         return candidate.recall, candidate.precision
 
@@ -68,7 +71,11 @@ class F1ScoreFitness(FitnessStrategy):
     """
 
     def evaluate(self, candidate):
-        return 2 * (candidate.precision * candidate.recall) / (candidate.precision + candidate.recall)
+        return (
+            2
+            * (candidate.precision * candidate.recall)
+            / (candidate.precision + candidate.recall)
+        )
 
     def compare(self, candidate1, candidate2):
         return self.evaluate(candidate1) - self.evaluate(candidate2)

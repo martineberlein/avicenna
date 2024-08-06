@@ -21,7 +21,9 @@ class CandidateLearner(ABC):
         self.candidates: List[Candidate] = []
 
     @abstractmethod
-    def learn_candidates(self, test_inputs: Iterable[Input]) -> Optional[List[Candidate]]:
+    def learn_candidates(
+        self, test_inputs: Iterable[Input]
+    ) -> Optional[List[Candidate]]:
         """
         Learn the candidates based on the test inputs.
         :param test_inputs: The test inputs to learn the candidates from.
@@ -102,8 +104,7 @@ class TruthTablePatternCandidateLearner(PatternCandidateLearner, ABC):
         :param recall_value_: The recall value.
         """
         return (
-            precision_value_ >= self.min_precision
-            and recall_value_ >= self.min_recall
+            precision_value_ >= self.min_precision and recall_value_ >= self.min_recall
         )
 
     def get_candidates(self) -> Optional[List[Candidate]]:
@@ -120,12 +121,14 @@ class TruthTablePatternCandidateLearner(PatternCandidateLearner, ABC):
 
             if self.meets_minimum_criteria(precision_value, recall_value):
                 candidates.append(
-                    Candidate(
-                        precision_row.formula, precision_value, recall_value
-                    )
+                    Candidate(precision_row.formula, precision_value, recall_value)
                 )
 
-        return sorted(candidates, key=lambda c: c.with_strategy(self.sorting_strategy), reverse=True)
+        return sorted(
+            candidates,
+            key=lambda c: c.with_strategy(self.sorting_strategy),
+            reverse=True,
+        )
 
     def get_best_candidates(
         self,
@@ -140,19 +143,13 @@ class TruthTablePatternCandidateLearner(PatternCandidateLearner, ABC):
             return self._get_best_candidates(candidates)
 
     @staticmethod
-    def _get_best_candidates(
-        candidates: List[Candidate]
-    ) -> List[Candidate]:
+    def _get_best_candidates(candidates: List[Candidate]) -> List[Candidate]:
         """
         Selects the best formulas based on the precision and recall values.
         :param candidates: The candidates to select the best from.
         :return List[Candidate]: The best learned candidates.
         """
-        return [
-            candidate
-            for candidate in candidates
-            if candidate == candidates[0]
-        ]
+        return [candidate for candidate in candidates if candidate == candidates[0]]
 
     def reset(self):
         """

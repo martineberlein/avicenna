@@ -112,15 +112,17 @@ class HeuristicTreePatternLearner(ExhaustivePatternCandidateLearner):
                 precision_row = self.precision_truth_table.rows[
                     clf.tree_.feature[path[0]]
                 ]
-                recall_row = self.recall_truth_table.rows[
-                    clf.tree_.feature[path[0]]
-                ]
+                recall_row = self.recall_truth_table.rows[clf.tree_.feature[path[0]]]
 
                 for elem in path[1:-1]:
-                    new_precision_row = self.precision_truth_table.rows[clf.tree_.feature[elem]]
+                    new_precision_row = self.precision_truth_table.rows[
+                        clf.tree_.feature[elem]
+                    ]
                     precision_row = precision_row.__and__(new_precision_row)
 
-                    new_recall_row = self.recall_truth_table.rows[clf.tree_.feature[elem]]
+                    new_recall_row = self.recall_truth_table.rows[
+                        clf.tree_.feature[elem]
+                    ]
                     recall_row = recall_row.__and__(new_recall_row)
 
                 self.precision_truth_table.append(precision_row)
