@@ -15,18 +15,20 @@ class TestExhaustivePatternLearner(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.test_inputs = set([
-            Input.from_str(grammar, inp, inp_oracle)
-            for inp, inp_oracle in [
-                ("sqrt(-901)", OracleResult.FAILING),
-                ("sqrt(-8)", OracleResult.FAILING),
-                ("sqrt(10)", OracleResult.PASSING),
-                ("cos(1)", OracleResult.PASSING),
-                ("sin(99)", OracleResult.PASSING),
-                ("tan(-20)", OracleResult.PASSING),
-                ("sqrt(-20)", OracleResult.FAILING),
+        cls.test_inputs = set(
+            [
+                Input.from_str(grammar, inp, inp_oracle)
+                for inp, inp_oracle in [
+                    ("sqrt(-901)", OracleResult.FAILING),
+                    ("sqrt(-8)", OracleResult.FAILING),
+                    ("sqrt(10)", OracleResult.PASSING),
+                    ("cos(1)", OracleResult.PASSING),
+                    ("sin(99)", OracleResult.PASSING),
+                    ("tan(-20)", OracleResult.PASSING),
+                    ("sqrt(-20)", OracleResult.FAILING),
+                ]
             ]
-        ])
+        )
         cls.exclude_nonterminals = [
             "<digits>",
             "<maybe_digits>",
@@ -48,13 +50,17 @@ class TestExhaustivePatternLearner(unittest.TestCase):
 
     def test_exhaustive_pattern_learner(self):
         """Test the exhaustive pattern learner with initial inputs."""
-        result = self.exhaustive_learner.learn_candidates(self.test_inputs, self.exclude_nonterminals)
+        result = self.exhaustive_learner.learn_candidates(
+            self.test_inputs, self.exclude_nonterminals
+        )
         self.verify_candidates(result, expected_length=15)
         self.exhaustive_learner.reset()
 
     def test_reset(self):
         """Test the reset method."""
-        self.exhaustive_learner.learn_candidates(self.test_inputs, self.exclude_nonterminals)
+        self.exhaustive_learner.learn_candidates(
+            self.test_inputs, self.exclude_nonterminals
+        )
         self.exhaustive_learner.reset()
         self.assertEqual(len(self.exhaustive_learner.precision_truth_table.rows), 0)
         self.assertEqual(len(self.exhaustive_learner.recall_truth_table.rows), 0)
@@ -63,21 +69,27 @@ class TestExhaustivePatternLearner(unittest.TestCase):
 
     def test_exhaustive_pattern_learner_more_runs(self):
         """Test the exhaustive pattern learner with additional inputs."""
-        result = self.exhaustive_learner.learn_candidates(self.test_inputs, self.exclude_nonterminals)
+        result = self.exhaustive_learner.learn_candidates(
+            self.test_inputs, self.exclude_nonterminals
+        )
         self.verify_candidates(result, expected_length=15)
 
-        more_inputs = set([
-            Input.from_str(grammar, inp, inp_oracle)
-            for inp, inp_oracle in [
-                ("sqrt(-1)", OracleResult.FAILING),
-                ("sqrt(-3)", OracleResult.FAILING),
-                ("sqrt(1)", OracleResult.PASSING),
-                ("cos(14)", OracleResult.PASSING),
-                ("sin(9123)", OracleResult.PASSING),
-                ("tan(-2)", OracleResult.PASSING),
+        more_inputs = set(
+            [
+                Input.from_str(grammar, inp, inp_oracle)
+                for inp, inp_oracle in [
+                    ("sqrt(-1)", OracleResult.FAILING),
+                    ("sqrt(-3)", OracleResult.FAILING),
+                    ("sqrt(1)", OracleResult.PASSING),
+                    ("cos(14)", OracleResult.PASSING),
+                    ("sin(9123)", OracleResult.PASSING),
+                    ("tan(-2)", OracleResult.PASSING),
+                ]
             ]
-        ])
-        result = self.exhaustive_learner.learn_candidates(more_inputs, self.exclude_nonterminals)
+        )
+        result = self.exhaustive_learner.learn_candidates(
+            more_inputs, self.exclude_nonterminals
+        )
         self.verify_candidates(result, expected_length=15)
         best_candidates = self.exhaustive_learner.get_best_candidates()
         self.verify_candidates(best_candidates, expected_length=4)
@@ -85,14 +97,18 @@ class TestExhaustivePatternLearner(unittest.TestCase):
 
     def test_get_candidates(self):
         """Test the get_candidates method."""
-        _ = self.exhaustive_learner.learn_candidates(self.test_inputs, self.exclude_nonterminals)
+        _ = self.exhaustive_learner.learn_candidates(
+            self.test_inputs, self.exclude_nonterminals
+        )
         result = self.exhaustive_learner.get_candidates()
         self.verify_candidates(result, expected_length=15)
         self.exhaustive_learner.reset()
 
     def test_get_best_candidates(self):
         """Test the get_best_candidates method."""
-        _ = self.exhaustive_learner.learn_candidates(self.test_inputs, self.exclude_nonterminals)
+        _ = self.exhaustive_learner.learn_candidates(
+            self.test_inputs, self.exclude_nonterminals
+        )
         result = self.exhaustive_learner.get_best_candidates()
         self.verify_candidates(result, expected_length=10)
         self.exhaustive_learner.reset()
