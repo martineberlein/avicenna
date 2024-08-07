@@ -21,7 +21,7 @@ from avicenna.input.input import Input
 
 from avicenna.learning.learner import CandidateLearner
 from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
-from avicenna.learning.candidate import Candidate
+from avicenna.learning.table import Candidate
 
 from avicenna.learning import get_pattern_file_path
 from avicenna.runner.execution_handler import SingleExecutionHandler, BatchExecutionHandler

@@ -1,29 +1,21 @@
 import copy
 import logging
-import functools
-from typing import List, Tuple, Dict, Optional, Iterable, Sequence, Set
-import itertools
+from typing import List, Dict, Iterable, Sequence, Set, Optional
 
-import pandas
-import numpy
 from isla.evaluator import evaluate
-from isla.language import Formula, ConjunctiveFormula
-from islearn.learner import weighted_geometric_mean
 from grammar_graph import gg
 from isla import language
-from islearn.learner import InvariantLearner
+from debugging_framework.input.oracle import OracleResult
+from avicenna.input.input import Input
+from avicenna.learning.metric import FitnessStrategy, RecallPriorityLengthFitness
 
 STANDARD_PATTERNS_REPO = "patterns.toml"
 logger = logging.getLogger("learner")
 
-from debugging_framework.fuzzingbook.grammar import Grammar
-from debugging_framework.input.oracle import OracleResult
-from avicenna.input.input import Input
 
-
-class AvicennaTruthTableRow:
+class Candidate:
     """
-    A truth table row contains a formula, a set of inputs, a list of evaluation results and a combination of inputs and
+    A candidate contains a formula, a set of inputs, a list of evaluation results and a combination of inputs and
     evaluation results.
     """
 
@@ -31,17 +23,20 @@ class AvicennaTruthTableRow:
         self,
         formula: language.Formula,
         inputs: Set[Input] = None,
-        eval_results: Sequence[bool] = (),
+        positive_eval_results: Sequence[bool] = (),
+        negative_eval_results: Sequence[bool] = (),
         comb: Dict[Input, bool] = None,
     ):
         self.formula = formula
         self.inputs = inputs or set()
-        self.eval_results: List[bool] = list(eval_results)
+        self.failing_inputs_eval_results: List[bool] = list(positive_eval_results)
+        self.passing_inputs_eval_results: List[bool] = list(negative_eval_results)
         self.comb: Dict[Input, bool] = comb or {}
 
     def __copy__(self):
-        return AvicennaTruthTableRow(
-            self.formula, self.inputs, self.eval_results, self.comb
+        return Candidate(
+            self.formula, self.inputs, self.failing_inputs_eval_results,
+            self.passing_inputs_eval_results, self.comb
         )
 
     def evaluate(
@@ -49,151 +44,236 @@ class AvicennaTruthTableRow:
         test_inputs: Set[Input],
         graph: gg.GrammarGraph,
     ):
+        """
+        Evaluate the formula on a set of inputs and update the evaluation results and combination.
+        """
         new_inputs = test_inputs - self.inputs
 
         for inp in new_inputs:
             eval_result = evaluate(
                 self.formula, inp.tree, graph.grammar, graph=graph
             ).is_true()
-            self.update_eval_results_and_combination(eval_result, inp)
+            self._update_eval_results_and_combination(eval_result, inp)
 
         self.inputs.update(new_inputs)
+        assert self.inputs_are_valid()
 
-    def should_stop_evaluation(
-        self, negative_results: int, lazy: bool, result_threshold: float
-    ) -> bool:
-        return lazy and negative_results > len(self.inputs) * (1 - result_threshold)
-
-    def extend_eval_results_with_false(self):
-        self.eval_results += [
-            False for _ in range(len(self.inputs) - len(self.eval_results))
-        ]
-
-    @staticmethod
-    def evaluate_formula_for_input(
-        formula: language.Formula, inp: Input, graph: gg.GrammarGraph
-    ) -> bool:
-        return evaluate(formula, inp.tree, graph.grammar, graph=graph).is_true()
-
-    def update_eval_results_and_combination(self, eval_result: bool, inp: Input):
-        self.eval_results.append(eval_result)
+    def _update_eval_results_and_combination(self, eval_result: bool, inp: Input):
+        """
+        Update the evaluation results and combination with a new input and its evaluation result.
+        """
+        if inp.oracle == OracleResult.FAILING:
+            self.failing_inputs_eval_results.append(eval_result)
+        else:
+            self.passing_inputs_eval_results.append(eval_result)
         self.comb[inp] = eval_result
 
-    def eval_result(self) -> float:
-        assert self.inputs_are_valid()
-        return sum(int(entry) for entry in self.eval_results) / len(self.eval_results)
+    def specificity(self) -> float:
+        """
+        Return the specificity of the candidate.
+        """
+        return sum(not int(entry) for entry in self.passing_inputs_eval_results) / len(self.passing_inputs_eval_results)
+
+    def recall(self) -> float:
+        """
+        Return the recall of the candidate.
+        """
+        return sum(int(entry) for entry in self.failing_inputs_eval_results) / len(self.failing_inputs_eval_results)
+
+    def precision(self) -> float:
+        """
+        Return the precision of the candidate.
+        """
+        tp = sum(int(entry) for entry in self.failing_inputs_eval_results)
+        fp = sum(int(entry) for entry in self.passing_inputs_eval_results)
+        return tp / (tp + fp) if tp + fp > 0 else 0.0
 
     def inputs_are_valid(self) -> bool:
-        return 0 < len(self.inputs) == len(self.eval_results) and all(
-            isinstance(entry, bool) for entry in self.eval_results
+        """
+        Return whether the candidate has valid inputs and evaluation results.
+        """
+        return len(self.inputs) == (len(self.failing_inputs_eval_results) + len(self.passing_inputs_eval_results)) and all(
+            isinstance(entry, bool) for entry in self.failing_inputs_eval_results + self.passing_inputs_eval_results
         )
 
+    def with_strategy(self, strategy: FitnessStrategy):
+        return strategy.evaluate(self)
+
+    def __lt__(self, other):
+        if not isinstance(other, Candidate):
+            return NotImplemented
+        strategy = RecallPriorityLengthFitness()
+        return strategy.compare(self, other) < 0
+
+    def __gt__(self, other):
+        if not isinstance(other, Candidate):
+            return NotImplemented
+        strategy = RecallPriorityLengthFitness()
+        return strategy.compare(self, other) > 0
+
     def __repr__(self):
-        return f"TruthTableRow({str(self.formula)},{repr(self.eval_results)})"
+        """
+        Return a string representation of the candidate.
+        """
+        return f"Candidate({str(self.formula)},failing={repr(self.failing_inputs_eval_results)}, passing={repr(self.passing_inputs_eval_results)})"
 
     def __str__(self):
-        return f"{self.formula.__str__()}: {', '.join(map(str, self.eval_results))}, {self.comb}"
+        """
+        Return a string representation of the candidate.
+        """
+        return self.__repr__()
 
     def __eq__(self, other):
+        """
+        Return whether two candidates are equal.
+        """
         return (
-            isinstance(other, AvicennaTruthTableRow) and self.formula == other.formula
+            isinstance(other, Candidate) and self.formula == other.formula
         )
 
     def __len__(self):
-        return len(self.eval_results)
+        """
+        Return the number of inputs in the candidate.
+        """
+        return len(self.inputs)
 
     def __hash__(self):
+        """
+        Return a hash of the candidate based on its formula.
+        """
         return hash(self.formula)
 
     def __neg__(self):
+        """
+        Return the negation of the candidate formula.
+        """
         comb = {}
         for inp in self.comb.keys():
             comb[inp] = not self.comb[inp]
 
-        return AvicennaTruthTableRow(
-            -self.formula,
-            self.inputs,
-            [not eval_result for eval_result in self.eval_results],
-            comb,
+        return Candidate(
+            formula=-self.formula,
+            inputs=self.inputs,
+            positive_eval_results=[not eval_result for eval_result in self.failing_inputs_eval_results],
+            negative_eval_results=[not eval_result for eval_result in self.passing_inputs_eval_results],
+            comb=comb,
         )
 
-    def __and__(self, other: "AvicennaTruthTableRow") -> "AvicennaTruthTableRow":
+    def __and__(self, other: "Candidate") -> "Candidate":
+        """
+        Return the conjunction of two candidates by combining their formulas, inputs and evaluation results.
+        """
         assert len(self.inputs) == len(other.inputs)
-        assert len(self.eval_results) == len(other.eval_results)
-        assert self.comb.keys() == other.comb.keys()
+        assert len(self.failing_inputs_eval_results) == len(other.failing_inputs_eval_results)
+        assert len(self.passing_inputs_eval_results) == len(other.passing_inputs_eval_results)
 
-        eval_result = []
+        new_failing_results = []
+        new_passing_results = []
         comb = {}
         for inp in self.comb.keys():
             r = self.comb[inp] and other.comb[inp]
-            eval_result.append(r)
+            if inp.oracle == OracleResult.FAILING:
+                new_failing_results.append(r)
+            else:
+                new_passing_results.append(r)
             comb[inp] = r
 
         inputs = copy.copy(self.inputs)
 
-        return AvicennaTruthTableRow(
-            self.formula & other.formula, inputs, eval_result, comb
+        return Candidate(
+            formula=self.formula & other.formula,
+            inputs=inputs,
+            positive_eval_results=new_failing_results,
+            negative_eval_results=new_passing_results,
+            comb=comb,
         )
 
-    def __or__(self, other: "AvicennaTruthTableRow") -> "AvicennaTruthTableRow":
+    def __or__(self, other: "Candidate") -> "Candidate":
+        """
+        Return the disjunction of two candidates by combining their formulas, inputs and evaluation results.
+        """
         raise NotImplementedError()
 
 
-class AvicennaTruthTable:
+class CandidateSet:
     """
     A truth table is a list of truth table rows. It is used to store the results of evaluating formulas on a set of inputs.
     """
 
-    def __init__(self, rows: Iterable[AvicennaTruthTableRow] = ()):
-        self.row_hashes = set()
-        self.rows = []
-        for row in rows:
-            row_hash = hash(row)
-            if row_hash not in self.row_hashes:
-                self.row_hashes.add(row_hash)
-                self.rows.append(row)
+    def __init__(self, candidates: Iterable[Candidate] = ()):
+        self.candidate_hashes = set()
+        self.candidates = []
+        for candidate in candidates:
+            candidate_hash = hash(candidate)
+            if candidate_hash not in self.candidate_hashes:
+                self.candidate_hashes.add(candidate_hash)
+                self.candidates.append(candidate)
 
     def __deepcopy__(self, memodict=None):
-        return AvicennaTruthTable([copy.copy(row) for row in self.rows])
+        """
+        Return a deep copy of the candidate set and its candidates.
+        """
+        return CandidateSet([copy.copy(row) for row in self.candidates])
 
     def __repr__(self):
-        return f"TruthTable({repr(self.rows)})"
+        """
+        Return a string representation of the candidate set and its candidates.
+        """
+        return f"CandidateSet({repr(self.candidates)})"
 
     def __str__(self):
-        return "\n".join(map(str, self.rows))
+        """
+        Return a string representation of the candidate set and its candidates.
+        """
+        return "\n".join(map(str, self.candidates))
 
-    def __getitem__(self, item: int | language.Formula) -> AvicennaTruthTableRow:
+    def __getitem__(self, item: int | language.Formula) -> Optional[Candidate]:
+        """
+        Retrieve a candidate by index or formula.
+        """
         if isinstance(item, int):
-            return self.rows[item]
-
+            return self.candidates[item]
         assert isinstance(item, language.Formula)
         try:
-            return next(row for row in self.rows if row.formula == item)
+            return next(row for row in self.candidates if row.formula == item)
         except StopIteration:
-            raise KeyError(item)
+            return None
 
     def __len__(self):
-        return len(self.rows)
+        """
+        Return the number of candidates in the candidate set.
+        """
+        return len(self.candidates)
 
     def __iter__(self):
-        return iter(self.rows)
+        """
+        Iterate over the candidates in the candidate set.
+        """
+        return iter(self.candidates)
 
-    def append(self, row: AvicennaTruthTableRow):
-        row_hash = hash(row)
-        if row_hash not in self.row_hashes:
-            self.row_hashes.add(row_hash)
-            self.rows.append(row)
+    def append(self, candidate: Candidate):
+        """
+        Add a candidate to the candidate set.
+        """
+        candidate_hash = hash(candidate)
+        if candidate_hash not in self.candidate_hashes:
+            self.candidate_hashes.add(candidate_hash)
+            self.candidates.append(candidate)
+        else:
+            print(f"Attempted to add duplicate candidate {candidate.formula}.")
+            print(f"Existing candidate: {self[candidate.formula].formula}")
 
-    def remove(self, row: AvicennaTruthTableRow):
-        if hash(row) in self.row_hashes:
-            self.rows.remove(row)
-            self.row_hashes.remove(hash(row))
+    def remove(self, candidate: Candidate):
+        """
+        Remove a candidate from the candidate set.
+        """
+        candidate_hash = hash(candidate)
+        if candidate_hash in self.candidate_hashes:
+            self.candidates.remove(candidate)
+            self.candidate_hashes.remove(candidate_hash)
 
-    def __add__(self, other: "AvicennaTruthTable") -> "AvicennaTruthTable":
-        return AvicennaTruthTable(self.rows + other.rows)
-
-    def __iadd__(self, other: "AvicennaTruthTable") -> "AvicennaTruthTable":
-        for row in other.rows:
-            self.append(row)
-
-        return self
+    def __add__(self, other: "CandidateSet") -> "CandidateSet":
+        """
+        Combine two candidate sets.
+        """
+        return CandidateSet(self.candidates + other.candidates)

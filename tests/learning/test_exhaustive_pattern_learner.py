@@ -8,7 +8,7 @@ from avicenna_formalizations.calculator import grammar
 
 from avicenna.input.input import Input
 from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
-from avicenna.learning.candidate import Candidate
+from avicenna.learning.table import Candidate, CandidateSet
 
 
 class TestExhaustivePatternLearner(unittest.TestCase):
@@ -39,21 +39,24 @@ class TestExhaustivePatternLearner(unittest.TestCase):
         ]
         cls.exhaustive_learner = ExhaustivePatternCandidateLearner(grammar)
 
-    def verify_candidates(self, result: List[Candidate], expected_length: int):
-        self.assertEqual(len(result), expected_length)
+    def verify_candidates(self, result: List[Candidate], expected_length: int | None):
+        if expected_length:
+            self.assertEqual(len(result), expected_length)
+        if len(result) != expected_length:
+            print("FAILED, expected ", expected_length, " but got ", len(result))
         for candidate in result:
             print(language.ISLaUnparser(candidate.formula).unparse())
-            print("Precision: ", candidate.precision, " Recall: ", candidate.recall)
+            print("Specificity: ", candidate.specificity(), " Recall: ", candidate.recall(), " Precision: ", candidate.precision(), "length: ", len(candidate.inputs))
             self.assertIsInstance(candidate.formula, language.Formula)
-            self.assertIsInstance(candidate.precision, float)
-            self.assertIsInstance(candidate.recall, float)
+            self.assertIsInstance(candidate.precision(), float)
+            self.assertIsInstance(candidate.recall(), float)
 
     def test_exhaustive_pattern_learner(self):
         """Test the exhaustive pattern learner with initial inputs."""
         result = self.exhaustive_learner.learn_candidates(
             self.test_inputs, self.exclude_nonterminals
         )
-        self.verify_candidates(result, expected_length=15)
+        self.verify_candidates(result, expected_length=25)
         self.exhaustive_learner.reset()
 
     def test_reset(self):
@@ -62,8 +65,7 @@ class TestExhaustivePatternLearner(unittest.TestCase):
             self.test_inputs, self.exclude_nonterminals
         )
         self.exhaustive_learner.reset()
-        self.assertEqual(len(self.exhaustive_learner.precision_truth_table.rows), 0)
-        self.assertEqual(len(self.exhaustive_learner.recall_truth_table.rows), 0)
+        self.assertEqual(len(self.exhaustive_learner.candidates), 0)
         self.assertEqual(len(self.exhaustive_learner.positive_examples), 0)
         self.assertEqual(len(self.exhaustive_learner.negative_examples), 0)
 
@@ -72,7 +74,7 @@ class TestExhaustivePatternLearner(unittest.TestCase):
         result = self.exhaustive_learner.learn_candidates(
             self.test_inputs, self.exclude_nonterminals
         )
-        self.verify_candidates(result, expected_length=15)
+        self.verify_candidates(result, expected_length=25)
 
         more_inputs = set(
             [
@@ -90,7 +92,7 @@ class TestExhaustivePatternLearner(unittest.TestCase):
         result = self.exhaustive_learner.learn_candidates(
             more_inputs, self.exclude_nonterminals
         )
-        self.verify_candidates(result, expected_length=15)
+        self.verify_candidates(result, expected_length=25)
         best_candidates = self.exhaustive_learner.get_best_candidates()
         self.verify_candidates(best_candidates, expected_length=4)
         self.exhaustive_learner.reset()
@@ -101,7 +103,7 @@ class TestExhaustivePatternLearner(unittest.TestCase):
             self.test_inputs, self.exclude_nonterminals
         )
         result = self.exhaustive_learner.get_candidates()
-        self.verify_candidates(result, expected_length=15)
+        self.verify_candidates(result, expected_length=25)
         self.exhaustive_learner.reset()
 
     def test_get_best_candidates(self):

@@ -25,7 +25,7 @@ from debugging_framework.input.oracle import OracleResult
 from avicenna.input.input import Input
 
 from avicenna.learning.learner import PatternCandidateLearner
-from avicenna.learning.table import AvicennaTruthTable, AvicennaTruthTableRow
+#from avicenna.learning.table import AvicennaTruthTable, AvicennaTruthTableRow
 from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
 
 logger = logging.getLogger("learner")

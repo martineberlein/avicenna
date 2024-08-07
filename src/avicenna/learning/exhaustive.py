@@ -1,12 +1,8 @@
 import copy
 import logging
-import functools
-from typing import List, Tuple, Dict, Optional, Iterable, Sequence, Set
+from typing import List, Tuple, Optional, Iterable, Set
 import itertools
 
-import pandas
-import numpy
-from isla.evaluator import evaluate
 from isla.language import Formula, ConjunctiveFormula
 from islearn.learner import weighted_geometric_mean
 from grammar_graph import gg
@@ -18,8 +14,7 @@ from debugging_framework.input.oracle import OracleResult
 from avicenna.input.input import Input
 
 from avicenna.learning.learner import TruthTablePatternCandidateLearner
-from avicenna.learning.table import AvicennaTruthTable, AvicennaTruthTableRow
-from avicenna.learning.candidate import Candidate
+from avicenna.learning.table import Candidate, CandidateSet
 
 logger = logging.getLogger("learner")
 
@@ -46,11 +41,11 @@ class ExhaustivePatternCandidateLearner(
         InvariantLearner.__init__(
             self,
             grammar,
+            min_recall=min_recall,
+            min_specificity=min_specificity,
             patterns=list(self.patterns),
             filter_inputs_for_learning_by_kpaths=False,
         )
-        self.min_recall = min_recall
-        self.min_specificity = min_specificity
         self.all_negative_inputs: Set[Input] = set()
         self.all_positive_inputs: Set[Input] = set()
         self.graph = gg.GrammarGraph.from_grammar(grammar)
@@ -75,6 +70,9 @@ class ExhaustivePatternCandidateLearner(
 
     @staticmethod
     def categorize_inputs(test_inputs: Set[Input]) -> Tuple[Set[Input], Set[Input]]:
+        """
+        Categorize the inputs into positive and negative inputs based on their oracle results.
+        """
         positive_inputs = {
             inp for inp in test_inputs if inp.oracle == OracleResult.FAILING
         }
@@ -92,32 +90,35 @@ class ExhaustivePatternCandidateLearner(
         positive_inputs: Set[Input],
         negative_inputs: Set[Input],
     ) -> List[Candidate]:
+        """
+        Learn invariants from the positive and negative inputs and return the learned candidates.
+        """
         sorted_positive_inputs = self.sort_and_filter_inputs(self.all_positive_inputs)
-        candidates = self.get_recall_candidates(sorted_positive_inputs)
+        new_candidates: Set[Candidate] = self.get_recall_candidates(sorted_positive_inputs)
 
-        self.evaluate_recall(candidates, positive_inputs)
-        self.filter_candidates()
-        self.evaluate_precision(negative_inputs)
+        cans = set(self.candidates.candidates)
+        print("Candidates: ", len(cans))
+        for candidate in new_candidates:
+            if candidate not in cans:
+                print("Missing")
+                cans.add(candidate)
 
-        self.get_disjunctions()
+        print("Total Candidates: ", len(cans))
+        for candidate in cans:
+            self.evaluate_formula(candidate, positive_inputs, negative_inputs)
+        print("Remaining Candidates: ", len(self.candidates))
         self.get_conjunctions()
+        print("After Combinations Candidates: ", len(self.candidates))
+        #self.filter_candidates_by_min_requirements()
+        print("After Filtering Candidates: ", len(self.candidates))
 
-        result = self.get_result_list()
-        return result
+        return self.sort_candidates()
 
-    @staticmethod
-    def clean_up_tables(candidates, precision_truth_table, recall_truth_table):
-        rows_to_remove = [
-            row for row in recall_truth_table if row.formula not in candidates
-        ]
-        for row in rows_to_remove:
-            recall_truth_table.remove(row)
-            precision_truth_table.remove(row)
-
-    def get_recall_candidates(self, sorted_positive_inputs) -> Set[Formula]:
-        candidates = self.generate_candidates(
+    def get_recall_candidates(self, sorted_positive_inputs) -> Set[Candidate]:
+        candidates_formula = self.generate_candidates(
             self.patterns, [inp.tree for inp in sorted_positive_inputs]
         )
+        candidates = set(Candidate(formula) for formula in candidates_formula)
         logger.info("Found %d invariant candidates.", len(candidates))
         return candidates
 
@@ -140,186 +141,109 @@ class ExhaustivePatternCandidateLearner(
 
         return sorted_positive_inputs[:max_number_positive_inputs_for_learning]
 
-    def evaluate_recall(self, candidates, positive_inputs):
-        logger.info("Evaluating Recall.")
-        for candidate in candidates.union(
-            set([row.formula for row in self.recall_truth_table])
-        ):
-            if (
-                len(self.recall_truth_table) > 0
-                and AvicennaTruthTableRow(candidate) in self.recall_truth_table
-            ):
-                self.recall_truth_table[candidate].evaluate(positive_inputs, self.graph)
+    def evaluate_formula(self, candidate: Candidate, positive_inputs: Set[Input], negative_inputs: Set[Input]):
+        """
+        Evaluates a formula on a set of inputs.
+        """
+        logger.info("Evaluating Formula.")
+        if candidate in self.candidates:
+            candidate.evaluate(positive_inputs, self.graph)
+            if candidate.recall() < self.min_recall:
+                # filter out candidates that do not meet the recall threshold
+                self.candidates.remove(candidate)
             else:
-                new_row = AvicennaTruthTableRow(candidate)
-                new_row.evaluate(self.all_positive_inputs, self.graph)
-                self.recall_truth_table.append(new_row)
-
-    def filter_candidates(
-        self,
-    ):
-        # Deleting throws away all calculated evals so far == bad -> maybe only pass TruthTableRows >= self.min_recall?
-        rows_to_remove = [
-            row
-            for row in self.recall_truth_table
-            if row.eval_result() < self.min_recall
-            or isinstance(row.formula, ConjunctiveFormula)
-        ]
-        if self.max_disjunction_size < 2:
-            for row in rows_to_remove:
-                self.recall_truth_table.remove(row)
-                self.precision_truth_table.remove(row)
-
-    def evaluate_precision(
-        self,
-        negative_inputs,
-    ):
-        logger.info("Evaluating Precision.")
-        for row in self.recall_truth_table:
-            if len(self.recall_truth_table) > 0 and row in self.precision_truth_table:
-                self.precision_truth_table[row.formula].evaluate(
-                    negative_inputs, self.graph
-                )
+                # evaluate the candidate on the remaining negative inputs
+                candidate.evaluate(negative_inputs, self.graph)
+        else:
+            candidate.evaluate(self.all_positive_inputs, self.graph)
+            candidate.evaluate(self.all_negative_inputs, self.graph)
+            if candidate.recall() >= self.min_recall:
+                self.candidates.append(candidate)
             else:
-                # print("Complete Eval Precision")
-                new_row = AvicennaTruthTableRow(row.formula)
-                new_row.evaluate(self.all_negative_inputs, self.graph)
-                self.precision_truth_table.append(new_row)
+                pass # raise AssertionError(f"this should not be possible. recall: {candidate.recall()}")
 
-        assert len(self.precision_truth_table) == len(self.recall_truth_table)
+    def filter_candidates_by_min_requirements(self):
+        """
+        Filters out candidates that do not meet the minimum requirements.
+        """
+        logger.info("Filtering Candidates.")
+        candidates_to_remove = [
+            candidate for candidate in self.candidates if candidate.specificity() < self.min_specificity or candidate.recall() < self.min_recall]
 
-    def get_result_list(
-        self,
-    ) -> List[Candidate]:
-        def meets_criteria(precision_value_, recall_value_):
-            return (
-                precision_value_ >= self.min_specificity
-                and recall_value_ >= self.min_recall
-            )
+        for candidate in candidates_to_remove:
+            self.candidates.remove(candidate)
 
-        result: List[Candidate] = []
-        for idx, precision_row in enumerate(self.precision_truth_table):
-            precision_value = 1 - precision_row.eval_result()
-            recall_value = self.recall_truth_table[idx].eval_result()
-
-            if meets_criteria(precision_value, recall_value):
-                result.append(
-                    Candidate(precision_row.formula, precision_value, recall_value)
-                )
-
-        # result.sort(key=lambda x: (x[1], x[2], -len(x[0])), reverse=True)
-        sorted_ = sorted(
-            result, key=lambda c: c.with_strategy(self.sorting_strategy), reverse=True
-        )
-
-        logger.info(
-            "Found %d invariants with precision >= %d%% and recall >= %d%%.",
-            len(
-                sorted_
-            ),  # if p[0] >= self.min_specificity and p[1] >= self.min_recall]),
-            int(self.min_specificity * 100),
-            int(self.min_recall * 100),
-        )
-        return sorted_
+    def sort_candidates(self):
+        """
+        Sorts the candidates based on the sorting strategy.
+        """
+        logger.info("Sorting Candidates.")
+        sorted_candidates = sorted(self.candidates, key=lambda candidate: candidate.with_strategy(self.sorting_strategy), reverse=True)
+        return sorted_candidates
 
     def get_disjunctions(self):
+        """
+        Calculate the disjunctions of the formulas.
+        """
         pass
+
+    def check_minimum_recall(self, candidates: List[Candidate]) -> bool:
+        """
+        Check if the recall of the candidates in the combination is greater than the minimum
+        """
+        return all(
+            candidate.recall() >= self.min_recall for candidate in candidates
+        )
+
+    def is_new_conjunction_valid(
+        self, conjunction: Candidate, combination: List[Candidate]
+    ) -> bool:
+        """
+        Check if the new conjunction is valid based on the minimum specificity and the recall of the candidates in
+        the combination. The specificity of the new conjunction should be greater than the minimum specificity and
+        the specificity of the conjunction should be greater than the specificity of the individual formula.
+        """
+        new_specificity = conjunction.specificity()
+        return new_specificity >= self.min_specificity and all(
+            new_specificity > candidate.specificity() for candidate in combination
+        )
 
     def get_conjunctions(
         self,
     ):
+        print("Double Candidates: ", len(self.candidates))
         logger.info("Calculating Boolean Combinations.")
+        combinations = self.get_possible_conjunctions(self.candidates)
+        print("Possible Candidates: ", len(combinations))
+
+        con_counter = 0
+        for combination in combinations:
+            # check min recall
+            if not self.check_minimum_recall(combination):
+                continue
+            conjunction: Candidate = combination[0]
+            for candidate in combination[1:]:
+                conjunction = conjunction & candidate
+
+            conjunction.formula = language.ensure_unique_bound_variables(
+                conjunction.formula
+            )
+
+            if self.is_new_conjunction_valid(conjunction, combination):
+                con_counter += 1
+                self.candidates.append(conjunction)
+
+        print("Number of Conjunctions: ", con_counter)
+    def get_possible_conjunctions(self, candidate_set: CandidateSet):
+        """
+        Get all possible conjunctions of the candidate set with a maximum size of max_conjunction_size.
+        """
+        combinations = []
+        candidate_set_without_conjunctions = [candidate for candidate in candidate_set if not isinstance(candidate.formula, ConjunctiveFormula)]
         for level in range(2, self.max_conjunction_size + 1):
-            self.process_conjunction_level(
-                level, self.precision_truth_table, self.recall_truth_table
-            )
-
-    def process_conjunction_level(
-        self,
-        level: int,
-        precision_truth_table: AvicennaTruthTable,
-        recall_truth_table: AvicennaTruthTable,
-    ):
-        combinations = self.get_combinations_of_truth_table_rows(
-            level, precision_truth_table
-        )
-
-        for rows_with_indices in combinations:
-            self.process_combination(
-                rows_with_indices, precision_truth_table, recall_truth_table
-            )
-
-    @staticmethod
-    def get_combinations_of_truth_table_rows(
-        level: int, truth_table: AvicennaTruthTable
-    ):
-        return itertools.combinations(enumerate(truth_table), level)
-
-    def process_combination(
-        self,
-        rows_with_indices,
-        precision_truth_table: AvicennaTruthTable,
-        recall_truth_table: AvicennaTruthTable,
-    ):
-        precision_table_rows = [row for (_, row) in rows_with_indices]
-
-        if not self.rows_meet_minimum_recall(rows_with_indices, recall_truth_table):
-            return
-
-        self.add_conjunction_to_truth_table(
-            precision_table_rows,
-            precision_truth_table,
-            recall_truth_table,
-            rows_with_indices,
-        )
-
-    def rows_meet_minimum_recall(
-        self, rows_with_indices, recall_truth_table: AvicennaTruthTable
-    ) -> bool:
-        return any(
-            recall_truth_table[idx].eval_result() >= self.min_recall
-            for idx, _ in rows_with_indices
-        )
-
-    def rows_meet_minimum_precision(
-        self, rows_with_indices, precision_truth_table: AvicennaTruthTable
-    ) -> bool:
-        return not any(
-            precision_truth_table[idx].eval_result() < self.min_specificity
-            for idx, _ in rows_with_indices
-        )
-
-    def add_conjunction_to_truth_table(
-        self,
-        precision_table_rows,
-        precision_truth_table: AvicennaTruthTable,
-        recall_truth_table: AvicennaTruthTable,
-        rows_with_indices,
-    ):
-        precision_conjunction = self.get_conjunction(precision_table_rows)
-        recall_conjunction = self.get_conjunction(
-            [recall_truth_table[idx] for idx, _ in rows_with_indices]
-        )
-
-        if self.is_new_conjunction_valid(precision_conjunction, precision_table_rows):
-            precision_truth_table.append(precision_conjunction)
-            recall_truth_table.append(recall_conjunction)
-
-    @staticmethod
-    def get_conjunction(table_rows) -> AvicennaTruthTableRow:
-        conjunction = functools.reduce(AvicennaTruthTableRow.__and__, table_rows)
-        conjunction.formula = language.ensure_unique_bound_variables(
-            conjunction.formula
-        )
-        return conjunction
-
-    def is_new_conjunction_valid(
-        self, conjunction: AvicennaTruthTableRow, precision_table_rows
-    ) -> bool:
-        new_precision = 1 - conjunction.eval_result()
-        return new_precision >= self.min_specificity and all(
-            new_precision > 1 - row.eval_result() for row in precision_table_rows
-        )
+            for comb in itertools.combinations(candidate_set_without_conjunctions, level):
+                combinations.append(comb)
+        return combinations
 
     def _sort_inputs(
         self,
@@ -328,6 +252,9 @@ class ExhaustivePatternCandidateLearner(
         more_paths_weight: float = 1.0,
         smaller_inputs_weight: float = 0.0,
     ) -> List[Input]:
+        """
+        Sort the inputs based on the number of uncovered paths and the length of the inputs.
+        """
         assert more_paths_weight or smaller_inputs_weight
         result: List[Input] = []
 
@@ -384,14 +311,13 @@ class ExhaustivePatternCandidateLearner(
 
         return result
 
-    def reduce_inputs(
-        self, test_inputs: Set[Input], negative_inputs: Set[Input]
-    ) -> Tuple[Set[Input], Set[Input]]:
-        raise NotImplementedError()
-
     def reset(self):
+        """
+        Reset the learner to its initial state.
+        """
         self.all_negative_inputs: Set[Input] = set()
         self.all_positive_inputs: Set[Input] = set()
         self.exclude_nonterminals: Set[str] = set()
         self.positive_examples_for_learning: List[language.DerivationTree] = []
+        self.candidates = CandidateSet()
         super().reset()

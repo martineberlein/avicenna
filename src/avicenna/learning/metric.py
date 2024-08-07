@@ -23,6 +23,12 @@ class FitnessStrategy(ABC):
         """
         raise NotImplementedError("Subclasses should implement this method")
 
+    def is_equal(self, candidate1, candidate2):
+        """
+        Return whether two fitness strategies are equal.
+        """
+        return self.evaluate(candidate1) == self.evaluate(candidate2)
+
 
 class PrecisionFitness(FitnessStrategy):
     """
@@ -30,7 +36,7 @@ class PrecisionFitness(FitnessStrategy):
     """
 
     def evaluate(self, candidate):
-        return candidate.precision
+        return candidate.precision()
 
     def compare(self, candidate1, candidate2):
         return self.evaluate(candidate1) - self.evaluate(candidate2)
@@ -42,7 +48,7 @@ class RecallFitness(FitnessStrategy):
     """
 
     def evaluate(self, candidate):
-        return candidate.recall
+        return candidate.recall()
 
     def compare(self, candidate1, candidate2):
         return self.evaluate(candidate1) - self.evaluate(candidate2)
@@ -55,7 +61,7 @@ class RecallPriorityFitness(FitnessStrategy):
     """
 
     def evaluate(self, candidate):
-        return candidate.recall, candidate.precision
+        return candidate.recall(), candidate.precision()
 
     def compare(self, candidate1, candidate2):
         recall1, precision1 = self.evaluate(candidate1)
@@ -73,7 +79,7 @@ class RecallPriorityLengthFitness(FitnessStrategy):
     """
 
     def evaluate(self, candidate):
-        return candidate.recall, candidate.precision, - len(candidate.formula)
+        return candidate.recall(), candidate.precision(), - len(candidate.formula)
 
     def compare(self, candidate1, candidate2):
         recall1, precision1, length1 = self.evaluate(candidate1)
@@ -93,8 +99,8 @@ class F1ScoreFitness(FitnessStrategy):
     def evaluate(self, candidate):
         return (
             2
-            * (candidate.precision * candidate.recall)
-            / (candidate.precision + candidate.recall)
+            * (candidate.precision() * candidate.recall())
+            / (candidate.precision() + candidate.recall())
         ), -len(candidate.formula)
 
     def compare(self, candidate1, candidate2):
