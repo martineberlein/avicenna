@@ -32,7 +32,7 @@ if __name__ == "__main__":
     diagnosis = avicenna.explain()
     print("Final Diagnosis:")
     print(ISLaUnparser(diagnosis.formula).unparse())
-    print(f"Precision: {diagnosis.precision} Recall: {diagnosis.recall} Length: {len(diagnosis.formula)}")
+    print(f"Precision: {diagnosis.precision()} Recall: {diagnosis.recall()} Length: {len(diagnosis.formula)}")
 
     print("\nEquivalent Representations:")
     equivalent_representations = avicenna.get_equivalent_best_formulas()
@@ -40,4 +40,5 @@ if __name__ == "__main__":
     if equivalent_representations:
         for diagnosis in equivalent_representations:
             print(ISLaUnparser(diagnosis.formula).unparse())
-            print(f"Precision: {diagnosis.precision} Recall: {diagnosis.recall} Length: {len(diagnosis.formula)}")
+            print(f"Precision: {diagnosis.precision()} Recall: {diagnosis.recall()} Length: {len(diagnosis.formula)}")
+
