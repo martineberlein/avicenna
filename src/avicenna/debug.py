@@ -3,12 +3,13 @@ from abc import ABC, abstractmethod
 from typing import Iterable, Optional, Set, List, Union
 import time
 
-from debugging_framework.fuzzingbook.grammar import Grammar
+from debugging_framework.fuzzingbook.grammar import Grammar, is_valid_grammar
 from debugging_framework.types import OracleType
 from avicenna.input.input import Input
 from avicenna.learning.learner import CandidateLearner
 from avicenna.learning.table import Candidate
 from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
+from avicenna.learning.metric import FitnessStrategy, RecallPriorityStringLengthFitness
 from avicenna.generator.generator import Generator, ISLaGrammarBasedGenerator
 from avicenna.runner.execution_handler import ExecutionHandler, SingleExecutionHandler
 
@@ -24,6 +25,7 @@ class InputFeatureDebugger(ABC):
         """
         Initialize the input feature debugger with a grammar, oracle, and initial inputs.
         """
+        assert is_valid_grammar(grammar)
         self.initial_inputs = initial_inputs
         self.grammar = grammar
         self.oracle = oracle
@@ -119,7 +121,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
             return False
         return True
 
-    def explain(self) -> Optional[Candidate]:
+    def explain(self) -> Optional[List[Candidate]]:
         """
         Explain the input features that result in the failure of a program.
         """
@@ -136,7 +138,8 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         except TimeoutError as e:
             logging.error(e)
         finally:
-            return self.get_best_candidate()
+            strategy = RecallPriorityStringLengthFitness()
+            return self.get_best_candidate(strategy)
 
     def prepare_test_inputs(self) -> Set[Input]:
         """
@@ -165,7 +168,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         """
         Generate the test inputs based on the learned candidates.
         """
-        return self.generator.generate(candidates)
+        return self.generator.generate_test_inputs(candidates=candidates)
 
     def run_test_inputs(self, test_inputs: Set[Input]) -> Set[Input]:
         """
@@ -173,11 +176,16 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         """
         return self.runner.label(test_inputs=test_inputs)
 
-    def get_best_candidate(self):
+    def get_best_candidate(self, strategy: FitnessStrategy) -> Optional[List[Candidate]]:
         """
         Return the best candidate.
         """
-        return self.learner.get_best_candidates()
+        if not strategy:
+            return self.learner.get_best_candidates()
+        else:
+            candidates = self.learner.get_best_candidates()
+            sorted_candidates = sorted(candidates, key=strategy.evaluate, reverse=True)
+            return sorted_candidates
 
     def get_test_inputs_from_strings(self, inputs: Iterable[str]) -> Set[Input]:
         """
