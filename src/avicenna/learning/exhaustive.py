@@ -100,7 +100,6 @@ class ExhaustivePatternCandidateLearner(
         print("Candidates: ", len(cans))
         for candidate in new_candidates:
             if candidate not in cans:
-                print("Missing")
                 cans.add(candidate)
 
         print("Total Candidates: ", len(cans))
@@ -145,7 +144,7 @@ class ExhaustivePatternCandidateLearner(
         """
         Evaluates a formula on a set of inputs.
         """
-        logger.info("Evaluating Formula.")
+        #logger.info("Evaluating Formula.")
         if candidate in self.candidates:
             candidate.evaluate(positive_inputs, self.graph)
             if candidate.recall() < self.min_recall:
