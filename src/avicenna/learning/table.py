@@ -1,5 +1,4 @@
 import copy
-import logging
 from typing import List, Dict, Iterable, Sequence, Set, Optional
 
 from isla.evaluator import evaluate
@@ -8,9 +7,6 @@ from isla import language
 from debugging_framework.input.oracle import OracleResult
 from avicenna.input.input import Input
 from avicenna.learning.metric import FitnessStrategy, RecallPriorityLengthFitness
-
-STANDARD_PATTERNS_REPO = "patterns.toml"
-logger = logging.getLogger("learner")
 
 
 class Candidate:
@@ -277,9 +273,6 @@ class CandidateSet:
         if candidate_hash not in self.candidate_hashes:
             self.candidate_hashes.add(candidate_hash)
             self.candidates.append(candidate)
-        else:
-            print(f"Attempted to add duplicate candidate {candidate.formula}.")
-            print(f"Existing candidate: {self[candidate.formula].formula}")
 
     def remove(self, candidate: Candidate):
         """

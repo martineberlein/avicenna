@@ -97,19 +97,14 @@ class ExhaustivePatternCandidateLearner(
         new_candidates: Set[Candidate] = self.get_recall_candidates(sorted_positive_inputs)
 
         cans = set(self.candidates.candidates)
-        print("Candidates: ", len(cans))
         for candidate in new_candidates:
             if candidate not in cans:
                 cans.add(candidate)
 
-        print("Total Candidates: ", len(cans))
         for candidate in cans:
             self.evaluate_formula(candidate, positive_inputs, negative_inputs)
-        print("Remaining Candidates: ", len(self.candidates))
         self.get_conjunctions()
-        print("After Combinations Candidates: ", len(self.candidates))
-        #self.filter_candidates_by_min_requirements()
-        print("After Filtering Candidates: ", len(self.candidates))
+        # self.filter_candidates_by_min_requirements()
 
         return self.sort_candidates()
 
@@ -144,7 +139,6 @@ class ExhaustivePatternCandidateLearner(
         """
         Evaluates a formula on a set of inputs.
         """
-        #logger.info("Evaluating Formula.")
         if candidate in self.candidates:
             candidate.evaluate(positive_inputs, self.graph)
             if candidate.recall() < self.min_recall:
@@ -165,7 +159,6 @@ class ExhaustivePatternCandidateLearner(
         """
         Filters out candidates that do not meet the minimum requirements.
         """
-        logger.info("Filtering Candidates.")
         candidates_to_remove = [
             candidate for candidate in self.candidates if candidate.specificity() < self.min_specificity or candidate.recall() < self.min_recall]
 
@@ -176,7 +169,6 @@ class ExhaustivePatternCandidateLearner(
         """
         Sorts the candidates based on the sorting strategy.
         """
-        logger.info("Sorting Candidates.")
         sorted_candidates = sorted(self.candidates, key=lambda candidate: candidate.with_strategy(self.sorting_strategy), reverse=True)
         return sorted_candidates
 
@@ -210,10 +202,7 @@ class ExhaustivePatternCandidateLearner(
     def get_conjunctions(
         self,
     ):
-        print("Double Candidates: ", len(self.candidates))
-        logger.info("Calculating Boolean Combinations.")
         combinations = self.get_possible_conjunctions(self.candidates)
-        print("Possible Candidates: ", len(combinations))
 
         con_counter = 0
         for combination in combinations:
@@ -232,7 +221,6 @@ class ExhaustivePatternCandidateLearner(
                 con_counter += 1
                 self.candidates.append(conjunction)
 
-        print("Number of Conjunctions: ", con_counter)
     def get_possible_conjunctions(self, candidate_set: CandidateSet):
         """
         Get all possible conjunctions of the candidate set with a maximum size of max_conjunction_size.

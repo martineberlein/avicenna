@@ -1,7 +1,6 @@
 import logging
 from typing import List, Set, Type, Optional, Any, Tuple
 from abc import ABC, abstractmethod
-import warnings
 import numpy as np
 from pandas import DataFrame
 from grammar_graph.gg import GrammarGraph
@@ -10,7 +9,6 @@ from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 import shap
-
 
 from debugging_framework.fuzzingbook.grammar import Grammar
 from debugging_framework.input.oracle import OracleResult

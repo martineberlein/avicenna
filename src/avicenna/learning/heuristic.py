@@ -31,7 +31,7 @@ from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
 logger = logging.getLogger("learner")
 
 
-class HeuristicTreePatternLearner(ExhaustivePatternCandidateLearner):
+class HeuristicTreePatternCandidateLearner(ExhaustivePatternCandidateLearner):
     def _learn_invariants(
         self,
         positive_inputs: Set[Input],
