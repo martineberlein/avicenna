@@ -1,6 +1,6 @@
-from typing import Dict, List, Set, Iterable, cast
 import toml
 import logging
+from typing import Dict, List, Set, Iterable, cast
 
 from islearn.language import AbstractISLaUnparser, parse_abstract_isla
 import isla.language as language
@@ -11,7 +11,15 @@ logger = logging.getLogger("learner")
 
 
 class PatternRepository:
+    """
+    A pattern repository contains a set of patterns that can be used to learn new candidates.
+    """
+
     def __init__(self, data: Dict[str, List[Dict[str, str]]]):
+        """
+        Create a pattern repository from a dictionary.
+        :param Dict[str, List[Dict[str, str]]] data: The dictionary containing the patterns.
+        """
         self.groups: Dict[str, Dict[str, language.Formula]] = {
             group_name: {
                 entry["name"]: parse_abstract_isla(entry["constraint"])
@@ -22,6 +30,11 @@ class PatternRepository:
 
     @classmethod
     def from_file(cls, file_path: str = None) -> "PatternRepository":
+        """
+        Create a pattern repository from a toml file.
+        :param str file_path: The path to the toml file.
+        :return PatternRepository: The pattern repository.
+        """
         file_name = file_path if file_path else get_pattern_file_path()
         try:
             with open(file_name, "r") as f:
@@ -37,9 +50,28 @@ class PatternRepository:
 
     @classmethod
     def from_data(cls, data: Dict[str, List[Dict[str, str]]]) -> "PatternRepository":
+        """
+        Create a pattern repository from a dictionary.
+        :param Dict[str, List[Dict[str, str]]] data: The dictionary containing the patterns.
+        """
         return cls(data)
 
+    def get_all(self, but: Iterable[str] = tuple()) -> Set[language.Formula]:
+        """
+        Get all patterns except for the ones in the "but-list".
+        :param Iterable[str] but: The list of patterns to exclude.
+        :return Set[language.Formula]: The set of patterns.
+        """
+        exclude = {formula for pattern in but for formula in self[pattern]}
+        all_patterns = {
+            formula for group in self.groups.values() for formula in group.values()
+        }
+        return all_patterns - exclude
+
     def __getitem__(self, item: str) -> Set[language.Formula]:
+        """
+        Get the pattern for a given query.
+        """
         for group in self.groups.values():
             if item in group:
                 return {group[item]}
@@ -51,13 +83,6 @@ class PatternRepository:
 
     def __len__(self) -> int:
         return sum(len(group) for group in self.groups.values())
-
-    def get_all(self, but: Iterable[str] = tuple()) -> Set[language.Formula]:
-        exclude = {formula for pattern in but for formula in self[pattern]}
-        all_patterns = {
-            formula for group in self.groups.values() for formula in group.values()
-        }
-        return all_patterns - exclude
 
     def __str__(self) -> str:
         result = []

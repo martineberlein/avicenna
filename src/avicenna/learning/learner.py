@@ -1,4 +1,4 @@
-from typing import Iterable, List, Optional, Set, Tuple
+from typing import Iterable, List, Optional, Set
 from abc import ABC, abstractmethod
 
 from isla.language import Formula

@@ -27,6 +27,15 @@ class Candidate:
         negative_eval_results: Sequence[bool] = (),
         comb: Dict[Input, bool] = None,
     ):
+        """
+        Initialize a candidate with a formula, a set of inputs, a list of evaluation results and a combination of inputs
+        and evaluation results.
+        :param Formula formula: The formula of the candidate.
+        :param Set[Input] inputs: The inputs of the candidate.
+        :param Sequence[bool] positive_eval_results: The evaluation results of the candidate on positive inputs.
+        :param Sequence[bool] negative_eval_results: The evaluation results of the candidate on negative inputs.
+        :param Dict[Input, bool] comb: The combination of inputs and evaluation results.
+        """
         self.formula = formula
         self.inputs = inputs or set()
         self.failing_inputs_eval_results: List[bool] = list(positive_eval_results)
@@ -97,15 +106,24 @@ class Candidate:
         )
 
     def with_strategy(self, strategy: FitnessStrategy):
+        """
+        Return the evaluation of the candidate with a given fitness strategy.
+        """
         return strategy.evaluate(self)
 
     def __lt__(self, other):
+        """
+        Return whether a candidate is less than another candidate based on a fitness strategy.
+        """
         if not isinstance(other, Candidate):
             return NotImplemented
         strategy = RecallPriorityLengthFitness()
         return strategy.compare(self, other) < 0
 
     def __gt__(self, other):
+        """
+        Return whether a candidate is greater than another candidate based on a fitness strategy.
+        """
         if not isinstance(other, Candidate):
             return NotImplemented
         strategy = RecallPriorityLengthFitness()
