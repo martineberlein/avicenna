@@ -17,9 +17,9 @@ from avicenna.features.features import (
     LengthFeature,
     DerivationFeature
 )
-import avicenna.features.feature_extractor as feature_extractor
-from avicenna.monads import Exceptional
 
+import avicenna.learning.reducer as feature_extractor
+from avicenna.monads import Exceptional
 
 
 class TestRelevantFeatureLearner(unittest.TestCase):
@@ -27,9 +27,11 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         inputs = [
             ("sqrt(-901)", OracleResult.FAILING),
             ("sqrt(-1)", OracleResult.FAILING),
+            ("sqrt(-6)", OracleResult.FAILING),
             ("sqrt(10)", OracleResult.PASSING),
             ("cos(1)", OracleResult.PASSING),
             ("sin(99)", OracleResult.PASSING),
+            ("sin(4)", OracleResult.PASSING),
             ("tan(-20)", OracleResult.PASSING),
         ]
         collector = GrammarFeatureCollector(grammar_calculator)
@@ -55,14 +57,8 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         feature_learner = feature_extractor.DecisionTreeRelevanceLearner(
             grammar_calculator, prune_parent_correlation=False
         )
-        (
-            relevant_features,
-            correlating_features,
-            excluded_features,
-        ) = feature_learner.learn(self.test_inputs)
+        relevant_features = feature_learner.learn(self.test_inputs)
         self.assertNotEqual(len(relevant_features), 0)
-        self.assertNotEqual(len(correlating_features), 0)
-        self.assertNotEqual(len(excluded_features), 0)
 
         expected_features = {
             NumericFeature("<number>"),
@@ -73,7 +69,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         # Check that all expected features are identified as either relevant or correlating.
         self.assertTrue(
             all(
-                feature in relevant_features.union(correlating_features)
+                feature in relevant_features
                 for feature in expected_features
             )
         )
@@ -88,13 +84,12 @@ class TestRelevantFeatureLearner(unittest.TestCase):
 
     def test_relevant_feature_exception_handling(self):
         feature_learner = feature_extractor.DecisionTreeRelevanceLearner(
-            grammar_calculator, prune_parent_correlation=False
+            grammar_calculator, prune_parent_correlation=True
         )
 
         excluded_non_terminal_strings = (
             Exceptional.of(lambda: self.test_inputs)
             .map(lambda inputs: feature_learner.learn(inputs))
-            .map(lambda x: x[0].union(x[1]))
             .map(lambda x: {feature.non_terminal for feature in x})
             .map(lambda x: set(grammar_calculator.keys()).difference(x))
             .reraise()
@@ -143,7 +138,6 @@ class TestRelevantFeatureLearner(unittest.TestCase):
                 }
             )
             .map(lambda parsed_inputs: feature_learner.learn(parsed_inputs))
-            .map(lambda learning_data: learning_data[0].union(learning_data[1]))
             .map(
                 lambda relevant_features_: {
                     feature.non_terminal for feature in relevant_features_
@@ -177,7 +171,6 @@ class TestRelevantFeatureLearner(unittest.TestCase):
             )
         )
 
-    @flaky(max_runs=3, min_passes=2)
     def test_relevant_feature_learner_middle(self):
         from avicenna_formalizations.middle import grammar, oracle
 
@@ -210,7 +203,6 @@ class TestRelevantFeatureLearner(unittest.TestCase):
                 }
             )
             .map(lambda parsed_inputs: feature_learner.learn(parsed_inputs))
-            .map(lambda learning_data: learning_data[0].union(learning_data[1]))
             .map(
                 lambda relevant_features_: {
                     feature.non_terminal for feature in relevant_features_
@@ -252,7 +244,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         feature_learner = feature_extractor.SHAPRelevanceLearner(
             grammar,
             classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
-            top_n=2,
+            top_n_relevant_features=2,
         )
 
         excluded_non_terminal_strings = (
@@ -271,7 +263,6 @@ class TestRelevantFeatureLearner(unittest.TestCase):
                 }
             )
             .map(lambda parsed_inputs: feature_learner.learn(parsed_inputs))
-            .map(lambda learning_data: learning_data[0].union(learning_data[1]))
             .map(
                 lambda relevant_features_: {
                     feature.non_terminal for feature in relevant_features_
@@ -338,7 +329,6 @@ class TestRelevantFeatureLearner(unittest.TestCase):
                 }
             )
             .map(lambda parsed_inputs: feature_learner.learn(parsed_inputs))
-            .map(lambda learning_data: learning_data[0].union(learning_data[1]))
             .map(
                 lambda relevant_features_: {
                     feature.non_terminal for feature in relevant_features_

@@ -231,12 +231,12 @@ class SKLearFeatureRelevanceLearner(CorrelationRelevanceFeatureLearner, ABC):
 
     def get_relevant_features(
         self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]
-    ) -> List[Feature]:
+    ) -> Set[Feature]:
         """
         Get the relevant features for the program failure based on the classifier.
         """
         classifier = self.fit(x_train, y_train)
-        return self.get_features(x_train, classifier)
+        return set(self.get_features(x_train, classifier))
 
 
 class DecisionTreeRelevanceLearner(SKLearFeatureRelevanceLearner):
@@ -305,7 +305,7 @@ class SHAPRelevanceLearner(CorrelationRelevanceFeatureLearner):
 
     def get_relevant_features(
         self, test_inputs: Set[Input], x_train: DataFrame, y_train: List[int]
-    ) -> List[Feature]:
+    ) -> Set[Feature]:
         """
         Get the relevant features for the program failure based on SHAP values.
         """
@@ -314,9 +314,9 @@ class SHAPRelevanceLearner(CorrelationRelevanceFeatureLearner):
         shap_values: np.ndarray = self.get_shap_values(classifier, x_train)
         if self.show_beeswarm_plot:
             self.display_beeswarm_plot(shap_values, x_train)
-        return self.get_sorted_features_by_importance(shap_values, x_train)[
+        return set(self.get_sorted_features_by_importance(shap_values, x_train)[
             : self.top_n_relevant_features
-        ]
+        ])
 
     def normalize_learning_data(self, data: DataFrame):
         """
