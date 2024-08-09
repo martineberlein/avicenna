@@ -109,3 +109,14 @@ class F1ScoreFitness(FitnessStrategy):
         if f1_score1 != f1_score2:
             return f1_score1 - f1_score2
         return length1 - length2
+
+
+class RecallPriorityStringLengthFitness(RecallPriorityLengthFitness):
+    """
+    Recall priority fitness strategy evaluates and compares candidates based on recall and precision.
+    It ranks candidates based on recall first, then precision, and finally by the string length of the formula.
+    """
+
+    def evaluate(self, candidate):
+        return candidate.recall(), candidate.precision(), - len(str(candidate.formula))
+
