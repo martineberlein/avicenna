@@ -1,5 +1,8 @@
 import logging
+from typing import Set, Callable, Optional, List
 
+from avicenna.learning.table import Candidate
+from avicenna.input.input import Input
 
 LOGGER = logging.getLogger("avicenna")
 
@@ -28,14 +31,48 @@ logging.basicConfig(
 )
 
 
-def log_execution(func):
+def generator_report(result: Set[Input]):
+    logger.info(f"Generated {len(result)} inputs.")
+    logger.debug(f"Generated inputs: {result}")
+
+
+def runner_report(result: Set[Input]):
+    logger.info(f"Executed {len(result)} inputs.")
+    logger.debug(f"Executed inputs: {result}")
+
+
+def learner_report(result: Optional[List[Candidate]]):
+    logger.info(f"Learned {len(result)} patterns.")
+    logger.debug(f"Learned patterns: {result}")
+
+
+def log_execution_with_report(report_func: Optional[Callable]):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            logger.info(f"Executing {func.__name__}")
+            try:
+                result = func(*args, **kwargs)
+                logger.info(f"{func.__name__} executed successfully")
+                report_func(result)
+                return result
+            except Exception as e:
+                logger.error(f"Error in {func.__name__}", exc_info=True)
+                raise
+        return wrapper
+    return decorator
+
+
+def log_execution(func, report_func: Optional[Callable] = None):
     def wrapper(*args, **kwargs):
         logger.info(f"Executing {func.__name__}")
         try:
             result = func(*args, **kwargs)
             logger.info(f"{func.__name__} executed successfully")
+            if report_func:
+                report_func(result)
             return result
         except Exception as e:
             logger.error(f"Error in {func.__name__}", exc_info=True)
             raise
     return wrapper
+
