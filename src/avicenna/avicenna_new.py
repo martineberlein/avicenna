@@ -1,8 +1,8 @@
 from typing import Iterable, Set, Optional, List
 from pathlib import Path
 
-from avicenna.debug import InputFeatureDebugger, HypothesisInputFeatureDebugger
-from fuzzingbook.Grammars import Grammar, is_valid_grammar
+from avicenna.debug import HypothesisInputFeatureDebugger
+from fuzzingbook.Grammars import Grammar
 from debugging_framework.types import OracleType
 
 from avicenna.input.input import Input
@@ -17,7 +17,8 @@ from avicenna.learning.reducer import (
     GradientBoostingTreeRelevanceLearner,
 )
 from avicenna.features.feature_collector import GrammarFeatureCollector
-from avicenna.logger import log_execution
+#from avicenna.logger import log_execution, log_execution_with_report, generator_report
+import avicenna.logger as logging
 
 
 class Avicenna(HypothesisInputFeatureDebugger):
@@ -64,11 +65,10 @@ class Avicenna(HypothesisInputFeatureDebugger):
             timeout_seconds=timeout_seconds,
             max_iterations=max_iterations,
         )
-        self.top_n_relevant_features = top_n_relevant_features
 
         self.feature_learner: FeatureReducer = SHAPRelevanceLearner(
             self.grammar,
-            top_n_relevant_features=self.top_n_relevant_features,
+            top_n_relevant_features=top_n_relevant_features,
             classifier_type=GradientBoostingTreeRelevanceLearner,
         )
         self.collector = GrammarFeatureCollector(self.grammar)
@@ -103,7 +103,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
         )
         return irrelevant_features
 
-    @log_execution
+    @logging.log_execution_with_report(logging.learner_report)
     def learn_candidates(self, test_inputs: Set[Input]) -> Optional[List[Candidate]]:
         """
         Learn the candidates based on the test inputs.
@@ -116,7 +116,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
         )
         return candidates
 
-    @log_execution
+    @logging.log_execution_with_report(logging.generator_report)
     def generate_test_inputs(self, candidates: List[Candidate]) -> Set[Input]:
         """
         Generate the test inputs based on the learned candidates.
@@ -126,7 +126,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
         test_inputs = self.generator.generate_test_inputs(candidates=candidates)
         return test_inputs
 
-    @log_execution
+    @logging.log_execution_with_report(logging.runner_report)
     def run_test_inputs(self, test_inputs: Set[Input]) -> Set[Input]:
         """
         Run the test inputs to label them. The test inputs are labeled based on the oracle.
