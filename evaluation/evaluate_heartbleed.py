@@ -2,9 +2,10 @@ from typing import Dict, Any
 
 from isla.language import ISLaUnparser
 
-from avicenna import Avicenna
+#from avicenna import Avicenna
+from avicenna.avicenna_new import Avicenna
 from avicenna_formalizations.heartbeat import grammar, oracle, initial_inputs
-from avicenna.evaluation_setup import EvaluationSubject
+from evaluation.evaluation_setup import EvaluationSubject
 
 
 def eval_config() -> Dict[str, Any]:
@@ -28,17 +29,17 @@ if __name__ == "__main__":
     param = heartbleed_subject.get_evaluation_config()
 
     avicenna = Avicenna(**param)
+    diagnoses = avicenna.explain()
 
-    diagnosis = avicenna.explain()
+    diagnosis = diagnoses.pop(0)
     print("Final Diagnosis:")
     print(ISLaUnparser(diagnosis.formula).unparse())
     print(f"Precision: {diagnosis.precision()} Recall: {diagnosis.recall()} Length: {len(diagnosis.formula)}")
 
     print("\nEquivalent Representations:")
-    equivalent_representations = avicenna.get_equivalent_best_formulas()
+    equivalent_representations = diagnoses
 
     if equivalent_representations:
         for diagnosis in equivalent_representations:
             print(ISLaUnparser(diagnosis.formula).unparse())
             print(f"Precision: {diagnosis.precision()} Recall: {diagnosis.recall()} Length: {len(diagnosis.formula)}")
-
