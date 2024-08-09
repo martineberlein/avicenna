@@ -21,7 +21,7 @@ class CandidateLearner(ABC):
 
     @abstractmethod
     def learn_candidates(
-        self, test_inputs: Iterable[Input]
+        self, test_inputs: Iterable[Input], **kwargs
     ) -> Optional[List[Candidate]]:
         """
         Learn the candidates based on the test inputs.
