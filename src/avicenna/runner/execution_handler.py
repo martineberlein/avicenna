@@ -37,6 +37,7 @@ class SingleExecutionHandler(ExecutionHandler):
             inp.oracle = label
             if label.is_failing() and report:
                 self.add_to_report(report, inp, exception)
+        return test_inputs
 
     def label_strings(self, test_inputs: Set[str], report: Report = None):
         for inp in test_inputs:
@@ -61,3 +62,4 @@ class BatchExecutionHandler(ExecutionHandler):
             inp.oracle = label
             if label.is_failing() and report:
                 self.add_to_report(report, inp, exception)
+        return test_inputs
