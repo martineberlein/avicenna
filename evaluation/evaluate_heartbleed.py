@@ -1,6 +1,6 @@
 from isla.language import ISLaUnparser
 
-from avicenna.avicenna_new import Avicenna
+from avicenna import Avicenna
 from evaluation.resources.heartbeat import grammar, oracle, initial_inputs
 
 

@@ -1,7 +1,7 @@
 import string
 from isla.language import ISLaUnparser
 
-from avicenna.avicenna_new import Avicenna
+from avicenna import Avicenna
 from avicenna.input.input import OracleResult
 
 

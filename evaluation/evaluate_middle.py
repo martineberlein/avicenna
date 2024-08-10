@@ -1,6 +1,4 @@
-from typing import Dict, Any
-
-from avicenna.avicenna_new import Avicenna
+from avicenna import Avicenna
 from isla.language import ISLaUnparser
 from debugging_benchmark.middle.middle import MiddleBenchmarkRepository
 
