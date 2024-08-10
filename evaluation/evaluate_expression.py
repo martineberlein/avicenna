@@ -1,7 +1,7 @@
 import string
 from isla.language import ISLaUnparser
 
-from avicenna import Avicenna
+from avicenna.avicenna_new import Avicenna
 from avicenna.input.input import OracleResult
 
 
@@ -43,32 +43,35 @@ divide_by_zero_grammar = {
 
 if __name__ == "__main__":
     param = {
-        "log": True,
         "max_iterations": 5,
         "grammar": divide_by_zero_grammar,
         "initial_inputs": divide_by_zero_inputs,
         "oracle": divide_by_zero_oracle,
     }
 
-    from avicenna.learning.heuristic import HeuristicTreePatternLearner
     avicenna = Avicenna(**param)
 
-    diagnosis = avicenna.explain()
-    print("Final Diagnosis:")
-    print(ISLaUnparser(diagnosis[0]).unparse())
+    diagnoses = avicenna.explain()
 
-    equivalent_representations = avicenna.get_equivalent_best_formulas()
+    diagnosis = diagnoses.pop(0)
+    print("Final Diagnosis:")
+    print(ISLaUnparser(diagnosis.formula).unparse())
+    print(f"Precision: {diagnosis.precision()} Recall: {diagnosis.recall()} Length: {len(diagnosis.formula)}")
+
+    print("\nEquivalent Representations:")
+    equivalent_representations = diagnoses
 
     if equivalent_representations:
-        print("\nEquivalent Representations:")
         for diagnosis in equivalent_representations:
-            print(ISLaUnparser(diagnosis[0]).unparse())
+            print(ISLaUnparser(diagnosis.formula).unparse())
+            print(f"Precision: {diagnosis.precision()} Recall: {diagnosis.recall()} Length: {len(diagnosis.formula)}")
 
-    print("All Learned Formulas (that meet min criteria)", end="\n\n")
-    cand = avicenna.get_learned_formulas()
-    for can in cand:
-        print(
-            f"Avicenna calculated a precision of {can[1] * 100:.2f}% and a recall of {can[2] * 100:.2f}%"
-        )
-        print(ISLaUnparser(can[0]).unparse(), end="\n\n")
-        print(len(can[0]))
+
+    # print("All Learned Formulas (that meet min criteria)", end="\n\n")
+    # cand = avicenna.get_learned_formulas()
+    # for can in cand:
+    #     print(
+    #         f"Avicenna calculated a precision of {can[1] * 100:.2f}% and a recall of {can[2] * 100:.2f}%"
+    #     )
+    #     print(ISLaUnparser(can[0]).unparse(), end="\n\n")
+    #     print(len(can[0]))

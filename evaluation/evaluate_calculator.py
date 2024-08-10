@@ -2,7 +2,6 @@ from isla.language import ISLaUnparser
 
 from avicenna.avicenna_new import Avicenna
 from debugging_benchmark.calculator.calculator import CalculatorBenchmarkRepository
-from avicenna.learning.heuristic import HeuristicTreePatternLearner
 
 
 if __name__ == "__main__":
