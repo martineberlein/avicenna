@@ -1,30 +1,29 @@
 from typing import Iterable, Set, Optional, List
 from pathlib import Path
 
-from avicenna.debug import HypothesisInputFeatureDebugger
 from fuzzingbook.Grammars import Grammar
 from debugging_framework.types import OracleType
 
-from avicenna.input.input import Input
-from avicenna.learning.learner import CandidateLearner
-from avicenna.learning.table import Candidate
-from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
-from avicenna.generator.generator import Generator, ISLaGrammarBasedGenerator
-from avicenna.runner.execution_handler import ExecutionHandler
-from avicenna.learning.reducer import (
+from .core import HypothesisInputFeatureDebugger
+from .input.input import Input
+from .learning.learner import CandidateLearner
+from .learning.table import Candidate
+from .learning.exhaustive import ExhaustivePatternCandidateLearner
+from .generator.generator import Generator, ISLaGrammarBasedGenerator
+from .runner.execution_handler import ExecutionHandler
+from .learning.reducer import (
     FeatureReducer,
     SHAPRelevanceLearner,
-    GradientBoostingTreeRelevanceLearner,
-    DecisionTreeRelevanceLearner,
+    GradientBoostingTreeRelevanceLearner
 )
-from avicenna.features.feature_collector import GrammarFeatureCollector
+from .features.feature_collector import GrammarFeatureCollector
 import avicenna.logger as logging
 
 
 class Avicenna(HypothesisInputFeatureDebugger):
     """
-    Avicenna is a hypothesis-based input feature debugger that uses a pattern-based candidate learner to explain the input
-    features that result in the failure of a program.
+    Avicenna is a hypothesis-based input feature debugger that uses a pattern-based candidate learner to explain
+    the input features that result in the failure of a program.
     """
 
     def __init__(
@@ -72,10 +71,6 @@ class Avicenna(HypothesisInputFeatureDebugger):
             classifier_type=GradientBoostingTreeRelevanceLearner,
         )
 
-        # self.feature_learner = DecisionTreeRelevanceLearner(
-        #     self.grammar,
-        #     top_n_relevant_features=top_n_relevant_features,
-        # )
         self.collector = GrammarFeatureCollector(self.grammar)
 
     def set_feature_reducer(self, feature_reducer: FeatureReducer):
