@@ -3,8 +3,8 @@ from typing import Callable, Union, Sequence, Optional, Set, List, Tuple
 
 from debugging_framework.input.oracle import OracleResult
 
-from avicenna.input.input import Input
-from avicenna.report import TResultMonad, Report
+from ..input.input import Input
+from .report import TResultMonad, Report
 
 
 class ExecutionHandler(ABC):

@@ -5,13 +5,14 @@ import time
 
 from debugging_framework.fuzzingbook.grammar import Grammar, is_valid_grammar
 from debugging_framework.types import OracleType
-from avicenna.input.input import Input
-from avicenna.learning.learner import CandidateLearner
-from avicenna.learning.table import Candidate
-from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
-from avicenna.learning.metric import FitnessStrategy, RecallPriorityStringLengthFitness
-from avicenna.generator.generator import Generator, ISLaGrammarBasedGenerator
-from avicenna.runner.execution_handler import ExecutionHandler, SingleExecutionHandler
+
+from .input.input import Input
+from .learning.learner import CandidateLearner
+from .learning.table import Candidate
+from .learning.exhaustive import ExhaustivePatternCandidateLearner
+from .learning.metric import FitnessStrategy, RecallPriorityStringLengthFitness
+from .generator.generator import Generator, ISLaGrammarBasedGenerator
+from .runner.execution_handler import ExecutionHandler, SingleExecutionHandler
 
 
 class InputFeatureDebugger(ABC):
