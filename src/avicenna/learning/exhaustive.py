@@ -152,8 +152,6 @@ class ExhaustivePatternCandidateLearner(
             candidate.evaluate(self.all_negative_inputs, self.graph)
             if candidate.recall() >= self.min_recall:
                 self.candidates.append(candidate)
-            else:
-                pass # raise AssertionError(f"this should not be possible. recall: {candidate.recall()}")
 
     def filter_candidates_by_min_requirements(self):
         """
