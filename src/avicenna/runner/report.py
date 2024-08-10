@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Set, Union, List
 from collections import defaultdict
 
-from avicenna.input.input import Input
+from ..data import Input
 
 
 class TResultMonad:

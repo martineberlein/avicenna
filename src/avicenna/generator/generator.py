@@ -3,15 +3,13 @@ from abc import ABC, abstractmethod
 
 from islearn.mutation import MutationFuzzer
 from isla.fuzzer import GrammarFuzzer
-from isla.language import DerivationTree, Formula
+from isla.language import DerivationTree
 from isla.solver import ISLaSolver
 from debugging_framework.fuzzingbook.grammar import Grammar
 from debugging_framework.fuzzingbook.fuzzer import GrammarFuzzer as FuzzingbookGrammarFuzzer
 
-from avicenna.input.input import Input
-from avicenna.input.helpers import map_to_bool
-
-from avicenna.learning.table import Candidate
+from ..data import Input
+from ..learning.table import Candidate
 
 
 class Generator(ABC):
@@ -61,7 +59,7 @@ class FuzzingbookBasedGenerator(Generator):
         """
         Generate an input to be used in the debugging process.
         """
-        return Input(DerivationTree.from_parse_tree(self.fuzzer.fuzz_tree()))
+        return Input(self.fuzzer.fuzz_tree())
 
 
 class ISLaGrammarBasedGenerator(Generator):
@@ -161,7 +159,7 @@ class MutationBasedGenerator(Generator):
             new_coverage = self.coverages_seen - self.coverages_of(inp)
             if (
                     inp in self.population
-                    or not map_to_bool(self.property(inp))
+                    or not self.property(inp).is_failing()
                     or not new_coverage
             ):
                 return False

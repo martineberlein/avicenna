@@ -22,7 +22,7 @@ from debugging_framework.fuzzingbook.grammar import Grammar
 from islearn.learner import InvariantLearner
 
 from debugging_framework.input.oracle import OracleResult
-from avicenna.input.input import Input
+from ..data import Input
 
 from avicenna.learning.learner import PatternCandidateLearner
 #from avicenna.learning.table import AvicennaTruthTable, AvicennaTruthTableRow

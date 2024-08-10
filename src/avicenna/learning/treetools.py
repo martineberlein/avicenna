@@ -1,13 +1,10 @@
 """This file bundles several functions which are helpful when working with decision trees."""
-
 import pandas
 import numpy
 import matplotlib.patches as mpp
 
-# from .features import Feature
-from avicenna.avicenna import OracleResult
 
-# from typing import List
+from ..data import OracleResult
 
 
 def all_path(clf, node=0):

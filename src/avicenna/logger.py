@@ -1,8 +1,8 @@
 import logging
 from typing import Set, Callable, Optional, List
 
-from avicenna.learning.table import Candidate
-from avicenna.input.input import Input
+from .learning.table import Candidate
+from .data import Input
 
 LOGGER = logging.getLogger("avicenna")
 

@@ -12,12 +12,13 @@ import shap
 
 from debugging_framework.fuzzingbook.grammar import Grammar
 from debugging_framework.input.oracle import OracleResult
-from avicenna.features.feature_collector import (
+
+from ..features.feature_collector import (
     Feature,
     FeatureFactory,
     DEFAULT_FEATURE_TYPES,
 )
-from avicenna.input.input import Input
+from ..data import Input
 from avicenna.defaults import MAX_CORRELATED_FEATURES
 
 

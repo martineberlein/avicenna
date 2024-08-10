@@ -4,11 +4,10 @@ from abc import ABC, abstractmethod
 from isla.language import Formula
 from debugging_framework.fuzzingbook.grammar import Grammar
 
-from avicenna.input.input import Input
-from avicenna.learning.repository import PatternRepository
-from avicenna.learning.table import Candidate, CandidateSet
-
-from avicenna.learning.metric import FitnessStrategy, RecallPriorityLengthFitness
+from ..data import Input
+from .repository import PatternRepository
+from .table import Candidate, CandidateSet
+from .metric import FitnessStrategy, RecallPriorityLengthFitness
 
 
 class CandidateLearner(ABC):

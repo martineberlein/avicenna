@@ -5,7 +5,7 @@ from isla.evaluator import evaluate
 from grammar_graph import gg
 from isla import language
 from debugging_framework.input.oracle import OracleResult
-from avicenna.input.input import Input
+from ..data import Input
 from avicenna.learning.metric import FitnessStrategy, RecallPriorityLengthFitness
 
 

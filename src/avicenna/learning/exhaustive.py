@@ -7,14 +7,14 @@ from isla.language import Formula, ConjunctiveFormula
 from islearn.learner import weighted_geometric_mean
 from grammar_graph import gg
 from isla import language
-from debugging_framework.fuzzingbook.grammar import Grammar
 from islearn.learner import InvariantLearner
 
+from debugging_framework.fuzzingbook.grammar import Grammar
 from debugging_framework.input.oracle import OracleResult
-from avicenna.input.input import Input
 
-from avicenna.learning.learner import TruthTablePatternCandidateLearner
-from avicenna.learning.table import Candidate, CandidateSet
+from ..data import Input
+from .learner import TruthTablePatternCandidateLearner
+from .table import Candidate, CandidateSet
 
 logger = logging.getLogger("learner")
 

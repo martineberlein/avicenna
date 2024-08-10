@@ -6,7 +6,7 @@ import time
 from debugging_framework.fuzzingbook.grammar import Grammar, is_valid_grammar
 from debugging_framework.types import OracleType
 
-from .input.input import Input
+from .data import Input
 from .learning.learner import CandidateLearner
 from .learning.table import Candidate
 from .learning.exhaustive import ExhaustivePatternCandidateLearner

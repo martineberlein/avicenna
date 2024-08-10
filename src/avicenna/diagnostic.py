@@ -5,7 +5,7 @@ from debugging_framework.fuzzingbook.grammar import Grammar
 from debugging_framework.types import OracleType
 
 from .core import HypothesisInputFeatureDebugger
-from .input.input import Input
+from .data.input_data import Input
 from .learning.learner import CandidateLearner
 from .learning.table import Candidate
 from .learning.exhaustive import ExhaustivePatternCandidateLearner

@@ -3,7 +3,7 @@ from typing import Callable, Union, Sequence, Optional, Set, List, Tuple
 
 from debugging_framework.input.oracle import OracleResult
 
-from ..input.input import Input
+from ..data import Input
 from .report import TResultMonad, Report
 
 
