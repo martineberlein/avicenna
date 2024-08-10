@@ -15,9 +15,9 @@ from avicenna.learning.reducer import (
     FeatureReducer,
     SHAPRelevanceLearner,
     GradientBoostingTreeRelevanceLearner,
+    DecisionTreeRelevanceLearner,
 )
 from avicenna.features.feature_collector import GrammarFeatureCollector
-#from avicenna.logger import log_execution, log_execution_with_report, generator_report
 import avicenna.logger as logging
 
 
@@ -71,6 +71,11 @@ class Avicenna(HypothesisInputFeatureDebugger):
             top_n_relevant_features=top_n_relevant_features,
             classifier_type=GradientBoostingTreeRelevanceLearner,
         )
+
+        # self.feature_learner = DecisionTreeRelevanceLearner(
+        #     self.grammar,
+        #     top_n_relevant_features=top_n_relevant_features,
+        # )
         self.collector = GrammarFeatureCollector(self.grammar)
 
     def set_feature_reducer(self, feature_reducer: FeatureReducer):
@@ -88,15 +93,23 @@ class Avicenna(HypothesisInputFeatureDebugger):
                 inp.features = self.collector.collect_features(inp)
         return test_inputs
 
-    def get_irrelevant_features(self, test_inputs: Set[Input]) -> Set[str]:
+    @logging.log_execution_with_report(logging.relevant_feature_report)
+    def get_relevant_features(self, test_inputs: Set[Input]) -> Set[str]:
         """
-        Get the irrelevant features based on the test inputs.
+        Get the relevant features based on the test inputs.
         """
-        test_inputs = self.assign_test_inputs_features(test_inputs)
         relevant_features = self.feature_learner.learn(test_inputs)
         relevant_feature_non_terminals = {
             feature.non_terminal for feature in relevant_features
         }
+        return relevant_feature_non_terminals
+
+    @logging.log_execution_with_report(logging.irrelevant_feature_report)
+    def get_irrelevant_features(self, test_inputs: Set[Input]) -> Set[str]:
+        """
+        Get the irrelevant features based on the test inputs.
+        """
+        relevant_feature_non_terminals = self.get_relevant_features(test_inputs)
 
         irrelevant_features = set(self.grammar.keys()).difference(
             relevant_feature_non_terminals
