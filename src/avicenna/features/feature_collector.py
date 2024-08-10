@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import List, Dict, Optional, Any, Type
 from abc import ABC, abstractmethod
 
-from fuzzingbook.Grammars import is_nonterminal, Grammar
+from debugging_framework.fuzzingbook.grammar import is_nonterminal, Grammar
 from isla.language import DerivationTree
 
 from avicenna.input.input import Input

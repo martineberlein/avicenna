@@ -5,7 +5,7 @@ from collections import defaultdict
 
 from debugging_framework.input.oracle import OracleResult
 
-from fuzzingbook.Grammars import is_nonterminal, Grammar, reachable_nonterminals
+from debugging_framework.fuzzingbook.grammar import is_nonterminal, Grammar, reachable_nonterminals
 from isla.language import DerivationTree
 
 

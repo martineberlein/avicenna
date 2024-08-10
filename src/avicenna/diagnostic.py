@@ -1,7 +1,7 @@
 from typing import Iterable, Set, Optional, List
 from pathlib import Path
 
-from fuzzingbook.Grammars import Grammar
+from debugging_framework.fuzzingbook.grammar import Grammar
 from debugging_framework.types import OracleType
 
 from .core import HypothesisInputFeatureDebugger

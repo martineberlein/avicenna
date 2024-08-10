@@ -5,8 +5,8 @@ from islearn.mutation import MutationFuzzer
 from isla.fuzzer import GrammarFuzzer
 from isla.language import DerivationTree, Formula
 from isla.solver import ISLaSolver
-from fuzzingbook.Grammars import Grammar
-from fuzzingbook.GrammarFuzzer import GrammarFuzzer as FuzzingbookGrammarFuzzer
+from debugging_framework.fuzzingbook.grammar import Grammar
+from debugging_framework.fuzzingbook.fuzzer import GrammarFuzzer as FuzzingbookGrammarFuzzer
 
 from avicenna.input.input import Input
 from avicenna.input.helpers import map_to_bool

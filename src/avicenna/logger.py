@@ -60,7 +60,7 @@ def log_execution_with_report(report_func: Optional[Callable]):
             logger.info(f"Executing {func.__name__}")
             try:
                 result = func(*args, **kwargs)
-                #logger.info(f"{func.__name__} executed successfully")
+                # logger.info(f"{func.__name__} executed successfully")
                 report_func(result)
                 return result
             except Exception as e:

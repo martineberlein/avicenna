@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "avicenna"
 version = "0.9.1"
 authors = [
-    { name = "Martin Eberlein", email = "ebermart@informatik.hu-berlin.de" },
+    { name = "Martin Eberlein", email = "martin.eberlein@hu-berlin.de" },
 ]
 readme = "README.md"
 classifiers = [
@@ -20,7 +20,6 @@ classifiers = [
 keywords = [ "debugging"]
 requires-python = ">=3.12"
 dependencies = [
-    "fuzzingbook==1.1",
     "shap>=0.45",
     "lightgbm>=4.3.0",
     "pandas>=2.1.0",
