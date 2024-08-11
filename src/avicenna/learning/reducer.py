@@ -19,7 +19,9 @@ from ..features.feature_collector import (
     DEFAULT_FEATURE_TYPES,
 )
 from ..data import Input
-from avicenna.defaults import MAX_CORRELATED_FEATURES
+
+
+MAX_CORRELATED_FEATURES: int = 10
 
 
 class FeatureReducer(ABC):
@@ -329,11 +331,15 @@ class SHAPRelevanceLearner(CorrelationRelevanceFeatureLearner):
 
     @staticmethod
     def get_shap_values(classifier, x_train) -> np.ndarray:
-        """
-        Get the SHAP values for the classifier.
-        """
         explainer = shap.TreeExplainer(classifier)
-        return explainer.shap_values(x_train)
+        shap_values = explainer.shap_values(x_train, from_call=True)
+
+        # For binary classification, shap_values will be a list of two arrays.
+        # We typically use the SHAP values for the positive class (index 1).
+        if isinstance(shap_values, list) and len(shap_values) == 2:
+            shap_values = shap_values[1]
+
+        return shap_values
 
     @staticmethod
     def get_sorted_features_by_importance(
