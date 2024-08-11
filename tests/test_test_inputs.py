@@ -1,71 +1,74 @@
 import unittest
-from typing import Set, List
+from typing import List
 
-from fuzzingbook.Parser import is_valid_grammar, Grammar
-from debugging_framework.input.oracle import OracleResult
+from debugging_framework.fuzzingbook.grammar import is_valid_grammar, Grammar
 
-
-from avicenna_formalizations.calculator import grammar, oracle
-from avicenna.input.input import Input
-from avicenna.monads import Exceptional
+from avicenna.data import Input, OracleResult
+from tests.resources.calculator import get_calculator_subject
 
 
 class TestInputs(unittest.TestCase):
     def setUp(self) -> None:
         inputs = {"sqrt(-900)", "cos(10)"}
 
-        self.test_inputs: Set[Input] = (
-            Exceptional.of(lambda: inputs)
-            .map(lambda x: {Input.from_str(grammar, inp_) for inp_ in x})
-            .reraise()
-            .get()
-        )
+        self.calculator = get_calculator_subject()
+        self.test_inputs = {
+            Input.from_str(self.calculator.grammar, inp) for inp in inputs
+        }
 
     def test_parsed_inputs_have_expected_trees_and_oracles(self):
         inputs = {
             ("sqrt(-900)", OracleResult.FAILING),
             ("cos(10)", OracleResult.PASSING),
         }
+        labeled_inputs = {
+            inp.update_oracle(self.calculator.oracle(inp)) for inp in self.test_inputs
+        }
 
-        parsed_inputs = (
-            Exceptional.of(lambda: self.test_inputs)
-            .map(lambda x: {inp_.update_oracle(oracle(inp_)) for inp_ in x})
-            .reraise()
-            .get()
-        )
-        actual_trees = {(str(f.tree), f.oracle) for f in parsed_inputs}
+        # Validate oracles and exceptions
+        for inp in labeled_inputs:
+            oracle, exception = inp.oracle
+            self.assertIsInstance(oracle, OracleResult)
+            self.assertIsInstance(
+                exception, ValueError if oracle == OracleResult.FAILING else type(None)
+            )
 
-        self.assertEqual(actual_trees, inputs)
-        self.assertNotIn("cos(X)", set(map(lambda f: str(f.tree), parsed_inputs)))
+        # Check if input strings are as expected
+        input_strings = {str(inp) for inp in labeled_inputs}
+        expected_strings = {x[0] for x in inputs}
+        self.assertSetEqual(input_strings, expected_strings)
+
+        # Validate actual trees and oracles
+        actual_trees = {(str(inp), inp.oracle[0]) for inp in labeled_inputs}
+        self.assertSetEqual(actual_trees, inputs)
+
+        # Additional specific assertion
+        self.assertNotIn("cos(X)", {str(f.tree) for f in labeled_inputs})
 
     def test_input_execution_is_oracle_result(self):
-        parsed_inputs = (
-            Exceptional.of(lambda: self.test_inputs)
-            .map(lambda x: {inp_.update_oracle(oracle(inp_)) for inp_ in x})
-            .reraise()
-            .get()
-        )
+        parsed_inputs = {
+            inp.update_oracle(self.calculator.oracle(inp)) for inp in self.test_inputs
+        }
 
         for inp in parsed_inputs:
-            inp.oracle = oracle(inp)
-            self.assertIsInstance(inp.oracle, OracleResult)
+            oracle, exception = inp.oracle
+            self.assertIsInstance(oracle, OracleResult)
 
     def test_input_from_str(self):
         input_strings = ["sqrt(-900)"]
         expected_oracle_result = [OracleResult.FAILING]
 
-        parsed_input: List[Input] = (
-            Exceptional.of(lambda: input_strings)
-            .map(lambda x: [Input.from_str(grammar, inp_, oracle(inp_)) for inp_ in x])
-            .reraise()
-            .get()
-        )
+        parsed_input: List[Input] = [
+            Input.from_str(self.calculator.grammar, inp, self.calculator.oracle(inp))
+            for inp in input_strings
+        ]
         for inp, expected, expected_oracle in zip(
             parsed_input, input_strings, expected_oracle_result
         ):
             self.assertIsInstance(inp, Input)
             self.assertEqual(str(inp.tree), expected)
-            self.assertEqual(inp.oracle, expected_oracle)
+            oracle, exception = inp.oracle
+            self.assertEqual(oracle, expected_oracle)
 
     @unittest.skip
     def test_input_immutable(self):
@@ -86,12 +89,12 @@ class TestInputs(unittest.TestCase):
         invalid_input_string = "invalid_input"
 
         with self.assertRaises(SyntaxError):
-            Input.from_str(grammar, invalid_input_string)
+            Input.from_str(self.calculator.grammar, invalid_input_string)
 
     def test_input_equality(self):
-        inp1 = Input.from_str(grammar, "sqrt(-900)")
-        inp2 = Input.from_str(grammar, "sqrt(-900)")
-        inp3 = Input.from_str(grammar, "cos(10)")
+        inp1 = Input.from_str(self.calculator.grammar, "sqrt(-900)")
+        inp2 = Input.from_str(self.calculator.grammar, "sqrt(-900)")
+        inp3 = Input.from_str(self.calculator.grammar, "cos(10)")
 
         self.assertEqual(inp1, inp2)
         self.assertNotEqual(inp1, inp3)
@@ -106,22 +109,22 @@ class TestInputs(unittest.TestCase):
         assert is_valid_grammar(grammar=grammar_simple)
 
         initial_test_inputs = ["-8", "-8"]
-        parsed_input: Set[Input] = (
-            Exceptional.of(lambda: initial_test_inputs)
-            .map(lambda x: {Input.from_str(grammar_simple, inp_) for inp_ in x})
-            .reraise()
-            .get()
-        )
+        parsed_input: List[Input] = [
+            Input.from_str(grammar_simple, inp) for inp in initial_test_inputs
+        ]
 
-        self.assertEqual(1, len(parsed_input))
+        self.assertTrue(all(hash(parsed_input[0]) == hash(inp) for inp in parsed_input))
+        set_parsed_input = set(parsed_input)
+        self.assertEqual(1, len(set_parsed_input))
 
     def test_input_oracle_is_failing(self):
         for inp in self.test_inputs:
-            inp.oracle = oracle(inp)
-            if inp.oracle == OracleResult.FAILING:
-                self.assertTrue(inp.oracle.is_failing())
+            inp.oracle = self.calculator.oracle(inp)
+            oracle, exception = inp.oracle
+            if oracle == OracleResult.FAILING:
+                self.assertTrue(oracle.is_failing())
             else:
-                self.assertFalse(inp.oracle.is_failing())
+                self.assertFalse(oracle.is_failing())
 
 
 if __name__ == "__main__":
