@@ -40,6 +40,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
         min_specificity: float = 0.6,
         generator: Generator = None,
         runner: ExecutionHandler = None,
+        **kwargs,
     ):
         learner_parameter = {
             "grammar": grammar,
@@ -63,6 +64,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
             runner=runner,
             timeout_seconds=timeout_seconds,
             max_iterations=max_iterations,
+            **kwargs,
         )
 
         self.feature_learner: FeatureReducer = SHAPRelevanceLearner(

@@ -56,13 +56,13 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         runner: Optional[ExecutionHandler] = None,
         timeout_seconds: Optional[int] = None,
         max_iterations: Optional[int] = 10,
-
+        **kwargs,
     ):
         """
         Initialize the hypothesis-based input feature debugger with a grammar, oracle, initial inputs,
         learner, generator, and runner.
         """
-        super().__init__(grammar, oracle, initial_inputs)
+        super().__init__(grammar, oracle, initial_inputs, **kwargs)
         self.timeout_seconds = timeout_seconds
         self.max_iterations = max_iterations
 
