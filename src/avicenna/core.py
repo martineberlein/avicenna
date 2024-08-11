@@ -13,6 +13,7 @@ from .learning.exhaustive import ExhaustivePatternCandidateLearner
 from .learning.metric import FitnessStrategy, RecallPriorityStringLengthFitness
 from .generator.generator import Generator, ISLaGrammarBasedGenerator
 from .runner.execution_handler import ExecutionHandler, SingleExecutionHandler
+from .logger import configure_logging
 
 
 class InputFeatureDebugger(ABC):
@@ -21,7 +22,7 @@ class InputFeatureDebugger(ABC):
     """
 
     def __init__(
-        self, grammar: Grammar, oracle: OracleType, initial_inputs: Union[Iterable[str], Iterable[Input]]
+        self, grammar: Grammar, oracle: OracleType, initial_inputs: Union[Iterable[str], Iterable[Input]], enable_logging: bool = False
     ):
         """
         Initialize the input feature debugger with a grammar, oracle, and initial inputs.
@@ -30,6 +31,7 @@ class InputFeatureDebugger(ABC):
         self.initial_inputs = initial_inputs
         self.grammar = grammar
         self.oracle = oracle
+        configure_logging(enable_logging)
 
     @abstractmethod
     def explain(self, *args, **kwargs):
@@ -140,7 +142,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
             logging.error(e)
         finally:
             strategy = RecallPriorityStringLengthFitness()
-            return self.get_best_candidate(strategy)
+            return self.get_best_candidates(strategy)
 
     def prepare_test_inputs(self) -> Set[Input]:
         """
@@ -177,7 +179,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         """
         return self.runner.label(test_inputs=test_inputs)
 
-    def get_best_candidate(self, strategy: FitnessStrategy) -> Optional[List[Candidate]]:
+    def get_best_candidates(self, strategy: Optional[FitnessStrategy] = None) -> Optional[List[Candidate]]:
         """
         Return the best candidate.
         """
