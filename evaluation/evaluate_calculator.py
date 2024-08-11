@@ -1,7 +1,8 @@
-from isla.language import ISLaUnparser
-
 from avicenna import Avicenna
 from debugging_benchmark.calculator.calculator import CalculatorBenchmarkRepository
+
+import evaluation.resources.seed as seed
+from evaluation.resources.output import print_diagnoses
 
 
 if __name__ == "__main__":
@@ -13,18 +14,6 @@ if __name__ == "__main__":
     param = calculator_subject[0].to_dict()
     param.update(default_param)
 
-    avicenna = Avicenna(**param)
+    avicenna = Avicenna(**param, enable_logging=True)
     diagnoses = avicenna.explain()
-
-    diagnosis = diagnoses.pop(0)
-    print("Final Diagnosis:")
-    print(ISLaUnparser(diagnosis.formula).unparse())
-    print(f"Precision: {diagnosis.precision()} Recall: {diagnosis.recall()} Length: {len(diagnosis.formula)}")
-
-    print("\nEquivalent Representations:")
-    equivalent_representations = diagnoses
-
-    if equivalent_representations:
-        for diagnosis in equivalent_representations:
-            print(ISLaUnparser(diagnosis.formula).unparse())
-            print(f"Precision: {diagnosis.precision()} Recall: {diagnosis.recall()} Length: {len(diagnosis.formula)}")
+    print_diagnoses(diagnoses)

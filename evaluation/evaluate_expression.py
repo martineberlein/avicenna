@@ -1,8 +1,10 @@
 import string
-from isla.language import ISLaUnparser
 
 from avicenna import Avicenna
-from avicenna.input.input import OracleResult
+from avicenna.data import OracleResult
+
+import evaluation.resources.seed
+from evaluation.resources.output import print_diagnoses
 
 
 # Oracle for divide by zero
@@ -49,29 +51,6 @@ if __name__ == "__main__":
         "oracle": divide_by_zero_oracle,
     }
 
-    avicenna = Avicenna(**param)
-
+    avicenna = Avicenna(**param, enable_logging=True)
     diagnoses = avicenna.explain()
-
-    diagnosis = diagnoses.pop(0)
-    print("Final Diagnosis:")
-    print(ISLaUnparser(diagnosis.formula).unparse())
-    print(f"Precision: {diagnosis.precision()} Recall: {diagnosis.recall()} Length: {len(diagnosis.formula)}")
-
-    print("\nEquivalent Representations:")
-    equivalent_representations = diagnoses
-
-    if equivalent_representations:
-        for diagnosis in equivalent_representations:
-            print(ISLaUnparser(diagnosis.formula).unparse())
-            print(f"Precision: {diagnosis.precision()} Recall: {diagnosis.recall()} Length: {len(diagnosis.formula)}")
-
-
-    # print("All Learned Formulas (that meet min criteria)", end="\n\n")
-    # cand = avicenna.get_learned_formulas()
-    # for can in cand:
-    #     print(
-    #         f"Avicenna calculated a precision of {can[1] * 100:.2f}% and a recall of {can[2] * 100:.2f}%"
-    #     )
-    #     print(ISLaUnparser(can[0]).unparse(), end="\n\n")
-    #     print(len(can[0]))
+    print_diagnoses(diagnoses)

@@ -4,10 +4,8 @@ import random
 import string
 from typing import Union
 
-from fuzzingbook.Grammars import srange
-
 from debugging_framework.input.oracle import OracleResult
-from avicenna.input.input import Input
+from avicenna.data import Input
 
 
 def vulnerable_heartbeat(payload, fake_length):
@@ -32,7 +30,7 @@ grammar = {
     "<start>": ["<heartbeat-request>"],
     "<heartbeat-request>": ["\x01 <payload-length> <payload> <padding>"],
     "<payload-length>": ["<one_nine><maybe_digits>"],
-    "<one_nine>": srange("123456789"),
+    "<one_nine>": [str(num) for num in range(1, 10)],
     "<maybe_digits>": [
         "",
         "<digits>",
