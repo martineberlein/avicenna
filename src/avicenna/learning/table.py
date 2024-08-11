@@ -40,8 +40,11 @@ class Candidate:
 
     def __copy__(self):
         return Candidate(
-            self.formula, self.inputs, self.failing_inputs_eval_results,
-            self.passing_inputs_eval_results, self.comb
+            self.formula,
+            self.inputs,
+            self.failing_inputs_eval_results,
+            self.passing_inputs_eval_results,
+            self.comb,
         )
 
     def evaluate(
@@ -77,13 +80,17 @@ class Candidate:
         """
         Return the specificity of the candidate.
         """
-        return sum(not int(entry) for entry in self.passing_inputs_eval_results) / len(self.passing_inputs_eval_results)
+        return sum(not int(entry) for entry in self.passing_inputs_eval_results) / len(
+            self.passing_inputs_eval_results
+        )
 
     def recall(self) -> float:
         """
         Return the recall of the candidate.
         """
-        return sum(int(entry) for entry in self.failing_inputs_eval_results) / len(self.failing_inputs_eval_results)
+        return sum(int(entry) for entry in self.failing_inputs_eval_results) / len(
+            self.failing_inputs_eval_results
+        )
 
     def precision(self) -> float:
         """
@@ -97,8 +104,13 @@ class Candidate:
         """
         Return whether the candidate has valid inputs and evaluation results.
         """
-        return len(self.inputs) == (len(self.failing_inputs_eval_results) + len(self.passing_inputs_eval_results)) and all(
-            isinstance(entry, bool) for entry in self.failing_inputs_eval_results + self.passing_inputs_eval_results
+        return len(self.inputs) == (
+            len(self.failing_inputs_eval_results)
+            + len(self.passing_inputs_eval_results)
+        ) and all(
+            isinstance(entry, bool)
+            for entry in self.failing_inputs_eval_results
+            + self.passing_inputs_eval_results
         )
 
     def with_strategy(self, strategy: FitnessStrategy):
@@ -141,9 +153,7 @@ class Candidate:
         """
         Return whether two candidates are equal.
         """
-        return (
-            isinstance(other, Candidate) and self.formula == other.formula
-        )
+        return isinstance(other, Candidate) and self.formula == other.formula
 
     def __len__(self):
         """
@@ -168,8 +178,12 @@ class Candidate:
         return Candidate(
             formula=-self.formula,
             inputs=self.inputs,
-            positive_eval_results=[not eval_result for eval_result in self.failing_inputs_eval_results],
-            negative_eval_results=[not eval_result for eval_result in self.passing_inputs_eval_results],
+            positive_eval_results=[
+                not eval_result for eval_result in self.failing_inputs_eval_results
+            ],
+            negative_eval_results=[
+                not eval_result for eval_result in self.passing_inputs_eval_results
+            ],
             comb=comb,
         )
 
@@ -178,8 +192,12 @@ class Candidate:
         Return the conjunction of two candidates by combining their formulas, inputs and evaluation results.
         """
         assert len(self.inputs) == len(other.inputs)
-        assert len(self.failing_inputs_eval_results) == len(other.failing_inputs_eval_results)
-        assert len(self.passing_inputs_eval_results) == len(other.passing_inputs_eval_results)
+        assert len(self.failing_inputs_eval_results) == len(
+            other.failing_inputs_eval_results
+        )
+        assert len(self.passing_inputs_eval_results) == len(
+            other.passing_inputs_eval_results
+        )
 
         new_failing_results = []
         new_passing_results = []

@@ -128,6 +128,7 @@ class CorrelationRelevanceFeatureLearner(RelevanceFeatureReducer, ABC):
     """
     A feature relevance learner that uses correlation to determine the most relevant features for the program failure.
     """
+
     def __init__(
         self,
         grammar: Grammar,
@@ -202,6 +203,7 @@ class SKLearFeatureRelevanceLearner(CorrelationRelevanceFeatureLearner, ABC):
     """
     A feature relevance learner that uses scikit-learn classifiers to determine the most relevant features.
     """
+
     threshold = 0.1
 
     def get_features(self, x_train: DataFrame, classifier) -> List[Feature]:
@@ -245,6 +247,7 @@ class DecisionTreeRelevanceLearner(SKLearFeatureRelevanceLearner):
     A feature relevance learner that uses a decision tree classifier to determine the most relevant features
     for the program failure.
     """
+
     def fit(self, x_train: DataFrame, y_train: List[int]) -> Any:
         """
         Fit the decision tree classifier to the training data.
@@ -259,6 +262,7 @@ class RandomForestRelevanceLearner(SKLearFeatureRelevanceLearner):
     A feature relevance learner that uses a random forest classifier to determine the most relevant features
     for the program failure.
     """
+
     def fit(self, x_train: DataFrame, y_train: List[int]) -> Any:
         """
         Fit the random forest classifier to the training data.
@@ -273,6 +277,7 @@ class GradientBoostingTreeRelevanceLearner(SKLearFeatureRelevanceLearner):
     A feature relevance learner that uses a gradient boosting tree classifier to determine the most relevant features
     for the program failure.
     """
+
     def fit(self, x_train: DataFrame, y_train: List[int]) -> Any:
         """
         Fit the gradient boosting tree classifier to the training data.
@@ -288,6 +293,7 @@ class SHAPRelevanceLearner(CorrelationRelevanceFeatureLearner):
     """
     A feature relevance learner that uses SHAP values to determine the most relevant features for the program failure.
     """
+
     def __init__(
         self,
         grammar: Grammar,
@@ -299,7 +305,11 @@ class SHAPRelevanceLearner(CorrelationRelevanceFeatureLearner):
         normalize_data: bool = False,
         show_beeswarm_plot: bool = False,
     ):
-        super().__init__(grammar, top_n_relevant_features=top_n_relevant_features, feature_types=feature_types)
+        super().__init__(
+            grammar,
+            top_n_relevant_features=top_n_relevant_features,
+            feature_types=feature_types,
+        )
         self.classifier = classifier_type(self.grammar)
         self.show_beeswarm_plot = show_beeswarm_plot
         self.normalize_data = normalize_data
@@ -315,9 +325,11 @@ class SHAPRelevanceLearner(CorrelationRelevanceFeatureLearner):
         shap_values: np.ndarray = self.get_shap_values(classifier, x_train)
         if self.show_beeswarm_plot:
             self.display_beeswarm_plot(shap_values, x_train)
-        return set(self.get_sorted_features_by_importance(shap_values, x_train)[
-            : self.top_n_relevant_features
-        ])
+        return set(
+            self.get_sorted_features_by_importance(shap_values, x_train)[
+                : self.top_n_relevant_features
+            ]
+        )
 
     def normalize_learning_data(self, data: DataFrame):
         """

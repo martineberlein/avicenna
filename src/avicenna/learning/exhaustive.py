@@ -94,7 +94,9 @@ class ExhaustivePatternCandidateLearner(
         Learn invariants from the positive and negative inputs and return the learned candidates.
         """
         sorted_positive_inputs = self.sort_and_filter_inputs(self.all_positive_inputs)
-        new_candidates: Set[Candidate] = self.get_recall_candidates(sorted_positive_inputs)
+        new_candidates: Set[Candidate] = self.get_recall_candidates(
+            sorted_positive_inputs
+        )
 
         cans = set(self.candidates.candidates)
         for candidate in new_candidates:
@@ -135,7 +137,12 @@ class ExhaustivePatternCandidateLearner(
 
         return sorted_positive_inputs[:max_number_positive_inputs_for_learning]
 
-    def evaluate_formula(self, candidate: Candidate, positive_inputs: Set[Input], negative_inputs: Set[Input]):
+    def evaluate_formula(
+        self,
+        candidate: Candidate,
+        positive_inputs: Set[Input],
+        negative_inputs: Set[Input],
+    ):
         """
         Evaluates a formula on a set of inputs.
         """
@@ -158,7 +165,11 @@ class ExhaustivePatternCandidateLearner(
         Filters out candidates that do not meet the minimum requirements.
         """
         candidates_to_remove = [
-            candidate for candidate in self.candidates if candidate.specificity() < self.min_specificity or candidate.recall() < self.min_recall]
+            candidate
+            for candidate in self.candidates
+            if candidate.specificity() < self.min_specificity
+            or candidate.recall() < self.min_recall
+        ]
 
         for candidate in candidates_to_remove:
             self.candidates.remove(candidate)
@@ -167,7 +178,11 @@ class ExhaustivePatternCandidateLearner(
         """
         Sorts the candidates based on the sorting strategy.
         """
-        sorted_candidates = sorted(self.candidates, key=lambda candidate: candidate.with_strategy(self.sorting_strategy), reverse=True)
+        sorted_candidates = sorted(
+            self.candidates,
+            key=lambda candidate: candidate.with_strategy(self.sorting_strategy),
+            reverse=True,
+        )
         return sorted_candidates
 
     def get_disjunctions(self):
@@ -180,9 +195,7 @@ class ExhaustivePatternCandidateLearner(
         """
         Check if the recall of the candidates in the combination is greater than the minimum
         """
-        return all(
-            candidate.recall() >= self.min_recall for candidate in candidates
-        )
+        return all(candidate.recall() >= self.min_recall for candidate in candidates)
 
     def is_new_conjunction_valid(
         self, conjunction: Candidate, combination: List[Candidate]
@@ -224,9 +237,15 @@ class ExhaustivePatternCandidateLearner(
         Get all possible conjunctions of the candidate set with a maximum size of max_conjunction_size.
         """
         combinations = []
-        candidate_set_without_conjunctions = [candidate for candidate in candidate_set if not isinstance(candidate.formula, ConjunctiveFormula)]
+        candidate_set_without_conjunctions = [
+            candidate
+            for candidate in candidate_set
+            if not isinstance(candidate.formula, ConjunctiveFormula)
+        ]
         for level in range(2, self.max_conjunction_size + 1):
-            for comb in itertools.combinations(candidate_set_without_conjunctions, level):
+            for comb in itertools.combinations(
+                candidate_set_without_conjunctions, level
+            ):
                 combinations.append(comb)
         return combinations
 

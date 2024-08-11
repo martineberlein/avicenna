@@ -101,7 +101,8 @@ class TruthTablePatternCandidateLearner(PatternCandidateLearner, ABC):
         :param recall_value_: The recall value.
         """
         return (
-            precision_value_ >= self.min_specificity and recall_value_ >= self.min_recall
+            precision_value_ >= self.min_specificity
+            and recall_value_ >= self.min_recall
         )
 
     def get_candidates(self) -> Optional[List[Candidate]]:
@@ -134,7 +135,11 @@ class TruthTablePatternCandidateLearner(PatternCandidateLearner, ABC):
         :param candidates: The candidates to select the best from.
         :return List[Candidate]: The best learned candidates.
         """
-        return [candidate for candidate in candidates if self.sorting_strategy.is_equal(candidate, candidates[0])]
+        return [
+            candidate
+            for candidate in candidates
+            if self.sorting_strategy.is_equal(candidate, candidates[0])
+        ]
 
     def reset(self):
         """

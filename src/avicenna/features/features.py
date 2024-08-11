@@ -5,7 +5,11 @@ from collections import defaultdict
 
 from isla.language import DerivationTree
 from debugging_framework.input.oracle import OracleResult
-from debugging_framework.fuzzingbook.grammar import is_nonterminal, Grammar, reachable_nonterminals
+from debugging_framework.fuzzingbook.grammar import (
+    is_nonterminal,
+    Grammar,
+    reachable_nonterminals,
+)
 
 
 class Feature(ABC):
@@ -25,7 +29,7 @@ class Feature(ABC):
             .replace("'", "&#39;")
             .replace(" ", "&nbsp;")
             .replace("\n", "&#13;")
-            #.replace("\r", "&#60;")
+            # .replace("\r", "&#60;")
             .replace("\\", "")
         )
 

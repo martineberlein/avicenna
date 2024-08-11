@@ -79,7 +79,7 @@ class RecallPriorityLengthFitness(FitnessStrategy):
     """
 
     def evaluate(self, candidate):
-        return candidate.recall(), candidate.precision(), - len(candidate.formula)
+        return candidate.recall(), candidate.precision(), -len(candidate.formula)
 
     def compare(self, candidate1, candidate2):
         recall1, precision1, length1 = self.evaluate(candidate1)
@@ -118,7 +118,7 @@ class RecallPriorityStringLengthFitness(RecallPriorityLengthFitness):
     """
 
     def evaluate(self, candidate):
-        return candidate.recall(), candidate.precision(), - len(str(candidate.formula))
+        return candidate.recall(), candidate.precision(), -len(str(candidate.formula))
 
 
 class RecallSpecificityStringLengthFitness(RecallPriorityLengthFitness):
@@ -128,5 +128,4 @@ class RecallSpecificityStringLengthFitness(RecallPriorityLengthFitness):
     """
 
     def evaluate(self, candidate):
-        return candidate.recall(), candidate.specificity(), - len(str(candidate.formula))
-
+        return candidate.recall(), candidate.specificity(), -len(str(candidate.formula))

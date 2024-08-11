@@ -22,7 +22,11 @@ class InputFeatureDebugger(ABC):
     """
 
     def __init__(
-        self, grammar: Grammar, oracle: OracleType, initial_inputs: Union[Iterable[str], Iterable[Input]], enable_logging: bool = False
+        self,
+        grammar: Grammar,
+        oracle: OracleType,
+        initial_inputs: Union[Iterable[str], Iterable[Input]],
+        enable_logging: bool = False,
     ):
         """
         Initialize the input feature debugger with a grammar, oracle, and initial inputs.
@@ -86,7 +90,9 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         """
         Set the learner for the hypothesis-based input feature debugger.
         """
-        self.learner = learner if learner else ExhaustivePatternCandidateLearner(self.grammar)
+        self.learner = (
+            learner if learner else ExhaustivePatternCandidateLearner(self.grammar)
+        )
 
     def set_generator(self, generator: Generator):
         """
@@ -179,7 +185,9 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         """
         return self.runner.label(test_inputs=test_inputs)
 
-    def get_best_candidates(self, strategy: Optional[FitnessStrategy] = None) -> Optional[List[Candidate]]:
+    def get_best_candidates(
+        self, strategy: Optional[FitnessStrategy] = None
+    ) -> Optional[List[Candidate]]:
         """
         Return the best candidate.
         """

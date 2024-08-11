@@ -14,7 +14,7 @@ from .runner.execution_handler import ExecutionHandler
 from .learning.reducer import (
     FeatureReducer,
     SHAPRelevanceLearner,
-    GradientBoostingTreeRelevanceLearner
+    GradientBoostingTreeRelevanceLearner,
 )
 from .features.feature_collector import GrammarFeatureCollector
 import avicenna.logger as logging

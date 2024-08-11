@@ -28,7 +28,6 @@ def configure_logging(enable_logging=True, level=logging.INFO):
         logger.setLevel(logging.CRITICAL)
 
 
-
 def generator_report(result: Set[Input]):
     logger.info(f"Generated {len(result)} inputs.")
     logger.debug(f"Generated inputs: {result}")
@@ -64,7 +63,9 @@ def log_execution_with_report(report_func: Optional[Callable]):
             except Exception as e:
                 logger.error(f"Error in {func.__name__}", exc_info=True)
                 raise
+
         return wrapper
+
     return decorator
 
 
@@ -80,5 +81,5 @@ def log_execution(func, report_func: Optional[Callable] = None):
         except Exception as e:
             logger.error(f"Error in {func.__name__}", exc_info=True)
             raise
-    return wrapper
 
+    return wrapper
