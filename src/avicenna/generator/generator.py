@@ -10,7 +10,7 @@ from debugging_framework.fuzzingbook.fuzzer import (
     GrammarFuzzer as FuzzingbookGrammarFuzzer,
 )
 
-from ..data import Input
+from ..data import Input, OracleResult
 from ..learning.table import Candidate
 
 
@@ -160,9 +160,11 @@ class MutationBasedGenerator(Generator):
             self, inp: DerivationTree, extend_fragments: bool = True
         ) -> bool:
             new_coverage = self.coverages_seen - self.coverages_of(inp)
+            result = self.property(inp)
+            oracle_result: OracleResult = result if isinstance(result, OracleResult) else result[0]
             if (
                 inp in self.population
-                or not self.property(inp).is_failing()
+                or not oracle_result.is_failing()
                 or not new_coverage
             ):
                 return False
