@@ -1,5 +1,5 @@
 import unittest
-from avicenna.learning.table import Candidate
+
 from avicenna.learning.metric import (
     PrecisionFitness,
     RecallFitness,
@@ -7,12 +7,11 @@ from avicenna.learning.metric import (
     F1ScoreFitness,
     RecallPriorityLengthFitness,
 )
-
 from debugging_framework.input.oracle import OracleResult
-from avicenna_formalizations.calculator import grammar
-from avicenna.input.input import Input
+from avicenna.data import Input
 from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
-from avicenna.learning.table import Candidate, CandidateSet
+
+from resources.subjects import get_calculator_subject
 
 
 class TestCandidates(unittest.TestCase):
@@ -20,9 +19,10 @@ class TestCandidates(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        cls.calculator = get_calculator_subject()
         cls.test_inputs = set(
             [
-                Input.from_str(grammar, inp, inp_oracle)
+                Input.from_str(cls.calculator.get_grammar(), inp, inp_oracle)
                 for inp, inp_oracle in [
                     ("sqrt(-901)", OracleResult.FAILING),
                     ("sqrt(-8)", OracleResult.FAILING),
@@ -42,7 +42,7 @@ class TestCandidates(unittest.TestCase):
             "<start>",
             "<digit>",
         ]
-        cls.exhaustive_learner = ExhaustivePatternCandidateLearner(grammar)
+        cls.exhaustive_learner = ExhaustivePatternCandidateLearner(cls.calculator.get_grammar())
         cls.candidates = cls.exhaustive_learner.learn_candidates(
             cls.test_inputs, cls.exclude_nonterminals
         )

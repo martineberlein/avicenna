@@ -1,5 +1,4 @@
 import unittest
-from pathlib import Path
 
 from islearn.language import Formula
 from avicenna.learning.repository import PatternRepository

@@ -4,7 +4,7 @@ from typing import List
 from debugging_framework.fuzzingbook.grammar import is_valid_grammar, Grammar
 
 from avicenna.data import Input, OracleResult
-from tests.resources.calculator import get_calculator_subject
+from resources.subjects import get_calculator_subject
 
 
 class TestInputs(unittest.TestCase):

@@ -1,25 +1,23 @@
 import unittest
-from typing import Tuple, List
 
 import isla.language as language
 import isla.parser
+from grammar_graph import gg
 from debugging_framework.input.oracle import OracleResult
 
-from avicenna_formalizations.calculator import grammar
-
-from avicenna.input.input import Input
-from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
+from avicenna.data import Input
 from avicenna.learning.table import Candidate, CandidateSet
-from grammar_graph import gg
+from resources.subjects import get_calculator_subject
 
 
 class TestTables(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        cls.calculator = get_calculator_subject()
         cls.test_inputs = set(
             [
-                Input.from_str(grammar, inp, inp_oracle)
+                Input.from_str(cls.calculator.get_grammar(), inp, inp_oracle)
                 for inp, inp_oracle in [
                     ("sqrt(-901)", OracleResult.FAILING),
                     ("sqrt(-8)", OracleResult.FAILING),
@@ -31,7 +29,7 @@ class TestTables(unittest.TestCase):
                 ]
             ]
         )
-        cls.graph = gg.GrammarGraph.from_grammar(grammar)
+        cls.graph = gg.GrammarGraph.from_grammar(cls.calculator.get_grammar())
         formula1 = """forall <number> elem in start:
             (<= (str.to.int elem) (str.to.int "-1"))
         """
@@ -61,7 +59,7 @@ class TestTables(unittest.TestCase):
         candidate = Candidate(formula=self.formula1)
         candidate.evaluate(self.test_inputs, self.graph)
         new_inputs = set([
-            Input.from_str(grammar, inp, inp_oracle)
+            Input.from_str(self.calculator.get_grammar(), inp, inp_oracle)
             for inp, inp_oracle in [
                 ("sqrt(-2)", OracleResult.FAILING),
                 ("sin(-23)", OracleResult.PASSING),

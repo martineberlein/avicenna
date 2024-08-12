@@ -1,23 +1,24 @@
 import unittest
-from typing import Tuple, List
+from typing import List
 
 import isla.language as language
 from debugging_framework.input.oracle import OracleResult
 
-from avicenna_formalizations.calculator import grammar
-
-from avicenna.input.input import Input
+from avicenna.data import Input
 from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
-from avicenna.learning.table import Candidate, CandidateSet
+from avicenna.learning.table import Candidate
+
+from resources.subjects import get_calculator_subject
 
 
 class TestExhaustivePatternLearner(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        cls.calculator = get_calculator_subject()
         cls.test_inputs = set(
             [
-                Input.from_str(grammar, inp, inp_oracle)
+                Input.from_str(cls.calculator.get_grammar(), inp, inp_oracle)
                 for inp, inp_oracle in [
                     ("sqrt(-901)", OracleResult.FAILING),
                     ("sqrt(-8)", OracleResult.FAILING),
@@ -37,7 +38,7 @@ class TestExhaustivePatternLearner(unittest.TestCase):
             "<start>",
             "<digit>",
         ]
-        cls.exhaustive_learner = ExhaustivePatternCandidateLearner(grammar)
+        cls.exhaustive_learner = ExhaustivePatternCandidateLearner(cls.calculator.get_grammar())
 
     def verify_candidates(self, result: List[Candidate], expected_length: int | None):
         if expected_length:
@@ -56,7 +57,7 @@ class TestExhaustivePatternLearner(unittest.TestCase):
         result = self.exhaustive_learner.learn_candidates(
             self.test_inputs, self.exclude_nonterminals
         )
-        self.verify_candidates(result, expected_length=25)
+        self.verify_candidates(result, expected_length=58)
         self.exhaustive_learner.reset()
 
     def test_reset(self):
@@ -74,11 +75,11 @@ class TestExhaustivePatternLearner(unittest.TestCase):
         result = self.exhaustive_learner.learn_candidates(
             self.test_inputs, self.exclude_nonterminals
         )
-        self.verify_candidates(result, expected_length=25)
+        self.verify_candidates(result, expected_length=58)
 
         more_inputs = set(
             [
-                Input.from_str(grammar, inp, inp_oracle)
+                Input.from_str(self.calculator.get_grammar(), inp, inp_oracle)
                 for inp, inp_oracle in [
                     ("sqrt(-1)", OracleResult.FAILING),
                     ("sqrt(-3)", OracleResult.FAILING),
@@ -92,9 +93,9 @@ class TestExhaustivePatternLearner(unittest.TestCase):
         result = self.exhaustive_learner.learn_candidates(
             more_inputs, self.exclude_nonterminals
         )
-        self.verify_candidates(result, expected_length=25)
+        self.verify_candidates(result, expected_length=33)
         best_candidates = self.exhaustive_learner.get_best_candidates()
-        self.verify_candidates(best_candidates, expected_length=4)
+        self.verify_candidates(best_candidates, expected_length=5)
         self.exhaustive_learner.reset()
 
     def test_get_candidates(self):
@@ -103,7 +104,7 @@ class TestExhaustivePatternLearner(unittest.TestCase):
             self.test_inputs, self.exclude_nonterminals
         )
         result = self.exhaustive_learner.get_candidates()
-        self.verify_candidates(result, expected_length=25)
+        self.verify_candidates(result, expected_length=58)
         self.exhaustive_learner.reset()
 
     def test_get_best_candidates(self):
@@ -112,7 +113,7 @@ class TestExhaustivePatternLearner(unittest.TestCase):
             self.test_inputs, self.exclude_nonterminals
         )
         result = self.exhaustive_learner.get_best_candidates()
-        self.verify_candidates(result, expected_length=10)
+        self.verify_candidates(result, expected_length=14)
         self.exhaustive_learner.reset()
 
 
