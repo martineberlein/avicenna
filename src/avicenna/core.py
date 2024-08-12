@@ -69,6 +69,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         super().__init__(grammar, oracle, initial_inputs, **kwargs)
         self.timeout_seconds = timeout_seconds
         self.max_iterations = max_iterations
+        self.strategy = RecallPriorityStringLengthFitness()
         self.learner: CandidateLearner = (
             learner if learner else ExhaustivePatternCandidateLearner(self.grammar)
         )
@@ -146,8 +147,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         except TimeoutError as e:
             logging.error(e)
         finally:
-            strategy = RecallPriorityStringLengthFitness()
-            return self.get_best_candidates(strategy)
+            return self.get_best_candidates(self.strategy)
 
     def prepare_test_inputs(self) -> Set[Input]:
         """
@@ -191,12 +191,10 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         """
         Return the best candidate.
         """
-        if not strategy:
-            return self.learner.get_best_candidates()
-        else:
-            candidates = self.learner.get_best_candidates()
-            sorted_candidates = sorted(candidates, key=strategy.evaluate, reverse=True) if candidates else []
-            return sorted_candidates
+        strategy = strategy if strategy else self.strategy
+        candidates = self.learner.get_best_candidates()
+        sorted_candidates = sorted(candidates, key=strategy.evaluate, reverse=True) if candidates else []
+        return sorted_candidates
 
     def get_test_inputs_from_strings(self, inputs: Iterable[str]) -> Set[Input]:
         """
