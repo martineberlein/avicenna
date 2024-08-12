@@ -30,7 +30,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
         self,
         grammar: Grammar,
         oracle: OracleType,
-        initial_inputs: Iterable[Input],
+        initial_inputs: Iterable[Input | str],
         max_iterations: int = 10,
         timeout_seconds: int = 3600,
         top_n_relevant_features: int = 3,
