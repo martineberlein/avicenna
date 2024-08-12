@@ -1,4 +1,4 @@
-FIXED_SEED = 2001
-
 import random
-random.seed(FIXED_SEED)
+
+def set_seed(seed = 2001):
+    random.seed(seed)
