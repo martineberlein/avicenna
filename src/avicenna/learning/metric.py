@@ -121,6 +121,16 @@ class RecallPriorityStringLengthFitness(RecallPriorityLengthFitness):
         return candidate.recall(), candidate.precision(), -len(str(candidate.formula))
 
 
+class RecallSpecificityLengthFitness(RecallPriorityLengthFitness):
+    """
+    Recall priority fitness strategy evaluates and compares candidates based on recall and precision.
+    It ranks candidates based on recall first, then precision, and finally by the string length of the formula.
+    """
+
+    def evaluate(self, candidate):
+        return candidate.recall(), candidate.specificity(), -len(candidate.formula)
+
+
 class RecallSpecificityStringLengthFitness(RecallPriorityLengthFitness):
     """
     Recall priority fitness strategy evaluates and compares candidates based on recall and precision.
