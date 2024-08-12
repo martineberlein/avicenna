@@ -182,6 +182,9 @@ class CorrelationRelevanceFeatureLearner(RelevanceFeatureReducer, ABC):
         Determine if a correlating feature should be considered valid based on graph reachability
         and other criteria.
         """
+        if primary_feature == correlating_feature:
+            return False
+
         if not self.prune_parent_correlation:
             return True
 
