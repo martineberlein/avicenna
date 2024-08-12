@@ -183,7 +183,10 @@ class CorrelationRelevanceFeatureLearner(RelevanceFeatureReducer, ABC):
         Determine if a correlating feature should be considered valid based on graph reachability
         and other criteria.
         """
-        if primary_feature.non_terminal == correlating_feature.non_terminal:
+        # We could also just check for the non_terminal, but this is more explicit.
+        # We don't want to correlate the same feature with itself. But len(<function>) or exists(<function>->"sqrt")
+        # is a valid correlation and helps with the learning process.
+        if primary_feature == correlating_feature:
             return False
 
         if correlating_feature.non_terminal == "<start>":
