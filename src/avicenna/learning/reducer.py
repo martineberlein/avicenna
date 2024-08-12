@@ -135,7 +135,7 @@ class CorrelationRelevanceFeatureLearner(RelevanceFeatureReducer, ABC):
         feature_types: Optional[List[Type[Feature]]] = None,
         top_n_relevant_features: int = 3,
         correlation_threshold: float = 0.7,
-        prune_parent_correlation: bool = True,
+        prune_parent_correlation: bool = False,
     ):
         super().__init__(grammar, feature_types)
         self.correlation_threshold = correlation_threshold
@@ -151,6 +151,7 @@ class CorrelationRelevanceFeatureLearner(RelevanceFeatureReducer, ABC):
         relevant_features: Set[Feature] = self.get_relevant_features(
             test_inputs, x_train, y_train
         )
+        relevant_features = {feature for feature in relevant_features if feature.non_terminal != "<start>"}
         correlated_features: Set[Feature] = self.find_correlated_features(
             x_train, relevant_features
         )
@@ -182,7 +183,10 @@ class CorrelationRelevanceFeatureLearner(RelevanceFeatureReducer, ABC):
         Determine if a correlating feature should be considered valid based on graph reachability
         and other criteria.
         """
-        if primary_feature == correlating_feature:
+        if primary_feature.non_terminal == correlating_feature.non_terminal:
+            return False
+
+        if correlating_feature.non_terminal == "<start>":
             return False
 
         if not self.prune_parent_correlation:
@@ -195,7 +199,6 @@ class CorrelationRelevanceFeatureLearner(RelevanceFeatureReducer, ABC):
             and not self.graph.reachable(
                 correlating_feature.non_terminal, primary_feature.non_terminal
             )
-            and correlating_feature.non_terminal != "<start>"
         ):
             return False
 
