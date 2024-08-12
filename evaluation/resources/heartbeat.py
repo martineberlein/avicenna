@@ -2,7 +2,7 @@ import re
 import os
 import random
 import string
-from typing import Union
+from typing import Union, Tuple
 
 from debugging_framework.input.oracle import OracleResult
 from avicenna.data import Input
@@ -43,11 +43,13 @@ grammar = {
     "<char>": list(string.ascii_letters),
 }
 
-initial_inputs = [
+failing_inputs = ["\x01 100 Hello RANDOM",]
+passing_inputs = [
     "\x01 5 HELLO PADDING",
     "\x01 7 ILoveSE padding",
-    "\x01 100 Hello RANDOM",
 ]
+
+initial_inputs = failing_inputs + passing_inputs
 
 
 def heartbeat_string_to_hex(s):
@@ -170,12 +172,33 @@ def _test_heartbleed_vulnerability(request_str, response_hex):
     return False
 
 
-def oracle(test_input: Union[Input, str]) -> OracleResult:
+def oracle(test_input: Union[Input, str]) -> Tuple[OracleResult, Union[Exception, None]]:
     try:
         heartbeat_request_str = str(test_input)
         hex_request = heartbeat_string_to_hex(heartbeat_request_str)
         response = heartbeat_response(hex_request)
         is_vulnerable = _test_heartbleed_vulnerability(heartbeat_request_str, response)
     except OverflowError:
-        return OracleResult.UNDEFINED
-    return OracleResult.FAILING if is_vulnerable else OracleResult.PASSING
+        return OracleResult.UNDEFINED, None
+    return (OracleResult.FAILING, BaseException()) if is_vulnerable else (OracleResult.PASSING, None)
+
+
+if __name__ == "__main__":
+    # Simulate a Heartbleed request
+    hex_request = "01 00 64 48 65 6C 6C 6F 52 41 4E 44 4F 4D"
+    print("Received Heartbeat request:", hex_request)
+
+    response = heartbeat_response(hex_request)
+    print("Heartbleed response:", response)
+
+    decoded_response = hex_to_heartbeat_string(response)
+    print("Decoded Response:", decoded_response)
+
+    for inp in ["\x01 5 HELLO RANDOMPADDING", "\x01 5 Hello abc"]:
+        request = heartbeat_string_to_hex(inp)
+        print("Send: ", request)
+        print("Received: ", hex_to_heartbeat_string(request))
+
+    for inp in initial_inputs:
+        inp_ = Input.from_str(grammar, inp, oracle(inp)[0])
+        print(str(inp_).encode("utf-8"), inp_.oracle)
