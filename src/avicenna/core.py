@@ -69,7 +69,6 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         super().__init__(grammar, oracle, initial_inputs, **kwargs)
         self.timeout_seconds = timeout_seconds
         self.max_iterations = max_iterations
-
         self.learner: CandidateLearner = (
             learner if learner else ExhaustivePatternCandidateLearner(self.grammar)
         )
@@ -156,6 +155,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         """
         test_inputs: Set[Input] = self.get_test_inputs_from_strings(self.initial_inputs)
         test_inputs = self.run_test_inputs(test_inputs)
+        self.check_initial_conditions(test_inputs)
         return test_inputs
 
     def hypothesis_loop(self, test_inputs: Set[Input]) -> Set[Input]:
@@ -195,7 +195,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
             return self.learner.get_best_candidates()
         else:
             candidates = self.learner.get_best_candidates()
-            sorted_candidates = sorted(candidates, key=strategy.evaluate, reverse=True)
+            sorted_candidates = sorted(candidates, key=strategy.evaluate, reverse=True) if candidates else []
             return sorted_candidates
 
     def get_test_inputs_from_strings(self, inputs: Iterable[str]) -> Set[Input]:
@@ -203,3 +203,16 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         Convert a list of input strings to a set of Input objects.
         """
         return set([Input.from_str(self.grammar, inp, None) for inp in inputs])
+
+    @staticmethod
+    def check_initial_conditions(test_inputs: Set[Input]):
+        """
+        Check the initial conditions for the input feature debugger.
+        Raises a ValueError if the conditions are not met.
+        """
+
+        has_failing = any(inp.oracle.is_failing() for inp in test_inputs)
+        has_passing = any(not inp.oracle.is_failing() for inp in test_inputs)
+
+        if not (has_failing and has_passing):
+            raise ValueError("The initial inputs must contain at least one failing and one passing input.")
