@@ -163,7 +163,8 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         The main loop of the hypothesis-based input feature debugger.
         """
         candidates = self.learn_candidates(test_inputs)
-        inputs = self.generate_test_inputs(candidates)
+        negated_candidates = self.negate_candidates(candidates)
+        inputs = self.generate_test_inputs(candidates+negated_candidates)
         labeled_test_inputs = self.run_test_inputs(inputs)
         return labeled_test_inputs
 
@@ -172,6 +173,16 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         Learn the candidates (failure diagnoses) from the test inputs.
         """
         return self.learner.learn_candidates(test_inputs)
+
+    @staticmethod
+    def negate_candidates(candidates: List[Candidate]):
+        """
+        Negate the learned candidates.
+        """
+        negated_candidates = []
+        for candidate in candidates:
+            negated_candidates.append(-candidate)
+        return negated_candidates
 
     def generate_test_inputs(self, candidates: List[Candidate]) -> Set[Input]:
         """
