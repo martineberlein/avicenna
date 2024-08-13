@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "avicenna"
-version = "0.9.1"
+version = "0.9.3"
 authors = [
     { name = "Martin Eberlein", email = "martin.eberlein@hu-berlin.de" },
 ]
