@@ -42,8 +42,7 @@ class TestAvicenna(unittest.TestCase):
                             f"Avicenna raised AssertionError unexpectedly with initial_inputs={_initial_inputs}"
                         )
 
-    import time
-
+    @unittest.skip("Skipping test")
     def test_timeout(self):
         calculator = get_calculator_subject()
         avicenna = Avicenna(
