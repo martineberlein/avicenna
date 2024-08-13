@@ -10,6 +10,7 @@ from .learning.learner import CandidateLearner
 from .learning.table import Candidate
 from .learning.exhaustive import ExhaustivePatternCandidateLearner
 from .generator.generator import Generator, ISLaGrammarBasedGenerator
+from .generator.engine import Engine, ProcessBasedParallelEngine
 from .runner.execution_handler import ExecutionHandler
 from .learning.reducer import (
     FeatureReducer,
@@ -54,6 +55,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
             else ExhaustivePatternCandidateLearner(**learner_parameter)
         )
         generator = generator if generator else ISLaGrammarBasedGenerator(grammar)
+        self.engine = ProcessBasedParallelEngine(generator)
 
         super().__init__(
             grammar,
@@ -121,9 +123,10 @@ class Avicenna(HypothesisInputFeatureDebugger):
         :return Optional[List[Candidate]]: The learned candidates.
         """
         irrelevant_features = self.get_irrelevant_features(test_inputs)
-        candidates = self.learner.learn_candidates(
+        _ = self.learner.learn_candidates(
             test_inputs, exclude_nonterminals=irrelevant_features
         )
+        candidates = self.learner.get_best_candidates()
         return candidates
 
     @logging.log_execution_with_report(logging.generator_report)
@@ -133,7 +136,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
         :param candidates: The learned candidates.
         :return Set[Input]: The generated test inputs.
         """
-        test_inputs = self.generator.generate_test_inputs(candidates=candidates)
+        test_inputs = self.engine.generate(candidates=candidates)
         return test_inputs
 
     @logging.log_execution_with_report(logging.runner_report)
