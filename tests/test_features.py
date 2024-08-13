@@ -2,10 +2,10 @@ import string
 import unittest
 
 from numpy import inf
-from fuzzingbook.Grammars import Grammar, is_valid_grammar, srange
+from debugging_framework.fuzzingbook.grammar import Grammar, is_valid_grammar
 
-from avicenna.input import Input
-from avicenna.feature_collector import (
+from avicenna.data import Input
+from avicenna.features.feature_collector import (
     FeatureFactory,
     ExistenceFeature,
     DerivationFeature,
@@ -17,8 +17,8 @@ from avicenna.feature_collector import (
 grammar: Grammar = {
     "<start>": ["<string>"],
     "<string>": ["<A>", "<B>", "!ab!"],
-    "<A>": srange(string.ascii_lowercase[:5]),
-    "<B>": srange(string.digits[:5]),
+    "<A>": [char for char in string.ascii_lowercase[:5]],
+    "<B>": [char for char in string.digits[:5]],
 }
 assert is_valid_grammar(grammar)
 
@@ -26,9 +26,9 @@ grammar_rec: Grammar = {
     "<start>": ["<string>"],
     "<string>": ["<A>", "<B>", "!ab!"],
     "<A>": ["<chars><A>", ""],
-    "<chars>": srange(string.ascii_lowercase),
+    "<chars>": [char for char in string.ascii_lowercase],
     "<B>": ["<digit><B>", ""],
-    "<digit>": srange(string.digits),
+    "<digit>": [str(num) for num in range(0, 10)],
 }
 assert is_valid_grammar(grammar_rec)
 
@@ -36,7 +36,7 @@ grammar_with_maybe_minus: Grammar = {
     "<start>": ["<string>"],
     "<string>": ["<A>" "<B>"],
     "<A>": ["", "-"],
-    "<B>": srange(string.digits),
+    "<B>": [str(num) for num in range(0, 10)],
 }
 assert is_valid_grammar(grammar_with_maybe_minus)
 

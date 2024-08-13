@@ -1,24 +1,20 @@
 import unittest
-from flaky import flaky
 from typing import Set
 
 from isla.fuzzer import GrammarFuzzer
 from debugging_framework.input.oracle import OracleResult
 
-from avicenna_formalizations.calculator import (
-    grammar as grammar_calculator,
-    oracle as oracle_calculator,
-)
-from avicenna.input import Input
-from avicenna.feature_collector import GrammarFeatureCollector
-from avicenna import feature_extractor
-from avicenna.features import (
+from avicenna.data import Input
+from avicenna.features.feature_collector import GrammarFeatureCollector
+import avicenna.learning.reducer as feature_extractor
+from avicenna.features.features import (
     ExistenceFeature,
     NumericFeature,
     LengthFeature,
-    DerivationFeature,
+    DerivationFeature
 )
-from avicenna.monads import Exceptional
+
+from resources.subjects import get_calculator_subject, get_middle_subject, get_heartbleed_subject
 
 
 class TestRelevantFeatureLearner(unittest.TestCase):
@@ -26,44 +22,33 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         inputs = [
             ("sqrt(-901)", OracleResult.FAILING),
             ("sqrt(-1)", OracleResult.FAILING),
+            ("sqrt(-6)", OracleResult.FAILING),
             ("sqrt(10)", OracleResult.PASSING),
             ("cos(1)", OracleResult.PASSING),
             ("sin(99)", OracleResult.PASSING),
+            ("sin(4)", OracleResult.PASSING),
             ("tan(-20)", OracleResult.PASSING),
         ]
-        collector = GrammarFeatureCollector(grammar_calculator)
 
-        self.test_inputs = (
-            Exceptional.of(lambda: inputs)
-            .map(
-                lambda x: {
-                    Input.from_str(grammar_calculator, inp_, oracle=orc_)
-                    for inp_, orc_ in x
-                }
-            )
-            .map(
-                lambda x: {
-                    inp_.update_features(collector.collect_features(inp_)) for inp_ in x
-                }
-            )
-            .reraise()
-            .get()
-        )
+        self.calculator = get_calculator_subject()
+        self.collector = GrammarFeatureCollector(self.calculator.grammar)
+
+        parsed_inputs = {
+            Input.from_str(self.calculator.grammar, inp_, oracle=orc_)
+            for inp_, orc_ in inputs
+        }
+        self.test_inputs = {
+            inp_.update_features(self.collector.collect_features(inp_)) for inp_ in parsed_inputs
+        }
 
     def test_relevant_feature_learner(self):
         feature_learner = feature_extractor.DecisionTreeRelevanceLearner(
-            grammar_calculator, prune_parent_correlation=False
+            self.calculator.grammar, prune_parent_correlation=False
         )
-        (
-            relevant_features,
-            correlating_features,
-            excluded_features,
-        ) = feature_learner.learn(self.test_inputs)
+        relevant_features = feature_learner.learn(self.test_inputs)
         self.assertNotEqual(len(relevant_features), 0)
-        self.assertNotEqual(len(correlating_features), 0)
-        self.assertNotEqual(len(excluded_features), 0)
 
-        expected_features = {
+        expected_relevant_features = {
             NumericFeature("<number>"),
             DerivationFeature("<function>", "sqrt"),
             DerivationFeature("<maybe_minus>", "-"),
@@ -72,35 +57,29 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         # Check that all expected features are identified as either relevant or correlating.
         self.assertTrue(
             all(
-                feature in relevant_features.union(correlating_features)
-                for feature in expected_features
+                feature in relevant_features
+                for feature in expected_relevant_features
             )
         )
 
     def test_empty_input_set(self):
         feature_learner = feature_extractor.DecisionTreeRelevanceLearner(
-            grammar_calculator
+            self.calculator.grammar
         )
         test_inputs: Set[Input] = set()
         with self.assertRaises(ValueError):
             _ = feature_learner.learn(test_inputs)
 
-    def test_relevant_feature_exception_handling(self):
+    def test_relevant_feature_exclusion(self):
         feature_learner = feature_extractor.DecisionTreeRelevanceLearner(
-            grammar_calculator, prune_parent_correlation=False
+            self.calculator.grammar, prune_parent_correlation=True
         )
 
-        excluded_non_terminal_strings = (
-            Exceptional.of(lambda: self.test_inputs)
-            .map(lambda inputs: feature_learner.learn(inputs))
-            .map(lambda x: x[0].union(x[1]))
-            .map(lambda x: {feature.non_terminal for feature in x})
-            .map(lambda x: set(grammar_calculator.keys()).difference(x))
-            .reraise()
-            .get()
-        )
+        relevant_features = feature_learner.learn(self.test_inputs)
+        relevant_features_non_terminals = {feature.non_terminal for feature in relevant_features}
+        excluded_non_terminal_strings = set(self.calculator.grammar.keys()).difference(relevant_features_non_terminals)
 
-        relevant_features = {
+        expected_relevant_features = {
             NumericFeature("<number>"),
             DerivationFeature("<function>", "sqrt"),
             DerivationFeature("<maybe_minus>", "-"),
@@ -115,49 +94,27 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         self.assertTrue(
             all(
                 feature.non_terminal not in excluded_non_terminal_strings
-                for feature in relevant_features
+                for feature in expected_relevant_features
             )
         )
 
     def test_learner_identifies_expected_features_with_large_data(self):
-        fuzzer = GrammarFuzzer(grammar_calculator)
-        collector = GrammarFeatureCollector(grammar_calculator)
+        fuzzer = GrammarFuzzer(self.calculator.grammar)
         feature_learner = feature_extractor.DecisionTreeRelevanceLearner(
-            grammar_calculator, prune_parent_correlation=False
+            self.calculator.grammar, prune_parent_correlation=False
         )
 
-        excluded_non_terminal_strings = (
-            Exceptional.of(lambda: None)
-            .map(lambda _: {fuzzer.fuzz_tree() for _ in range(100)})
-            .map(
-                lambda fuzzing_inputs: {
-                    Input(tree=inp_, oracle=oracle_calculator(str(inp_)))
-                    for inp_ in fuzzing_inputs
-                }
-            )
-            .map(
-                lambda parsed_inputs: {
-                    inp_.update_features(collector.collect_features(inp_))
-                    for inp_ in parsed_inputs
-                }
-            )
-            .map(lambda parsed_inputs: feature_learner.learn(parsed_inputs))
-            .map(lambda learning_data: learning_data[0].union(learning_data[1]))
-            .map(
-                lambda relevant_features_: {
-                    feature.non_terminal for feature in relevant_features_
-                }
-            )
-            .map(
-                lambda relevant_non_terminals: set(
-                    grammar_calculator.keys()
-                ).difference(relevant_non_terminals)
-            )
-            .reraise()
-            .get()
-        )
+        test_inputs = {fuzzer.fuzz_tree() for _ in range(100)}
+        parsed_inputs = {Input(tree=inp, oracle=self.calculator.oracle(str(inp))[0]) for inp in test_inputs}
+        feature_inputs = {
+            inp_.update_features(self.collector.collect_features(inp_)) for inp_ in parsed_inputs
+        }
 
-        relevant_features = {
+        relevant_features = feature_learner.learn(feature_inputs)
+        relevant_features_non_terminals = {feature.non_terminal for feature in relevant_features}
+        excluded_non_terminal_strings = set(self.calculator.grammar.keys()).difference(relevant_features_non_terminals)
+
+        expected_relevant_features = {
             NumericFeature("<number>"),
             DerivationFeature("<function>", "sqrt"),
             DerivationFeature("<maybe_minus>", "-"),
@@ -172,59 +129,43 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         self.assertTrue(
             all(
                 feature.non_terminal not in excluded_non_terminal_strings
-                for feature in relevant_features
+                for feature in expected_relevant_features
             )
         )
 
-    @flaky(max_runs=3, min_passes=2)
     def test_relevant_feature_learner_middle(self):
-        from avicenna_formalizations.middle import grammar, oracle
+        middle = get_middle_subject()
 
         features = [
             ExistenceFeature,
             NumericFeature,
             DerivationFeature,
         ]
-        fuzzer = GrammarFuzzer(grammar)
-        collector = GrammarFeatureCollector(grammar, feature_types=features)
+        fuzzer = GrammarFuzzer(middle.grammar)
+        collector = GrammarFeatureCollector(middle.grammar, feature_types=features)
         feature_learner = feature_extractor.SHAPRelevanceLearner(
-            grammar,
+            middle.grammar,
             classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
             feature_types=features,
+            top_n_relevant_features=4,
         )
 
-        excluded_non_terminal_strings = (
-            Exceptional.of(lambda: None)
-            .map(lambda _: {fuzzer.fuzz_tree() for _ in range(100)})
-            .map(
-                lambda fuzzing_inputs: {
-                    Input(tree=inp_, oracle=oracle(str(inp_)))
-                    for inp_ in fuzzing_inputs
+        test_inputs = {fuzzer.fuzz_tree() for _ in range(200)}
+        test_inputs = {
+                    Input(tree=inp_, oracle=middle.oracle(str(inp_))[0])
+                    for inp_ in test_inputs
                 }
-            )
-            .map(
-                lambda parsed_inputs: {
-                    inp_.update_features(collector.collect_features(inp_))
-                    for inp_ in parsed_inputs
-                }
-            )
-            .map(lambda parsed_inputs: feature_learner.learn(parsed_inputs))
-            .map(lambda learning_data: learning_data[0].union(learning_data[1]))
-            .map(
-                lambda relevant_features_: {
-                    feature.non_terminal for feature in relevant_features_
-                }
-            )
-            .map(
-                lambda relevant_non_terminals: set(
-                    grammar_calculator.keys()
-                ).difference(relevant_non_terminals)
-            )
-            .reraise()
-            .get()
-        )
 
-        relevant_features = {
+        for inp in test_inputs:
+            inp.features = collector.collect_features(inp)
+
+        relevant_features = feature_learner.learn(test_inputs)
+        relevant_feature_non_terminals = {feature.non_terminal for feature in relevant_features}
+        excluded_non_terminal_strings = set(
+            middle.grammar.keys()
+        ).difference(relevant_feature_non_terminals)
+
+        expected_relevant_features = {
             NumericFeature("<x>"),
             NumericFeature("<y>"),
             NumericFeature("<z>"),
@@ -239,53 +180,37 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         self.assertTrue(
             all(
                 feature.non_terminal not in excluded_non_terminal_strings
-                for feature in relevant_features
+                for feature in expected_relevant_features
             )
         )
 
     def test_learner_heartbleed(self):
-        from avicenna_formalizations.heartbeat import grammar, oracle
+        heartbleed = get_heartbleed_subject()
 
-        fuzzer = GrammarFuzzer(grammar)
-        collector = GrammarFeatureCollector(grammar)
+        fuzzer = GrammarFuzzer(heartbleed.grammar)
+        collector = GrammarFeatureCollector(heartbleed.grammar)
         feature_learner = feature_extractor.SHAPRelevanceLearner(
-            grammar,
+            heartbleed.grammar,
             classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
-            top_n=2,
+            top_n_relevant_features=2,
         )
 
-        excluded_non_terminal_strings = (
-            Exceptional.of(lambda: None)
-            .map(lambda _: {fuzzer.fuzz_tree() for _ in range(100)})
-            .map(
-                lambda fuzzing_inputs: {
-                    Input(tree=inp_, oracle=oracle(str(inp_)))
-                    for inp_ in fuzzing_inputs
+        test_inputs = {fuzzer.fuzz_tree() for _ in range(100)}
+        test_inputs = {
+                    Input(tree=inp_, oracle=heartbleed.oracle(str(inp_))[0])
+                    for inp_ in test_inputs
                 }
-            )
-            .map(
-                lambda parsed_inputs: {
-                    inp_.update_features(collector.collect_features(inp_))
-                    for inp_ in parsed_inputs
-                }
-            )
-            .map(lambda parsed_inputs: feature_learner.learn(parsed_inputs))
-            .map(lambda learning_data: learning_data[0].union(learning_data[1]))
-            .map(
-                lambda relevant_features_: {
-                    feature.non_terminal for feature in relevant_features_
-                }
-            )
-            .map(
-                lambda relevant_non_terminals: set(
-                    grammar_calculator.keys()
-                ).difference(relevant_non_terminals)
-            )
-            .reraise()
-            .get()
-        )
 
-        relevant_features = {
+        for inp in test_inputs:
+            inp.features = collector.collect_features(inp)
+
+        relevant_features = feature_learner.learn(test_inputs)
+        relevant_feature_non_terminals = {feature.non_terminal for feature in relevant_features}
+        excluded_non_terminal_strings = set(
+            heartbleed.grammar.keys()
+        ).difference(relevant_feature_non_terminals)
+
+        expected_relevant_features = {
             NumericFeature("<payload-length>"),
             LengthFeature("<payload>"),
         }
@@ -299,7 +224,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         self.assertTrue(
             all(
                 feature.non_terminal not in excluded_non_terminal_strings
-                for feature in relevant_features
+                for feature in expected_relevant_features
             )
         )
 
@@ -311,9 +236,9 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         }
 
         inputs = [
-            ("1", OracleResult.FAILING),
+            ("1", OracleResult.PASSING),
             ("2", OracleResult.PASSING),
-            ('"3"', OracleResult.PASSING),
+            ('"3"', OracleResult.FAILING),
         ]
 
         collector = GrammarFeatureCollector(grammar_with_json_chars)
@@ -322,37 +247,22 @@ class TestRelevantFeatureLearner(unittest.TestCase):
             classifier_type=feature_extractor.GradientBoostingTreeRelevanceLearner,
         )
 
-        relevant_features = (
-            Exceptional.of(lambda: inputs)
-            .map(
-                lambda x: {
-                    Input.from_str(grammar_with_json_chars, inp_, oracle=orc_)
-                    for inp_, orc_ in x
-                }
-            )
-            .map(
-                lambda parsed_inputs: {
-                    inp_.update_features(collector.collect_features(inp_))
-                    for inp_ in parsed_inputs
-                }
-            )
-            .map(lambda parsed_inputs: feature_learner.learn(parsed_inputs))
-            .map(lambda learning_data: learning_data[0].union(learning_data[1]))
-            .map(
-                lambda relevant_features_: {
-                    feature.non_terminal for feature in relevant_features_
-                }
-            )
-            .reraise()
-            .get()
-        )
+        parsed_inputs = {
+            Input.from_str(grammar_with_json_chars, inp_, oracle=orc_)
+            for inp_, orc_ in inputs
+        }
+        feature_inputs = {
+            inp_.update_features(collector.collect_features(inp_))
+            for inp_ in parsed_inputs
+        }
+        relevant_features = feature_learner.learn(feature_inputs)
+
         self.assertNotEqual(
             len(relevant_features),
             0,
             "Expected at least one non-terminals to be relevant.",
         )
 
-    @unittest.skip
     def test_learner_xml(self):
         from isla.derivation_tree import DerivationTree
         from isla_formalizations import xml_lang
@@ -382,14 +292,11 @@ class TestRelevantFeatureLearner(unittest.TestCase):
         for inp in test_inputs:
             inp.features = collector.collect_features(inp)
 
-        feature_learner = feature_extractor.SHAPRelevanceLearner(
+        feature_learner = feature_extractor.RandomForestRelevanceLearner(
             xml_lang.XML_GRAMMAR,
-            classifier_type=feature_extractor.RandomForestRelevanceLearner,
         )
-        relevant_features, corr, ex = feature_learner.learn(test_inputs)
+        relevant_features = feature_learner.learn(test_inputs)
         print(relevant_features)
-        print(corr)
-        print(ex)
 
 
 if __name__ == "__main__":
