@@ -1,0 +1,146 @@
+[[Existential]]
+
+name = "Existence Length Field"
+constraint = '''
+exists <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> length_field in start:
+    (<= (str.len container) (str.to.int length_field))
+'''
+
+[[Existential]]
+
+name = "Existence Length Field Smaler"
+constraint = '''
+exists <?NONTERMINAL> container1 in start:
+  exists <?NONTERMINAL> length_field in start:
+    (< (str.len container1) (str.to.int length_field))
+'''
+
+[[Length]]
+
+name = "Existence String Fixed Length"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> elem in container:
+    (= (str.len elem) (str.to.int <?STRING>))
+'''
+
+#[[Length]]
+#
+#name = "Existence String Max Length"
+#constraint = '''
+#forall <?NONTERMINAL> container in start:
+#  exists <?NONTERMINAL> elem in container:
+#    (<= (str.len elem) (str.to.int <?STRING>))
+#'''
+
+#[[Length]]
+#
+#name = "String Length Upper Bound"
+#constraint = '''
+#forall <?NONTERMINAL> elem in start:
+#  (<= (str.len elem) (str.to.int <?STRING>))
+#'''
+#
+#[[Length]]
+#
+#name = "String Length Lower Bound"
+#constraint = '''
+#forall <?NONTERMINAL> elem in start:
+#  (>= (str.len elem) (str.to.int <?STRING>))
+#'''
+
+[[Existential]]
+
+name = "String Existence in Container"
+constraint = '''
+forall <?NONTERMINAL> container in start:
+  exists <?NONTERMINAL> elem in container:
+    (= elem <?STRING>)
+'''
+
+[[Existential]]
+
+name = "Existence Numeric String Smaller or Equal Than"
+constraint = '''
+forall <?NONTERMINAL> elem in start:
+    (<= (str.to.int elem) (str.to.int <?STRING>))
+'''
+
+[[Existential]]
+
+name = "Existence Numeric String Smaller Than"
+constraint = '''
+forall <?NONTERMINAL> elem in start:
+    (< (str.to.int elem) (str.to.int <?STRING>))
+'''
+
+[[Existential]]
+
+name = "Existence Numeric String Larger or Equal Than"
+constraint = '''
+forall <?NONTERMINAL> elem in start:
+    (>= (str.to.int elem) (str.to.int <?STRING>))
+'''
+
+
+[[Existential]]
+
+name = "Existence Numeric String Larger Than"
+constraint = '''
+forall <?NONTERMINAL> elem in start:
+    (> (str.to.int elem) (str.to.int <?STRING>))
+'''
+
+#[[Existential]]
+
+#name = "Occurrence in Container"
+#constraint = '''
+#forall <?NONTERMINAL> container in start:
+#  exists <?NONTERMINAL> elem in container:
+#    (inside(elem, container))
+#'''
+
+[[Existential]]
+
+name = "String Existence 2"
+constraint = '''
+exists <?NONTERMINAL> elem in start:
+    (= elem <?STRING>)
+'''
+
+[[Existential]]
+
+name = "Occurrence 2"
+constraint = '''
+exists <?NONTERMINAL> elem_xy in start:
+    (inside(elem_xy, start))
+'''
+
+#[[Misc]]
+#
+#name = "Equal Count"
+#constraint = '''
+#exists int num:
+#  forall <?NONTERMINAL> elem in start:
+#    ((>= (str.to.int num) 1) and
+#    count(elem, <?NONTERMINAL>, num))
+#'''
+
+[[Comparison]]
+
+name = "Element gt"
+constraint = '''
+forall <?NONTERMINAL> elem_1 in start:
+  exists <?NONTERMINAL> elem_2 in start:
+    (> (str.to.int elem_1) (str.to.int elem_2))
+'''
+
+#[[Comparison]]
+#
+#name = "Element lt"
+#constraint = '''
+#forall <?NONTERMINAL> elem_1 in start:
+#  exists <?NONTERMINAL> elem_2 in start:
+#    (< (str.to.int elem_1) (str.to.int elem_2))
+#'''
