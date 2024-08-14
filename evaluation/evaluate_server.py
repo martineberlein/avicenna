@@ -21,10 +21,10 @@ from debugging_framework.benchmark.program import BenchmarkProgram
 
 EvalDict = {
     "middle_1": {
-        "top_n_relevant_features": 3,
+        "top_n_relevant_features": 4, "max_iterations": 20,
     },
     "middle_2": {
-        "top_n_relevant_features": 3,
+        "top_n_relevant_features": 4, "max_iterations": 20,
     },
     "cookiecutter_2": {"min_recall": 0.7},
     "cookiecutter_3": {"min_recall": 0.7},
@@ -75,15 +75,27 @@ if __name__ == "__main__":
             try:
                 diagnoses: List[Candidate] = avicenna.explain()
                 if diagnoses:
+                    f.write(f"Best Diagnosis for {program}:\n")
                     for diagnosis in diagnoses:
                         f.write(
                             f"Avicenna calculated a precision of {diagnosis.precision() * 100:.2f}%, "
                             f"recall of {diagnosis.recall() * 100:.2f}% "
-                            f"and specificity of {diagnosis.precision() * 100:.2f}%\n"
+                            f"and specificity of {diagnosis.specificity() * 100:.2f}%"
+                            f"(StringLength={len(str(diagnosis.formula))})\n"
                         )
                         f.write(ISLaUnparser(diagnosis.formula).unparse() + "\n\n")
                 else:
                     f.write(f"No Diagnosis for {program}!\n\n")
+
+                f.write("All learned Diagnoses:\n")
+                for diagnosis in avicenna.learner.get_candidates():
+                    f.write(
+                        f"Avicenna calculated a precision of {diagnosis.precision() * 100:.2f}%, "
+                        f"recall of {diagnosis.recall() * 100:.2f}% "
+                        f"and specificity of {diagnosis.specificity() * 100:.2f}% "
+                        f"(StringLength={len(str(diagnosis.formula))})\n"
+                    )
+                    f.write(ISLaUnparser(diagnosis.formula).unparse() + "\n\n")
 
             except Exception as e:
                 f.write(f"An error occurred while diagnosing {program}: {e}\n\n")
