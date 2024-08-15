@@ -147,7 +147,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         except TimeoutError as e:
             logging.error(e)
         finally:
-            return self.get_best_candidates(self.strategy)
+            return self.get_best_candidates()
 
     def prepare_test_inputs(self) -> Set[Input]:
         """
@@ -204,7 +204,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         """
         strategy = strategy if strategy else self.strategy
         candidates = self.learner.get_best_candidates()
-        sorted_candidates = sorted(candidates, key=strategy.evaluate, reverse=True) if candidates else []
+        sorted_candidates = sorted(candidates, key=lambda c: strategy.evaluate(c), reverse=True) if candidates else []
         return sorted_candidates
 
     def get_test_inputs_from_strings(self, inputs: Iterable[str]) -> Set[Input]:
