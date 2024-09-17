@@ -15,6 +15,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 
 from avicenna.data import Input
+from avicenna.learning.learner import CandidateLearner
 from avicenna.learning.table import Candidate
 
 
@@ -77,7 +78,6 @@ class GradientBoostingModel(Model):
 
     def predict(self, X: pd.DataFrame):
         return self.model.predict(X)
-
 
 
 class DataHandler:
@@ -171,7 +171,7 @@ class ModelTrainer:
             raise ValueError("Model has not been trained yet.")
         return self.learner.get_model()
 
-    def visualize_decision_tree(self, feature_names=None, class_names=None, figsize=(20, 10)):
+    def visualize_decision_tree(self, feature_names=None, class_names=None, figsize=(10, 10)):
         if not isinstance(self.learner, DecisionTreeModel):
             raise ValueError("Visualization is only supported for DecisionTreeLearner.")
         if self.learner.model is None:
@@ -225,14 +225,20 @@ class ModelTrainer:
         plt.tight_layout()
         plt.show()
 
-    # def plot_confusion_matrix(self, X_test, y_test, normalize=None):
-    #     if self.pipeline is None:
-    #         raise ValueError("The model has not been trained yet.")
-    #
-    #     y_pred = self.pipeline.predict(X_test)
-    #
-    #     cm = confusion_matrix(y_test, y_pred, normalize=normalize)
-    #     disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-    #     disp.plot(cmap=plt.cm.Blues)
-    #     plt.title("Confusion Matrix")
-    #     plt.show()
+
+class AlhazenLearner(CandidateLearner):
+
+    def __init__(self, model: Model = None):
+        super().__init__()
+        self.model = model if model else DecisionTreeModel()
+        self.trainer = ModelTrainer()
+
+    def learn_candidates(self, test_inputs: Iterable[Input], **kwargs) -> Optional[BaseEstimator]:
+        self.trainer.train_model(self.model, test_inputs)
+        return self.trainer.get_model()
+
+    def get_candidates(self) -> Optional[BaseEstimator]:
+        return self.trainer.get_model()
+
+    def get_best_candidates(self) -> Optional[BaseEstimator]:
+        return self.trainer.get_model()
