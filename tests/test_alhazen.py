@@ -5,6 +5,7 @@ from avicenna.data import Input, OracleResult
 
 from avicenna.learning.alhazen_learner import ModelTrainer, DecisionTreeModel
 from avicenna.features.feature_collector import GrammarFeatureCollector
+from avicenna.features.features import Feature, NumericFeature, ExistenceFeature, DerivationFeature
 
 from resources.subjects import get_calculator_subject
 
@@ -26,7 +27,7 @@ class AlhazenTestCase(unittest.TestCase):
 
     def test_decision_tree_learner(self):
         calculator = get_calculator_subject()
-        collector = GrammarFeatureCollector(calculator.get_grammar())
+        collector = GrammarFeatureCollector(calculator.get_grammar(), feature_types=[NumericFeature, ExistenceFeature, DerivationFeature])
 
         test_inputs = set(
             [
