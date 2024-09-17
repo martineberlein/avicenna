@@ -5,7 +5,7 @@ from debugging_framework.types import OracleType
 
 from .data import Input
 from .learning.table import Candidate
-# from .learning.alhazen_learner import DecisionTreeLearner
+from .learning.alhazen_learner import Model, AlhazenLearner
 from .generator.alhazen_generator import AlhazenGenerator
 from .core import HypothesisInputFeatureDebugger
 
@@ -23,9 +23,10 @@ class Alhazen(HypothesisInputFeatureDebugger):
         grammar: Grammar,
         oracle: OracleType,
         initial_inputs: Iterable[Input | str],
+        model: Model = None,
         **kwargs,
     ):
-        learner = None
+        learner = AlhazenLearner(model=model)
         generator = AlhazenGenerator(grammar=grammar)
 
         super().__init__(
