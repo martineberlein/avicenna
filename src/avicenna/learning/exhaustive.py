@@ -1,13 +1,10 @@
-import copy
 import logging
 from typing import List, Tuple, Optional, Iterable, Set
 import itertools
 
 from isla.language import Formula, ConjunctiveFormula
-from islearn.learner import weighted_geometric_mean
 from grammar_graph import gg
 from isla import language
-from islearn.learner import InvariantLearner
 
 from debugging_framework.fuzzingbook.grammar import Grammar
 from debugging_framework.input.oracle import OracleResult
@@ -20,7 +17,7 @@ logger = logging.getLogger("learner")
 
 
 class ExhaustivePatternCandidateLearner(
-    TruthTablePatternCandidateLearner, InvariantLearner
+    TruthTablePatternCandidateLearner
 ):
     def __init__(
         self,
@@ -38,23 +35,16 @@ class ExhaustivePatternCandidateLearner(
             min_recall=min_recall,
             min_precision=min_specificity,
         )
-        InvariantLearner.__init__(
-            self,
-            grammar,
-            min_recall=min_recall,
-            min_specificity=min_specificity,
-            patterns=list(self.patterns),
-            filter_inputs_for_learning_by_kpaths=False,
-        )
+        self.max_conjunction_size = 2
         self.all_negative_inputs: Set[Input] = set()
         self.all_positive_inputs: Set[Input] = set()
         self.graph = gg.GrammarGraph.from_grammar(grammar)
         self.exclude_nonterminals: Set[str] = set()
         self.positive_examples_for_learning: List[language.DerivationTree] = []
 
-        not_patterns = []
-        for pattern in self.patterns:
-            not_patterns.append(-pattern)
+        # not_patterns = []
+        # for pattern in self.patterns:
+        #     not_patterns.append(-pattern)
 
     def learn_candidates(
         self,
@@ -93,10 +83,11 @@ class ExhaustivePatternCandidateLearner(
         """
         Learn invariants from the positive and negative inputs and return the learned candidates.
         """
-        sorted_positive_inputs = self.sort_and_filter_inputs(self.all_positive_inputs)
-        new_candidates: Set[Candidate] = self.get_recall_candidates(
-            sorted_positive_inputs
+
+        atomic_formulas = self.construct_atomic_candidates(
+            self.all_positive_inputs, self.exclude_nonterminals
         )
+        new_candidates = {Candidate(formula) for formula in atomic_formulas}
 
         cans = set(self.candidates.candidates)
         for candidate in new_candidates:
@@ -109,33 +100,6 @@ class ExhaustivePatternCandidateLearner(
         # self.filter_candidates_by_min_requirements()
 
         return self.sort_candidates()
-
-    def get_recall_candidates(self, sorted_positive_inputs) -> Set[Candidate]:
-        candidates_formula = self.generate_candidates(
-            self.patterns, [inp.tree for inp in sorted_positive_inputs]
-        )
-        candidates = set(Candidate(formula) for formula in candidates_formula)
-        logger.info("Found %d invariant candidates.", len(candidates))
-        return candidates
-
-    def sort_and_filter_inputs(
-        self,
-        positive_inputs: Set[Input],
-        max_number_positive_inputs_for_learning: int = 10,
-    ):
-        p_dummy = copy.deepcopy(positive_inputs)
-        sorted_positive_inputs = self._sort_inputs(
-            p_dummy,
-            self.filter_inputs_for_learning_by_kpaths,
-            more_paths_weight=1.7,
-            smaller_inputs_weight=1.0,
-        )
-        logger.info(
-            "Keeping %d positive examples for candidate generation.",
-            len(sorted_positive_inputs[:max_number_positive_inputs_for_learning]),
-        )
-
-        return sorted_positive_inputs[:max_number_positive_inputs_for_learning]
 
     def evaluate_formula(
         self,
@@ -248,72 +212,6 @@ class ExhaustivePatternCandidateLearner(
             ):
                 combinations.append(comb)
         return combinations
-
-    def _sort_inputs(
-        self,
-        inputs: Set[Input],
-        filter_inputs_for_learning_by_kpaths: bool,
-        more_paths_weight: float = 1.0,
-        smaller_inputs_weight: float = 0.0,
-    ) -> List[Input]:
-        """
-        Sort the inputs based on the number of uncovered paths and the length of the inputs.
-        """
-        assert more_paths_weight or smaller_inputs_weight
-        result: List[Input] = []
-
-        tree_paths = {
-            inp: {
-                path
-                for path in self.graph.k_paths_in_tree(inp.tree.to_parse_tree(), self.k)
-                if (
-                    not isinstance(path[-1], gg.TerminalNode)
-                    or (
-                        not isinstance(path[-1], gg.TerminalNode)
-                        and len(path[-1].symbol) > 1
-                    )
-                )
-            }
-            for inp in inputs
-        }
-
-        covered_paths: Set[Tuple[gg.Node, ...]] = set([])
-        max_len_input = max(len(inp.tree) for inp in inputs)
-
-        def uncovered_paths(inp: Input) -> Set[Tuple[gg.Node, ...]]:
-            return {path for path in tree_paths[inp] if path not in covered_paths}
-
-        def sort_by_paths_key(inp: Input) -> float:
-            return len(uncovered_paths(inp))
-
-        def sort_by_length_key(inp: Input) -> float:
-            return len(inp.tree)
-
-        def sort_by_paths_and_length_key(inp: Input) -> float:
-            return weighted_geometric_mean(
-                [len(uncovered_paths(inp)), max_len_input - len(inp.tree)],
-                [more_paths_weight, smaller_inputs_weight],
-            )
-
-        if not more_paths_weight:
-            key = sort_by_length_key
-        elif not smaller_inputs_weight:
-            key = sort_by_paths_key
-        else:
-            key = sort_by_paths_and_length_key
-
-        while inputs:
-            inp = sorted(inputs, key=key, reverse=True)[0]
-            inputs.remove(inp)
-            uncovered = uncovered_paths(inp)
-
-            if filter_inputs_for_learning_by_kpaths and not uncovered:
-                continue
-
-            covered_paths.update(uncovered)
-            result.append(inp)
-
-        return result
 
     def reset(self):
         """
