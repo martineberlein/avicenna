@@ -7,10 +7,9 @@ from islearn.learner import InvariantLearner
 from grammar_graph import gg
 
 from avicenna.data import Input
-from avicenna.learning.table import Candidate
 
 
-class AtomicCandidateInstantiation(InvariantLearner):
+class AtomicFormulaInstantiation(InvariantLearner):
     """
     The atomic candidate instantiation is a learner that generates candidates based on the
     patterns provided. It generates candidates based on the positive inputs and instantiates
@@ -32,7 +31,7 @@ class AtomicCandidateInstantiation(InvariantLearner):
         self,
         positive_inputs: Set[Input],
         exclude_nonterminals: Optional[Set[str]] = None,
-    ) -> Set[Candidate]:
+    ) -> Set[Formula]:
         """
         Construct the candidates based on the positive inputs.
         :param positive_inputs:
@@ -42,23 +41,22 @@ class AtomicCandidateInstantiation(InvariantLearner):
         self.exclude_nonterminals = exclude_nonterminals or set()
 
         sorted_positive_inputs = self._sort_and_filter_inputs(positive_inputs)
-        new_candidates: Set[Candidate] = self._get_recall_candidates(
+        new_candidates: Set[Formula] = self._get_recall_candidates(
             sorted_positive_inputs
         )
         return new_candidates
 
     def _get_recall_candidates(
         self, sorted_positive_inputs: Set[Input]
-    ) -> Set[Candidate]:
+    ) -> Set[Formula]:
         """
         Get the candidates based on the positive inputs.
         :param sorted_positive_inputs:
         :return:
         """
-        candidates_formula = self.generate_candidates(
+        candidates = self.generate_candidates(
             self.patterns, [inp.tree for inp in sorted_positive_inputs]
         )
-        candidates = set(Candidate(formula) for formula in candidates_formula)
 
         return candidates
 

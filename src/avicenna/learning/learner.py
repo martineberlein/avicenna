@@ -8,6 +8,7 @@ from ..data import Input
 from .repository import PatternRepository
 from .table import Candidate, CandidateSet
 from .metric import FitnessStrategy, RecallPriorityLengthFitness
+from .constructor import AtomicFormulaInstantiation
 
 
 class CandidateLearner(ABC):
@@ -71,6 +72,22 @@ class PatternCandidateLearner(CandidateLearner, ABC):
             self.patterns: Set[Formula] = PatternRepository.from_file(
                 pattern_file
             ).get_all()
+
+        self.atomic_candidate_constructor = AtomicFormulaInstantiation(
+            grammar, list(self.patterns)
+        )
+
+    def construct_atomic_candidates(self, positive_inputs: Set[Input], exclude_non_terminals: Set[str] = None) -> Set[Formula]:
+        """
+        Construct the atomic candidates based on the patterns.
+        :param positive_inputs: The positive inputs to construct the candidates from.
+        :param exclude_non_terminals: The non-terminals to exclude from the candidates.
+        :return Set[Formula]: The atomic formula candidates.
+        """
+        candidates = self.atomic_candidate_constructor.construct_candidates(
+            positive_inputs, exclude_non_terminals
+        )
+        return candidates
 
 
 class TruthTablePatternCandidateLearner(PatternCandidateLearner, ABC):

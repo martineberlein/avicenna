@@ -6,9 +6,8 @@ from isla.language import ISLaUnparser
 
 from debugging_framework.input.oracle import OracleResult
 from avicenna.data import Input
-from avicenna.learning.constructor import AtomicCandidateInstantiation
+from avicenna.learning.constructor import AtomicFormulaInstantiation
 from avicenna.learning.repository import PatternRepository
-from avicenna.learning.table import Candidate
 
 from resources.subjects import get_calculator_subject
 
@@ -42,15 +41,15 @@ class TestCandidates(unittest.TestCase):
             "<start>",
             "<digit>",
         }
-        cls.atomic_candidate_constructor = AtomicCandidateInstantiation(
+        cls.atomic_candidate_constructor = AtomicFormulaInstantiation(
             cls.calculator.get_grammar(), patterns=list(cls.patterns)
         )
 
     @staticmethod
-    def debug_candidates(candidates: Set[Candidate]):
+    def debug_candidates(candidates: Set[Formula]):
         print("Number of candidates: ", len(candidates))
         for candidate in candidates:
-            print(ISLaUnparser(candidate.formula).unparse(), end="\n\n")
+            print(ISLaUnparser(candidate).unparse(), end="\n\n")
 
     def test_atomic_candidates(self):
         """
@@ -61,6 +60,7 @@ class TestCandidates(unittest.TestCase):
         )
         self.assertEqual(len(candidates), 385)
         self.debug_candidates(candidates)
+        self.assertTrue(all(isinstance(candidate, Formula) for candidate in candidates))
         self.assertTrue(candidates)
 
     def test_atomic_candidates_with_exclude_non_terminals(self):
@@ -72,6 +72,7 @@ class TestCandidates(unittest.TestCase):
         )
         self.assertEqual(len(candidates), 136)
         self.debug_candidates(candidates)
+        self.assertTrue(all(isinstance(candidate, Formula) for candidate in candidates))
         self.assertTrue(candidates)
 
 
