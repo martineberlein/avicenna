@@ -124,6 +124,11 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         return iteration >= self.max_iterations
 
     def check_iteration_limits(self, iteration, start_time) -> bool:
+        """
+        Check if the iteration limits have been reached.
+        :param iteration: The current iteration.
+        :param start_time: The start time of the input feature debugger.
+        """
         if self.check_iterations_reached(iteration):
             return False
         if self.check_timeout_reached(start_time):
