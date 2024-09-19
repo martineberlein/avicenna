@@ -36,8 +36,6 @@ class ExhaustivePatternCandidateLearner(
             min_precision=min_specificity,
         )
         self.max_conjunction_size = 2
-        self.all_negative_inputs: Set[Input] = set()
-        self.all_positive_inputs: Set[Input] = set()
         self.graph = gg.GrammarGraph.from_grammar(grammar)
         self.exclude_nonterminals: Set[str] = set()
         self.positive_examples_for_learning: List[language.DerivationTree] = []
@@ -57,23 +55,6 @@ class ExhaustivePatternCandidateLearner(
 
         candidates = self._learn_invariants(positive_inputs, negative_inputs)
         return candidates
-
-    @staticmethod
-    def categorize_inputs(test_inputs: Set[Input]) -> Tuple[Set[Input], Set[Input]]:
-        """
-        Categorize the inputs into positive and negative inputs based on their oracle results.
-        """
-        positive_inputs = {
-            inp for inp in test_inputs if inp.oracle == OracleResult.FAILING
-        }
-        negative_inputs = {
-            inp for inp in test_inputs if inp.oracle == OracleResult.PASSING
-        }
-        return positive_inputs, negative_inputs
-
-    def update_inputs(self, positive_inputs: Set[Input], negative_inputs: Set[Input]):
-        self.all_positive_inputs.update(positive_inputs)
-        self.all_negative_inputs.update(negative_inputs)
 
     def _learn_invariants(
         self,

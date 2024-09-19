@@ -1,8 +1,9 @@
-from typing import Iterable, List, Optional, Set
+from typing import Iterable, List, Optional, Set, Tuple
 from abc import ABC, abstractmethod
 
 from isla.language import Formula
 from debugging_framework.fuzzingbook.grammar import Grammar
+from debugging_framework.input.oracle import OracleResult
 
 from ..data import Input
 from .repository import PatternRepository
@@ -66,6 +67,9 @@ class PatternCandidateLearner(CandidateLearner, ABC):
         """
         super().__init__()
         self.grammar = grammar
+        self.all_negative_inputs: Set[Input] = set()
+        self.all_positive_inputs: Set[Input] = set()
+
         if patterns:
             self.patterns: Set[Formula] = set(patterns)
         else:
@@ -88,6 +92,23 @@ class PatternCandidateLearner(CandidateLearner, ABC):
             positive_inputs, exclude_non_terminals
         )
         return candidates
+
+    @staticmethod
+    def categorize_inputs(test_inputs: Set[Input]) -> Tuple[Set[Input], Set[Input]]:
+        """
+        Categorize the inputs into positive and negative inputs based on their oracle results.
+        """
+        positive_inputs = {
+            inp for inp in test_inputs if inp.oracle == OracleResult.FAILING
+        }
+        negative_inputs = {
+            inp for inp in test_inputs if inp.oracle == OracleResult.PASSING
+        }
+        return positive_inputs, negative_inputs
+
+    def update_inputs(self, positive_inputs: Set[Input], negative_inputs: Set[Input]):
+        self.all_positive_inputs.update(positive_inputs)
+        self.all_negative_inputs.update(negative_inputs)
 
 
 class TruthTablePatternCandidateLearner(PatternCandidateLearner, ABC):
