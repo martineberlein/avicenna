@@ -34,7 +34,7 @@ class Generator(ABC):
         """
         raise NotImplementedError
 
-    def generate_test_inputs(self, num_inputs: int = 10, **kwargs) -> Set[Input]:
+    def generate_test_inputs(self, num_inputs: int = 2, **kwargs) -> Set[Input]:
         """
         Generate multiple inputs to be used in the debugging process.
         """

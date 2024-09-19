@@ -10,7 +10,7 @@ from .learning.learner import CandidateLearner
 from .learning.table import Candidate
 from .learning.exhaustive import ExhaustivePatternCandidateLearner
 from .generator.generator import Generator, ISLaGrammarBasedGenerator
-from .generator.engine import Engine, ProcessBasedParallelEngine
+from .generator.engine import Engine, ProcessBasedParallelEngine, ParallelEngine
 from .runner.execution_handler import ExecutionHandler
 from .learning.reducer import (
     FeatureReducer,
@@ -55,7 +55,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
             else ExhaustivePatternCandidateLearner(**learner_parameter)
         )
         generator = generator if generator else ISLaGrammarBasedGenerator(grammar)
-        self.engine = ProcessBasedParallelEngine(generator)
+        self.engine = ParallelEngine(generator)
 
         super().__init__(
             grammar,
