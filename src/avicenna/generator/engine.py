@@ -18,16 +18,39 @@ class Engine:
             generator: Generator,
             workers: int = 20,
     ):
+        self.generator = generator
         self.workers = [
             generator
             for _ in range(workers)
         ]
+        self._check_generator_compatability()
+
+    def _check_generator_compatability(self):
+        pass
 
     def generate(self, candidates: List[Candidate]):
         pass
 
 
+class SingleEngine(Engine):
+
+    def generate(self, candidates: List[Candidate]):
+        """
+        Generate new inputs for the given candidates in parallel.
+        :param List[Candidate] candidates: The candidates to generate new inputs for.
+        :return:
+        """
+        test_inputs = set()
+        for candidate in candidates:
+            test_inputs.update(self.generator.generate_test_inputs(num_inputs=2, candidate=candidate))
+        return test_inputs
+
+
 class ParallelEngine(Engine):
+
+    def _check_generator_compatability(self):
+        if isinstance(self.generator, ISLaSolverGenerator):
+            raise ValueError("The ISLaSolverGenerator generator is not compatible with the ParallelEngine")
 
     def generate(self, candidates: List[Candidate]):
         """
@@ -99,11 +122,23 @@ if __name__ == "__main__":
     candidate1 = Candidate(formula=formula1)
     candidate2 = Candidate(formula=formula2)
 
-    gen = ISLaGrammarBasedGenerator(calculator_grammar)
-    engine = ParallelEngine(gen, workers=3)
-    test_inputs = engine.generate([candidate1, candidate2, candidate2])
+    print("Single Engine")
+    gen = ISLaSolverGenerator(calculator_grammar)
+    engine = SingleEngine(gen)
+    test_inputs = engine.generate([candidate1, candidate1, candidate1, candidate1, candidate1])
     print("Generated inputs: ", len(test_inputs))
+    for inp in test_inputs:
+        print(inp)
 
+    print("Parallel Engine")
+    gen = ISLaSolverGenerator(calculator_grammar)
+    engine = ParallelEngine(gen, workers=5)
+    test_inputs = engine.generate([candidate1, candidate1, candidate1, candidate1, candidate1])
+    print("Generated inputs: ", len(test_inputs))
+    for inp in test_inputs:
+        print(inp)
+
+    print("Process-based Engine")
     gen = ISLaSolverGenerator(calculator_grammar)
     process_engine = ProcessBasedParallelEngine(gen, workers=5)
     test_inputs = process_engine.generate([candidate1, candidate1, candidate1, candidate1, candidate1])
