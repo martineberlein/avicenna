@@ -16,7 +16,7 @@ class Engine:
     def __init__(
             self,
             generator: Generator,
-            workers: int = 20,
+            workers: int = 10,
     ):
         self.generator = generator
         self.workers = [
