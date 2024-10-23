@@ -91,11 +91,12 @@ class TestRelevantFeatureLearner(unittest.TestCase):
             "Expected at least one non-terminals to be excluded",
         )
         # Check that all relevant features are not in the set of excluded non_terminals
+        # Check that all relevant features are not in the set of excluded non_terminals
         self.assertTrue(
             all(
                 feature.non_terminal not in excluded_non_terminal_strings
                 for feature in expected_relevant_features
-            )
+            ), f"Expected relevant features: {expected_relevant_features}, but got: {relevant_features}"
         )
 
     def test_learner_identifies_expected_features_with_large_data(self):
@@ -130,7 +131,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
             all(
                 feature.non_terminal not in excluded_non_terminal_strings
                 for feature in expected_relevant_features
-            )
+            ), f"Expected relevant features: {expected_relevant_features}, but got: {relevant_features}"
         )
 
     def test_relevant_feature_learner_middle(self):
@@ -181,7 +182,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
             all(
                 feature.non_terminal not in excluded_non_terminal_strings
                 for feature in expected_relevant_features
-            )
+            ), f"Expected relevant features: {expected_relevant_features}, but got: {relevant_features}"
         )
 
     def test_learner_heartbleed(self):
