@@ -127,7 +127,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
             test_inputs, exclude_nonterminals=irrelevant_features
         )
         candidates = self.learner.get_best_candidates()
-        return candidates
+        return candidates[:5]
 
     @logging.log_execution_with_report(logging.generator_report)
     def generate_test_inputs(self, candidates: List[Candidate]) -> Set[Input]:
