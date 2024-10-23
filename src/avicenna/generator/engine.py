@@ -36,7 +36,7 @@ class SingleEngine(Engine):
 
     def generate(self, candidates: List[Candidate]):
         """
-        Generate new inputs for the given candidates in parallel.
+        Generate new inputs for the given candidates.
         :param List[Candidate] candidates: The candidates to generate new inputs for.
         :return:
         """
@@ -106,44 +106,3 @@ class ProcessBasedParallelEngine(Engine):
             test_inputs.update(output)
         return test_inputs
 
-
-if __name__ == "__main__":
-    from isla import language
-
-    formula1 = """exists <function> elem_0 in start:
-        (= elem_0 "cos")
-    """
-    formula1 = language.parse_isla(formula1)
-    formula2 = """exists <function> elem_0 in start:
-        (= elem_0 "sqrt")
-    """
-    formula2 = language.parse_isla(formula2)
-
-    candidate1 = Candidate(formula=formula1)
-    candidate2 = Candidate(formula=formula2)
-
-    print("Single Engine")
-    gen = ISLaSolverGenerator(calculator_grammar)
-    engine = SingleEngine(gen)
-    test_inputs = engine.generate([candidate1, candidate1, candidate1, candidate1, candidate1])
-    print("Generated inputs: ", len(test_inputs))
-    for inp in test_inputs:
-        print(inp)
-
-    print("Parallel Engine")
-    gen = ISLaSolverGenerator(calculator_grammar)
-    engine = ParallelEngine(gen, workers=5)
-    test_inputs = engine.generate([candidate1, candidate1, candidate1, candidate1, candidate1])
-    print("Generated inputs: ", len(test_inputs))
-    for inp in test_inputs:
-        print(inp)
-
-    print("Process-based Engine")
-    gen = ISLaSolverGenerator(calculator_grammar)
-    process_engine = ProcessBasedParallelEngine(gen, workers=5)
-    test_inputs = process_engine.generate([candidate1, candidate1, candidate1, candidate1, candidate1])
-    print("Generated inputs: ", len(test_inputs))
-    for inp in test_inputs:
-        print(inp)
-
-    print("done")
