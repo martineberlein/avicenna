@@ -9,7 +9,7 @@ from avicenna.generator.generator import (
     ISLaGrammarBasedGenerator,
     MutationBasedGenerator,
 )
-from avicenna.generator.engine import ProcessBasedParallelEngine
+from avicenna.generator.engine import ProcessBasedParallelEngine, SingleEngine
 
 from resources.subjects import get_calculator_subject, get_heartbleed_subject
 
@@ -109,7 +109,7 @@ class TestInputGenerator(unittest.TestCase):
         candidate3 = Candidate(formula=parse_isla(constraint3))
 
         generator = ISLaSolverGenerator(self.calculator.get_grammar(), enable_optimized_z3_queries=False)
-        engine = ProcessBasedParallelEngine(generator=generator, workers=5)
+        engine = ProcessBasedParallelEngine(generator=generator, workers=2)
         generated_inputs = engine.generate([candidate1, candidate2, candidate3, candidate1, candidate2,])
 
         for inp in generated_inputs:
