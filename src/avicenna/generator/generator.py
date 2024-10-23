@@ -54,7 +54,7 @@ class Generator(ABC):
         """
         try:
             while True:
-                test_inputs = self.generate_test_inputs(candidate=candidate_queue.get_nowait())
+                test_inputs = self.generate_test_inputs(num_inputs=2, candidate=candidate_queue.get_nowait())
                 if isinstance(output_queue, Queue):
                     output_queue.put(test_inputs)
                 else:
