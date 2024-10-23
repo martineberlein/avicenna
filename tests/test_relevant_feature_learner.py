@@ -225,7 +225,7 @@ class TestRelevantFeatureLearner(unittest.TestCase):
             all(
                 feature.non_terminal not in excluded_non_terminal_strings
                 for feature in expected_relevant_features
-            )
+            ), f"Expected relevant features: {expected_relevant_features}, but got: {relevant_features}"
         )
 
     def test_shap_feature_learner_with_special_characters(self):

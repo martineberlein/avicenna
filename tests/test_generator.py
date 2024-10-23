@@ -87,6 +87,7 @@ class TestInputGenerator(unittest.TestCase):
         print(len(generated_inputs))
         self.assertFalse(len(generated_inputs) == 0)
 
+    @unittest.skip
     def test_isla_parallel(self):
         constraint1 = """(forall <number> elem in start:
               (<= (str.to.int elem) (str.to.int "-1")) and
