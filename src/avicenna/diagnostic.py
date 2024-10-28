@@ -16,6 +16,7 @@ from .learning.reducer import (
     FeatureReducer,
     SHAPRelevanceLearner,
     GradientBoostingTreeRelevanceLearner,
+    DecisionTreeRelevanceLearner,
 )
 from .features.feature_collector import GrammarFeatureCollector
 import avicenna.logger as logging
@@ -76,6 +77,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
         )
 
         self.collector = GrammarFeatureCollector(self.grammar)
+        self.max_candidates = 5
 
     def set_feature_reducer(self, feature_reducer: FeatureReducer):
         """
@@ -118,7 +120,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
     @logging.log_execution_with_report(logging.learner_report)
     def learn_candidates(self, test_inputs: Set[Input]) -> Optional[List[Candidate]]:
         """
-        Learn the candidates based on the test inputs.
+        Learn the candidates based on the test inputs. The candidates are ordered based on their scores.
         :param test_inputs: The test inputs to learn the candidates from.
         :return Optional[List[Candidate]]: The learned candidates.
         """
@@ -127,7 +129,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
             test_inputs, exclude_nonterminals=irrelevant_features
         )
         candidates = self.learner.get_best_candidates()
-        return candidates
+        return candidates[:self.max_candidates]
 
     @logging.log_execution_with_report(logging.generator_report)
     def generate_test_inputs(self, candidates: List[Candidate]) -> Set[Input]:
