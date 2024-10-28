@@ -51,7 +51,7 @@ class BatchExecutionHandler(ExecutionHandler):
         results = self.oracle(test_inputs)
 
         return [
-            (inp, TResultMonad(result)) for inp, result in zip(test_inputs, results)
+            (inp, TResultMonad(results[str(inp)])) for inp in test_inputs
         ]
 
     def label(self, test_inputs: Set[Input], report: Report = None, **kwargs):

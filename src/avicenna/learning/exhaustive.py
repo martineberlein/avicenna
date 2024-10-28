@@ -51,6 +51,9 @@ class ExhaustivePatternCandidateLearner(
         test_inputs: Set[Input],
         exclude_nonterminals: Optional[Iterable[str]] = None,
     ) -> List[Candidate]:
+        """
+        Learn candidates from the test inputs.
+        """
         positive_inputs, negative_inputs = self.categorize_inputs(test_inputs)
         self.update_inputs(positive_inputs, negative_inputs)
         self.exclude_nonterminals = exclude_nonterminals or set()
