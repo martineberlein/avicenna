@@ -7,6 +7,9 @@ from isla import language
 from debugging_framework.input.oracle import OracleResult
 from ..data import Input
 from avicenna.learning.metric import FitnessStrategy, RecallPriorityLengthFitness
+from avicenna.learning.evaluation.constraint_eval_new_indexer import create_constraint_ast
+
+from avicenna.learning.evaluation.constraint_eval_new_indexer import evaluate_constraints_batch
 
 
 class Candidate:
@@ -22,6 +25,7 @@ class Candidate:
         positive_eval_results: Sequence[bool] = (),
         negative_eval_results: Sequence[bool] = (),
         comb: Dict[Input, bool] = None,
+        eval_ast: list = None,
     ):
         """
         Initialize a candidate with a formula, a set of inputs, a list of evaluation results and a combination of inputs
@@ -37,6 +41,14 @@ class Candidate:
         self.failing_inputs_eval_results: List[bool] = list(positive_eval_results)
         self.passing_inputs_eval_results: List[bool] = list(negative_eval_results)
         self.comb: Dict[Input, bool] = comb or {}
+        self.eval_ast = eval_ast or [create_constraint_ast(formula)]
+
+    @classmethod
+    def from_str(cls, formula: str):
+        """
+        Create a candidate from a string representation of a formula.
+        """
+        return cls(formula=language.parse_isla(formula))
 
     def __copy__(self):
         return Candidate(
@@ -58,9 +70,14 @@ class Candidate:
         new_inputs = test_inputs - self.inputs
 
         for inp in new_inputs:
-            eval_result = evaluate(
-                self.formula, inp.tree, graph.grammar, graph=graph
-            ).is_true()
+            # eval_result = evaluate(
+            #     self.formula, inp.tree, graph.grammar, graph=graph
+            # ).is_true()
+            try:
+                eval_result = all(evaluate_constraints_batch(self.eval_ast, {'start': inp.tree}, inp.index))
+            except Exception as e:
+                print(f"Error evaluating {language.ISLaUnparser(self.formula).unparse()} on {inp.tree}")
+                raise e
             self._update_eval_results_and_combination(eval_result, inp)
 
         self.inputs.update(new_inputs)
@@ -218,6 +235,7 @@ class Candidate:
             positive_eval_results=new_failing_results,
             negative_eval_results=new_passing_results,
             comb=comb,
+            eval_ast=self.eval_ast + other.eval_ast,
         )
 
     def __or__(self, other: "Candidate") -> "Candidate":

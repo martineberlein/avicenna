@@ -55,7 +55,7 @@ class AtomicFormulaInstantiation(InvariantLearner):
         :return:
         """
         candidates = self.generate_candidates(
-            self.patterns, [inp.tree for inp in sorted_positive_inputs]
+            self.patterns, [inp.tree for inp in list(sorted_positive_inputs)[:10]]
         )
 
         return candidates

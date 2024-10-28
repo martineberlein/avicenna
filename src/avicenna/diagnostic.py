@@ -9,13 +9,14 @@ from .data.input_data import Input
 from .learning.learner import CandidateLearner
 from .learning.table import Candidate
 from .learning.exhaustive import ExhaustivePatternCandidateLearner
-from .generator.generator import Generator, ISLaGrammarBasedGenerator
+from .generator.generator import Generator, ISLaGrammarBasedGenerator, ISLaSolverGenerator
 from .generator import engine as engine
 from .runner.execution_handler import ExecutionHandler
 from .learning.reducer import (
     FeatureReducer,
     SHAPRelevanceLearner,
     GradientBoostingTreeRelevanceLearner,
+    DecisionTreeRelevanceLearner,
 )
 from .features.feature_collector import GrammarFeatureCollector
 import avicenna.logger as logging
@@ -55,7 +56,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
             else ExhaustivePatternCandidateLearner(**learner_parameter)
         )
         generator = generator if generator else ISLaGrammarBasedGenerator(grammar)
-        self.engine: engine.Engine = engine.ParallelEngine(generator)
+        self.engine: engine.Engine = engine.SingleEngine(generator)
 
         super().__init__(
             grammar,
@@ -73,6 +74,10 @@ class Avicenna(HypothesisInputFeatureDebugger):
             self.grammar,
             top_n_relevant_features=top_n_relevant_features,
             classifier_type=GradientBoostingTreeRelevanceLearner,
+        )
+        self.feature_learner = DecisionTreeRelevanceLearner(
+            self.grammar,
+            top_n_relevant_features=top_n_relevant_features,
         )
 
         self.collector = GrammarFeatureCollector(self.grammar)

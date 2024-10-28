@@ -46,6 +46,8 @@ class ExhaustivePatternCandidateLearner(
         # for pattern in self.patterns:
         #     not_patterns.append(-pattern)
 
+        self.removed_atomic_formula = set()
+
     def learn_candidates(
         self,
         test_inputs: Set[Input],
@@ -84,21 +86,39 @@ class ExhaustivePatternCandidateLearner(
         Learn invariants from the positive and negative inputs and return the learned candidates.
         """
 
+        print("Starting creating atomic candidates")
         atomic_formulas = self.construct_atomic_candidates(
             self.all_positive_inputs, self.exclude_nonterminals
         )
-        new_candidates = {Candidate(formula) for formula in atomic_formulas}
+        # atomic_formulas = atomic_formulas - self.removed_atomic_formula
+        new_candidates = {Candidate(formula) for formula in atomic_formulas - self.removed_atomic_formula}
+        filtered_candidates = set()
+
+        print("Starting filtering atomic candidates", len(new_candidates))
+        for cand in new_candidates:
+            cand.evaluate(set(list(self.all_positive_inputs)[:10]), self.graph)
+            if cand.recall() >= self.min_recall:
+                filtered_candidates.add(cand)
+            else:
+                self.removed_atomic_formula.add(cand.formula)
+        print("Removed atomic candidates: ", len(self.removed_atomic_formula))
 
         cans = set(self.candidates.candidates)
-        for candidate in new_candidates:
+        # self.candidates = CandidateSet()
+        # cans = set()
+        for candidate in filtered_candidates:
             if candidate not in cans:
                 cans.add(candidate)
 
+        print("Evaluating candidates: ", len(cans))
         for candidate in cans:
             self.evaluate_formula(candidate, positive_inputs, negative_inputs)
+
+        print("Starting creating conjunctions")
         self.get_conjunctions()
         # self.filter_candidates_by_min_requirements()
 
+        print("Done")
         return self.sort_candidates()
 
     def evaluate_formula(
@@ -115,6 +135,7 @@ class ExhaustivePatternCandidateLearner(
             if candidate.recall() < self.min_recall:
                 # filter out candidates that do not meet the recall threshold
                 self.candidates.remove(candidate)
+                self.removed_atomic_formula.add(candidate.formula)
             else:
                 # evaluate the candidate on the remaining negative inputs
                 candidate.evaluate(negative_inputs, self.graph)
@@ -123,6 +144,8 @@ class ExhaustivePatternCandidateLearner(
             candidate.evaluate(self.all_negative_inputs, self.graph)
             if candidate.recall() >= self.min_recall:
                 self.candidates.append(candidate)
+            else:
+                self.removed_atomic_formula.add(candidate.formula)
 
     def filter_candidates_by_min_requirements(self):
         """
