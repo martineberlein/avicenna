@@ -9,7 +9,7 @@ from .data.input_data import Input
 from .learning.learner import CandidateLearner
 from .learning.table import Candidate
 from .learning.exhaustive import ExhaustivePatternCandidateLearner
-from .generator.generator import Generator, ISLaGrammarBasedGenerator
+from .generator.generator import Generator, ISLaGrammarBasedGenerator, ISLaSolverGenerator
 from .generator import engine as engine
 from .runner.execution_handler import ExecutionHandler
 from .learning.reducer import (
