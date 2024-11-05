@@ -113,6 +113,8 @@ class Candidate:
         """
         Return the specificity of the candidate.
         """
+        if len(self.passing_inputs_eval_results) == 0:
+            return 0.0
         return sum(not int(entry) for entry in self.passing_inputs_eval_results) / len(
             self.passing_inputs_eval_results
         )
@@ -121,6 +123,8 @@ class Candidate:
         """
         Return the recall of the candidate.
         """
+        if len(self.failing_inputs_eval_results) == 0:
+            return 0.0
         return sum(int(entry) for entry in self.failing_inputs_eval_results) / len(
             self.failing_inputs_eval_results
         )
