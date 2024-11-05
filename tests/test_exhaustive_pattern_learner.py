@@ -69,6 +69,7 @@ class TestExhaustivePatternLearner(unittest.TestCase):
         self.assertEqual(len(self.exhaustive_learner.candidates), 0)
         self.assertEqual(len(self.exhaustive_learner.all_positive_inputs), 0)
         self.assertEqual(len(self.exhaustive_learner.all_negative_inputs), 0)
+        self.assertEqual(len(self.exhaustive_learner.removed_atomic_formula), 0)
 
     def test_exhaustive_pattern_learner_more_runs(self):
         """Test the exhaustive pattern learner with additional inputs."""

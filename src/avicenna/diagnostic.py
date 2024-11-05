@@ -9,7 +9,7 @@ from .data.input_data import Input
 from .learning.learner import CandidateLearner
 from .learning.table import Candidate
 from .learning.exhaustive import ExhaustivePatternCandidateLearner
-from .generator.generator import Generator, ISLaGrammarBasedGenerator
+from .generator.generator import Generator, ISLaGrammarBasedGenerator, ISLaSolverGenerator
 from .generator import engine as engine
 from .runner.execution_handler import ExecutionHandler
 from .learning.reducer import (
@@ -42,6 +42,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
         min_specificity: float = 0.6,
         generator: Generator = None,
         runner: ExecutionHandler = None,
+        use_fast_evaluation: bool = True,
         **kwargs,
     ):
         learner_parameter = {
@@ -49,6 +50,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
             "pattern_file": pattern_file,
             "min_recall": min_recall,
             "min_specificity": min_specificity,
+            "use_fast_evaluation": use_fast_evaluation,
         }
         learner = (
             learner
@@ -56,7 +58,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
             else ExhaustivePatternCandidateLearner(**learner_parameter)
         )
         generator = generator if generator else ISLaGrammarBasedGenerator(grammar)
-        self.engine: engine.Engine = engine.ParallelEngine(generator)
+        self.engine: engine.Engine = engine.SingleEngine(generator)
 
         super().__init__(
             grammar,
@@ -74,6 +76,10 @@ class Avicenna(HypothesisInputFeatureDebugger):
             self.grammar,
             top_n_relevant_features=top_n_relevant_features,
             classifier_type=GradientBoostingTreeRelevanceLearner,
+        )
+        self.feature_learner = DecisionTreeRelevanceLearner(
+            self.grammar,
+            top_n_relevant_features=top_n_relevant_features,
         )
 
         self.collector = GrammarFeatureCollector(self.grammar)
