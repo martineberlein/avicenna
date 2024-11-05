@@ -7,7 +7,7 @@ from isla import language
 from debugging_framework.input.oracle import OracleResult
 from ..data import Input
 from avicenna.learning.metric import FitnessStrategy, RecallPriorityLengthFitness
-from avicenna.learning.evaluation.constraint_eval_new_indexer import create_constraint_ast
+from avicenna.learning.evaluation.constraint_eval_new_indexer import create_constraint_ast, FastEvaluationNotSupported
 
 from avicenna.learning.evaluation.constraint_eval_new_indexer import evaluate_constraints_batch
 
@@ -41,7 +41,14 @@ class Candidate:
         self.failing_inputs_eval_results: List[bool] = list(positive_eval_results)
         self.passing_inputs_eval_results: List[bool] = list(negative_eval_results)
         self.comb: Dict[Input, bool] = comb or {}
-        self.eval_ast = eval_ast or [create_constraint_ast(formula)]
+
+        if eval_ast:
+            self.eval_ast = eval_ast
+        else:
+            try:
+                self.eval_ast = [create_constraint_ast(formula)]
+            except FastEvaluationNotSupported as e:
+                self.eval_ast = None
 
     @classmethod
     def from_str(cls, formula: str):
@@ -63,6 +70,7 @@ class Candidate:
         self,
         test_inputs: Set[Input],
         graph: gg.GrammarGraph,
+        use_fast_eval: bool = True,
     ):
         """
         Evaluate the formula on a set of inputs and update the evaluation results and combination.
@@ -70,14 +78,16 @@ class Candidate:
         new_inputs = test_inputs - self.inputs
 
         for inp in new_inputs:
-            # eval_result = evaluate(
-            #     self.formula, inp.tree, graph.grammar, graph=graph
-            # ).is_true()
-            try:
-                eval_result = all(evaluate_constraints_batch(self.eval_ast, {'start': inp.tree}, inp.index))
-            except Exception as e:
-                print(f"Error evaluating {language.ISLaUnparser(self.formula).unparse()} on {inp.tree}")
-                raise e
+            if use_fast_eval and self.eval_ast:
+                try:
+                    eval_result = all(evaluate_constraints_batch(self.eval_ast, {'start': inp.tree}, inp.index))
+                except Exception as e:
+                    print(f"Error evaluating {language.ISLaUnparser(self.formula).unparse()} on {inp.tree}")
+                    raise e
+            else:
+                eval_result = evaluate(
+                    self.formula, inp.tree, graph.grammar, graph=graph
+                ).is_true()
             self._update_eval_results_and_combination(eval_result, inp)
 
         self.inputs.update(new_inputs)
@@ -229,13 +239,18 @@ class Candidate:
 
         inputs = copy.copy(self.inputs)
 
+        if self.eval_ast and other.eval_ast:
+            eval_ast = self.eval_ast + other.eval_ast
+        else:
+            eval_ast = None
+
         return Candidate(
             formula=self.formula & other.formula,
             inputs=inputs,
             positive_eval_results=new_failing_results,
             negative_eval_results=new_passing_results,
             comb=comb,
-            eval_ast=self.eval_ast + other.eval_ast,
+            eval_ast=eval_ast,
         )
 
     def __or__(self, other: "Candidate") -> "Candidate":

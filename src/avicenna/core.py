@@ -170,8 +170,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         The main loop of the hypothesis-based input feature debugger.
         """
         candidates = self.learn_candidates(test_inputs)
-        #negated_candidates = self.negate_candidates(candidates)
-        negated_candidates = []
+        negated_candidates = self.negate_candidates(candidates)
         inputs = self.generate_test_inputs(candidates+negated_candidates)
         labeled_test_inputs = self.run_test_inputs(inputs)
         return labeled_test_inputs

@@ -8,14 +8,21 @@ from .transformer import constraint_grammar
 from avicenna.data import Input
 
 
+class FastEvaluationNotSupported(Exception):
+    pass
+
+
 def create_constraint_ast(formula: Formula) -> Dict:
     constraint_text = ISLaUnparser(formula).unparse()
-    parser = Lark(constraint_grammar)
-    parse_tree = parser.parse(constraint_text)
+    try:
+        parser = Lark(constraint_grammar)
+        parse_tree = parser.parse(constraint_text)
 
-    transformer = ConstraintTransformer()
-    ast = transformer.transform(parse_tree)
-    return ast
+        transformer = ConstraintTransformer()
+        ast = transformer.transform(parse_tree)
+        return ast
+    except Exception as e:
+        raise FastEvaluationNotSupported(f"Error creating constraint AST: {e}")
 
 
 def evaluate(candidate, inp: Input) -> bool:
