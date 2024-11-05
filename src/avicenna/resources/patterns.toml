@@ -109,13 +109,13 @@ exists <?NONTERMINAL> elem in start:
     (= elem <?STRING>)
 '''
 
-#[[Existential]]
-#
-#name = "Occurrence 2"
-#constraint = '''
-#exists <?NONTERMINAL> elem_xy in start:
-#    (inside(elem_xy, start))
-#'''
+[[Existential]]
+
+name = "Occurrence 2"
+constraint = '''
+exists <?NONTERMINAL> elem_xy in start:
+    (inside(elem_xy, start))
+'''
 
 
 [[Comparison]]
