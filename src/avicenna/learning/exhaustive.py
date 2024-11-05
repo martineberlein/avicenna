@@ -247,4 +247,5 @@ class ExhaustivePatternCandidateLearner(
         self.exclude_nonterminals: Set[str] = set()
         self.positive_examples_for_learning: List[language.DerivationTree] = []
         self.candidates = CandidateSet()
+        self.removed_atomic_formula = set()
         super().reset()
