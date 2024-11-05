@@ -33,6 +33,7 @@ dependencies = [
     "islearn @ git+https://github.com/martineberlein/islearn.git",
     "debugging_benchmark @ git+https://github.com/martineberlein/debugging-benchmark.git",
     "docker~=7.1.0",
+    "lark~=1.2.2",
     # "z3-solver>=4.13",
 ]
 
