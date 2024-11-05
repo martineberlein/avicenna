@@ -58,11 +58,11 @@ class Candidate:
             self.eval_ast = None
 
     @classmethod
-    def from_str(cls, formula: str):
+    def from_str(cls, formula: str, use_fast_eval: bool = True) -> "Candidate":
         """
         Create a candidate from a string representation of a formula.
         """
-        return cls(formula=language.parse_isla(formula))
+        return cls(formula=language.parse_isla(formula), use_fast_eval=use_fast_eval)
 
     def __copy__(self):
         return Candidate(
