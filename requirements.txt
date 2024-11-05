@@ -17,3 +17,4 @@ setuptools>=68.0.0
 flaky>=3.7.0
 returns>=0.22.0
 debugging-benchmark>=0.3.0
+lark>=1.2.2
