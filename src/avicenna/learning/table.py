@@ -25,6 +25,7 @@ class Candidate:
         positive_eval_results: Sequence[bool] = (),
         negative_eval_results: Sequence[bool] = (),
         comb: Dict[Input, bool] = None,
+        use_fast_eval: bool = False,
         eval_ast: list = None,
     ):
         """
@@ -41,14 +42,20 @@ class Candidate:
         self.failing_inputs_eval_results: List[bool] = list(positive_eval_results)
         self.passing_inputs_eval_results: List[bool] = list(negative_eval_results)
         self.comb: Dict[Input, bool] = comb or {}
+        self.use_fast_eval = use_fast_eval
 
-        if eval_ast:
-            self.eval_ast = eval_ast
+        if use_fast_eval:
+            if eval_ast:
+                self.eval_ast = eval_ast
+            else:
+                try:
+                    self.eval_ast = [create_constraint_ast(formula)]
+                except FastEvaluationNotSupported as e:
+                    # Fast evaluation not supported for this formula
+                    self.use_fast_eval = False
+                    self.eval_ast = None
         else:
-            try:
-                self.eval_ast = [create_constraint_ast(formula)]
-            except FastEvaluationNotSupported as e:
-                self.eval_ast = None
+            self.eval_ast = None
 
     @classmethod
     def from_str(cls, formula: str):
@@ -70,7 +77,6 @@ class Candidate:
         self,
         test_inputs: Set[Input],
         graph: gg.GrammarGraph,
-        use_fast_eval: bool = True,
     ):
         """
         Evaluate the formula on a set of inputs and update the evaluation results and combination.
@@ -78,7 +84,7 @@ class Candidate:
         new_inputs = test_inputs - self.inputs
 
         for inp in new_inputs:
-            if use_fast_eval and self.eval_ast:
+            if self.use_fast_eval and self.eval_ast:
                 try:
                     eval_result = all(evaluate_constraints_batch(self.eval_ast, {'start': inp.tree}, inp.index))
                 except Exception as e:
@@ -168,7 +174,8 @@ class Candidate:
         """
         Return a string representation of the candidate.
         """
-        return f"Candidate({str(self.formula)},failing={repr(self.failing_inputs_eval_results)}, passing={repr(self.passing_inputs_eval_results)})"
+        return (f"Candidate({str(self.formula)}, precision={self.precision()}, recall={self.recall()}, "
+                f"failing={repr(self.failing_inputs_eval_results)}, passing={repr(self.passing_inputs_eval_results)})")
 
     def __str__(self):
         """
@@ -212,6 +219,7 @@ class Candidate:
                 not eval_result for eval_result in self.passing_inputs_eval_results
             ],
             comb=comb,
+            use_fast_eval=False,  # TODO: Fast evaluation of negation not supported yet
         )
 
     def __and__(self, other: "Candidate") -> "Candidate":
@@ -250,6 +258,7 @@ class Candidate:
             positive_eval_results=new_failing_results,
             negative_eval_results=new_passing_results,
             comb=comb,
+            use_fast_eval=self.use_fast_eval and other.use_fast_eval,
             eval_ast=eval_ast,
         )
 

@@ -26,6 +26,7 @@ class ExhaustivePatternCandidateLearner(
         patterns: Optional[List[Formula]] = None,
         min_recall: float = 0.9,
         min_specificity: float = 0.6,
+        use_fast_evaluation: bool = True,
     ):
         TruthTablePatternCandidateLearner.__init__(
             self,
@@ -34,6 +35,7 @@ class ExhaustivePatternCandidateLearner(
             pattern_file=pattern_file,
             min_recall=min_recall,
             min_precision=min_specificity,
+            use_fast_evaluation=use_fast_evaluation,
         )
         self.max_conjunction_size = 2
         self.all_negative_inputs: Set[Input] = set()
@@ -86,22 +88,23 @@ class ExhaustivePatternCandidateLearner(
         Learn invariants from the positive and negative inputs and return the learned candidates.
         """
 
-        print("Starting creating atomic candidates")
+        logger.info("Starting creating atomic candidates")
         atomic_formulas = self.construct_atomic_candidates(
             self.all_positive_inputs, self.exclude_nonterminals
         )
         # atomic_formulas = atomic_formulas - self.removed_atomic_formula
-        new_candidates = {Candidate(formula) for formula in atomic_formulas - self.removed_atomic_formula}
+        new_candidates = {Candidate(formula, use_fast_eval=self.use_fast_evaluation)
+                          for formula in atomic_formulas - self.removed_atomic_formula}
         filtered_candidates = set()
 
-        print("Starting filtering atomic candidates", len(new_candidates))
+        logger.info("Starting filtering atomic candidates", len(new_candidates))
         for cand in new_candidates:
             cand.evaluate(set(list(self.all_positive_inputs)[:10]), self.graph)
             if cand.recall() >= self.min_recall:
                 filtered_candidates.add(cand)
             else:
                 self.removed_atomic_formula.add(cand.formula)
-        print("Removed atomic candidates: ", len(self.removed_atomic_formula))
+        logger.info("Removed atomic candidates: ", len(self.removed_atomic_formula))
 
         cans = set(self.candidates.candidates)
         # self.candidates = CandidateSet()
@@ -110,15 +113,14 @@ class ExhaustivePatternCandidateLearner(
             if candidate not in cans:
                 cans.add(candidate)
 
-        print("Evaluating candidates: ", len(cans))
+        logger.info("Evaluating candidates: ", len(cans))
         for candidate in cans:
             self.evaluate_formula(candidate, positive_inputs, negative_inputs)
 
-        print("Starting creating conjunctions")
+        logger.info("Starting creating conjunctions")
         self.get_conjunctions()
         # self.filter_candidates_by_min_requirements()
 
-        print("Done")
         return self.sort_candidates()
 
     def evaluate_formula(

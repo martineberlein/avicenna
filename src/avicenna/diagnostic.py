@@ -42,6 +42,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
         min_specificity: float = 0.6,
         generator: Generator = None,
         runner: ExecutionHandler = None,
+        use_fast_evaluation: bool = True,
         **kwargs,
     ):
         learner_parameter = {
@@ -49,6 +50,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
             "pattern_file": pattern_file,
             "min_recall": min_recall,
             "min_specificity": min_specificity,
+            "use_fast_evaluation": use_fast_evaluation,
         }
         learner = (
             learner
