@@ -16,7 +16,7 @@ class Engine:
     def __init__(
             self,
             generator: Generator,
-            workers: int = 20,
+            workers: int = 10,
     ):
         self.generator = generator
         self.workers = [
@@ -42,7 +42,7 @@ class SingleEngine(Engine):
         """
         test_inputs = set()
         for candidate in candidates:
-            test_inputs.update(self.generator.generate_test_inputs(num_inputs=2, candidate=candidate))
+            test_inputs.update(self.generator.generate_test_inputs(candidate=candidate))
         return test_inputs
 
 

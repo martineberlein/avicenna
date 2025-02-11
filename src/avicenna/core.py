@@ -151,6 +151,8 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
                 iteration += 1
         except TimeoutError as e:
             logging.error(e)
+        except Exception as e:
+            logging.error(e)
         finally:
             return self.get_best_candidates()
 
@@ -168,7 +170,8 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         The main loop of the hypothesis-based input feature debugger.
         """
         candidates = self.learn_candidates(test_inputs)
-        negated_candidates = self.negate_candidates(candidates)
+        #negated_candidates = self.negate_candidates(candidates)
+        negated_candidates = []
         inputs = self.generate_test_inputs(candidates+negated_candidates)
         labeled_test_inputs = self.run_test_inputs(inputs)
         return labeled_test_inputs

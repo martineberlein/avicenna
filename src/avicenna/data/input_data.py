@@ -5,6 +5,7 @@ from isla.derivation_tree import DerivationTree
 from debugging_framework.input.oracle import OracleResult
 from debugging_framework.input.input import Input as TestInput
 from avicenna.features.features import FeatureVector
+from avicenna.learning.evaluation.index import Index
 
 
 class Input(TestInput):
@@ -15,6 +16,7 @@ class Input(TestInput):
     def __init__(self, tree: DerivationTree, oracle: OracleResult = None):
         super().__init__(tree, oracle)
         self.__features: Optional[FeatureVector] = None
+        self.index = Index(self.tree)
 
     @property
     def features(self) -> FeatureVector:
