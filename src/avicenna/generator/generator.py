@@ -1,5 +1,7 @@
-from typing import Set, Iterable, Optional, List
+from typing import Set, Iterable, Optional, List, Union
 from abc import ABC, abstractmethod
+from queue import Queue, Empty
+from multiprocessing import Manager
 
 from islearn.mutation import MutationFuzzer
 from isla.fuzzer import GrammarFuzzer
@@ -32,7 +34,7 @@ class Generator(ABC):
         """
         raise NotImplementedError
 
-    def generate_test_inputs(self, num_inputs: int = 10, **kwargs) -> Set[Input]:
+    def generate_test_inputs(self, num_inputs: int = 5, **kwargs) -> Set[Input]:
         """
         Generate multiple inputs to be used in the debugging process.
         """
@@ -42,6 +44,23 @@ class Generator(ABC):
             if inp:
                 test_inputs.add(inp)
         return test_inputs
+
+    def run_with_engine(self, candidate_queue: Queue[Candidate], output_queue: Union[Queue, List]):
+        """
+        Run the generator within an engine. This is useful for parallelizing the generation process.
+        :param candidate_queue:
+        :param output_queue:
+        :return:
+        """
+        try:
+            while True:
+                test_inputs = self.generate_test_inputs(num_inputs=5, candidate=candidate_queue.get_nowait())
+                if isinstance(output_queue, Queue):
+                    output_queue.put(test_inputs)
+                else:
+                    output_queue.append(test_inputs)
+        except Empty:
+            pass
 
     def reset(self, **kwargs):
         """
@@ -90,7 +109,7 @@ class ISLaSolverGenerator(Generator):
 
     def __init__(self, grammar: Grammar, enable_optimized_z3_queries=False, **kwargs):
         super().__init__(grammar)
-        self.solver: Optional[ISLaSolver] = ISLaSolver(self.grammar)
+        self.solver: Optional[ISLaSolver] = None
         self.enable_optimized_z3_queries = enable_optimized_z3_queries
 
     def generate(self, **kwargs) -> Optional[Input]:
@@ -104,29 +123,28 @@ class ISLaSolverGenerator(Generator):
             return None
 
     def generate_test_inputs(
-        self, num_inputs: int = 10, candidates: List[Candidate] = None, **kwargs
+        self, num_inputs: int = 5, candidate: Candidate = None, **kwargs
     ) -> Set[Input]:
         """
         Generate multiple inputs to be used in the debugging process.
         """
         test_inputs = set()
-
-        for candidate in candidates:
-            self.reset(candidate.formula)
+        if candidate is not None:
+            self.initialize_solver(candidate.formula)
             for _ in range(num_inputs):
                 inp = self.generate(**kwargs)
                 if inp:
                     test_inputs.add(inp)
         return test_inputs
 
-    def reset(self, constraint, enable_optimized_z3_queries=False, **kwargs):
+    def initialize_solver(self, constraint):
         """
         Reset the generator with a new constraint.
         """
         self.solver = ISLaSolver(
             self.grammar,
             constraint,
-            enable_optimized_z3_queries=enable_optimized_z3_queries,
+            enable_optimized_z3_queries=self.enable_optimized_z3_queries,
         )
 
 

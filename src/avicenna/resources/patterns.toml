@@ -2,7 +2,7 @@
 
 name = "Existence Length Field"
 constraint = '''
-exists <?NONTERMINAL> container in start:
+forall <?NONTERMINAL> container in start:
   exists <?NONTERMINAL> length_field in start:
     (<= (str.len container) (str.to.int length_field))
 '''
@@ -11,7 +11,7 @@ exists <?NONTERMINAL> container in start:
 
 name = "Existence Length Field Smaler"
 constraint = '''
-exists <?NONTERMINAL> container1 in start:
+forall <?NONTERMINAL> container1 in start:
   exists <?NONTERMINAL> length_field in start:
     (< (str.len container1) (str.to.int length_field))
 '''
@@ -117,15 +117,6 @@ exists <?NONTERMINAL> elem_xy in start:
     (inside(elem_xy, start))
 '''
 
-#[[Misc]]
-#
-#name = "Equal Count"
-#constraint = '''
-#exists int num:
-#  forall <?NONTERMINAL> elem in start:
-#    ((>= (str.to.int num) 1) and
-#    count(elem, <?NONTERMINAL>, num))
-#'''
 
 [[Comparison]]
 

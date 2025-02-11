@@ -8,6 +8,7 @@ from ..data import Input
 from .repository import PatternRepository
 from .table import Candidate, CandidateSet
 from .metric import FitnessStrategy, RecallPriorityLengthFitness
+from .constructor import AtomicFormulaInstantiation
 
 
 class CandidateLearner(ABC):
@@ -56,6 +57,7 @@ class PatternCandidateLearner(CandidateLearner, ABC):
         grammar: Grammar,
         pattern_file: Optional[str] = None,
         patterns: Optional[Iterable[Formula]] = None,
+        use_fast_evaluation: bool = False,
     ):
         """
         Initialize the pattern candidate learner with a grammar and a pattern file or patterns.
@@ -72,6 +74,23 @@ class PatternCandidateLearner(CandidateLearner, ABC):
                 pattern_file
             ).get_all()
 
+        self.atomic_candidate_constructor = AtomicFormulaInstantiation(
+            grammar, list(self.patterns)
+        )
+        self.use_fast_evaluation = use_fast_evaluation
+
+    def construct_atomic_candidates(self, positive_inputs: Set[Input], exclude_non_terminals: Set[str] = None) -> Set[Formula]:
+        """
+        Construct the atomic candidates based on the patterns.
+        :param positive_inputs: The positive inputs to construct the candidates from.
+        :param exclude_non_terminals: The non-terminals to exclude from the candidates.
+        :return Set[Formula]: The atomic formula candidates.
+        """
+        candidates = self.atomic_candidate_constructor.construct_candidates(
+            positive_inputs, exclude_non_terminals
+        )
+        return candidates
+
 
 class TruthTablePatternCandidateLearner(PatternCandidateLearner, ABC):
     """
@@ -86,8 +105,9 @@ class TruthTablePatternCandidateLearner(PatternCandidateLearner, ABC):
         min_precision: float = 0.6,
         min_recall: float = 0.9,
         sorting_strategy: FitnessStrategy = RecallPriorityLengthFitness(),
+        use_fast_evaluation: bool = False,
     ):
-        super().__init__(grammar, pattern_file, patterns)
+        super().__init__(grammar, pattern_file, patterns, use_fast_evaluation)
         self.min_specificity = min_precision
         self.min_recall = min_recall
 

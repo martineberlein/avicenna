@@ -292,7 +292,7 @@ class GradientBoostingTreeRelevanceLearner(SKLearFeatureRelevanceLearner):
         Fit the gradient boosting tree classifier to the training data.
         """
         classifier = LGBMClassifier(
-            max_depth=5, n_estimators=1000, objective="binary", verbose=-1
+            max_depth=5, n_estimators=100, objective="binary", verbose=-1
         )
         classifier.fit(x_train, y_train)
         return classifier

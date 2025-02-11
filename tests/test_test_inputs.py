@@ -70,21 +70,6 @@ class TestInputs(unittest.TestCase):
             oracle, exception = inp.oracle
             self.assertEqual(oracle, expected_oracle)
 
-    @unittest.skip
-    def test_input_immutable(self):
-        inp = next(iter(self.test_inputs))
-        original_tree = inp.tree
-        original_oracle = inp.oracle
-
-        with self.assertRaises(AttributeError):
-            inp.tree = "new tree"
-
-        with self.assertRaises(AttributeError):
-            inp.oracle = OracleResult.PASSING
-
-        self.assertEqual(inp.tree, original_tree)
-        self.assertEqual(inp.oracle, original_oracle)
-
     def test_invalid_input_string(self):
         invalid_input_string = "invalid_input"
 

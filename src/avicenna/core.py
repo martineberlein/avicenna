@@ -124,6 +124,11 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         return iteration >= self.max_iterations
 
     def check_iteration_limits(self, iteration, start_time) -> bool:
+        """
+        Check if the iteration limits have been reached.
+        :param iteration: The current iteration.
+        :param start_time: The start time of the input feature debugger.
+        """
         if self.check_iterations_reached(iteration):
             return False
         if self.check_timeout_reached(start_time):
@@ -146,8 +151,10 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
                 iteration += 1
         except TimeoutError as e:
             logging.error(e)
+        except Exception as e:
+            logging.error(e)
         finally:
-            return self.get_best_candidates(self.strategy)
+            return self.get_best_candidates()
 
     def prepare_test_inputs(self) -> Set[Input]:
         """
@@ -163,7 +170,9 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         The main loop of the hypothesis-based input feature debugger.
         """
         candidates = self.learn_candidates(test_inputs)
-        inputs = self.generate_test_inputs(candidates)
+        #negated_candidates = self.negate_candidates(candidates)
+        negated_candidates = []
+        inputs = self.generate_test_inputs(candidates+negated_candidates)
         labeled_test_inputs = self.run_test_inputs(inputs)
         return labeled_test_inputs
 
@@ -172,6 +181,16 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         Learn the candidates (failure diagnoses) from the test inputs.
         """
         return self.learner.learn_candidates(test_inputs)
+
+    @staticmethod
+    def negate_candidates(candidates: List[Candidate]):
+        """
+        Negate the learned candidates.
+        """
+        negated_candidates = []
+        for candidate in candidates:
+            negated_candidates.append(-candidate)
+        return negated_candidates
 
     def generate_test_inputs(self, candidates: List[Candidate]) -> Set[Input]:
         """
@@ -193,7 +212,7 @@ class HypothesisInputFeatureDebugger(InputFeatureDebugger, ABC):
         """
         strategy = strategy if strategy else self.strategy
         candidates = self.learner.get_best_candidates()
-        sorted_candidates = sorted(candidates, key=strategy.evaluate, reverse=True) if candidates else []
+        sorted_candidates = sorted(candidates, key=lambda c: strategy.evaluate(c), reverse=True) if candidates else []
         return sorted_candidates
 
     def get_test_inputs_from_strings(self, inputs: Iterable[str]) -> Set[Input]:

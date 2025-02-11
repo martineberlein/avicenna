@@ -1,6 +1,7 @@
 import copy
 import logging
 import functools
+from abc import ABC
 from typing import List, Tuple, Dict, Optional, Iterable, Sequence, Set
 import itertools
 
@@ -22,14 +23,29 @@ from debugging_framework.fuzzingbook.grammar import Grammar
 from islearn.learner import InvariantLearner
 
 from debugging_framework.input.oracle import OracleResult
+
+from .table import Candidate
 from ..data import Input
 
 from avicenna.learning.learner import PatternCandidateLearner
 
 # from avicenna.learning.table import AvicennaTruthTable, AvicennaTruthTableRow
 from avicenna.learning.exhaustive import ExhaustivePatternCandidateLearner
+from avicenna.learning.learner import TruthTablePatternCandidateLearner
 
 logger = logging.getLogger("learner")
+
+
+class DecisionTreeHeuristicPatternCandidateLearner(TruthTablePatternCandidateLearner):
+
+    def get_best_candidates(self) -> Optional[List[Candidate]]:
+        pass
+
+    def get_candidates(self) -> Optional[List[Candidate]]:
+        pass
+
+    def learn_candidates(self, test_inputs: Iterable[Input], **kwargs) -> Optional[List[Candidate]]:
+        pass
 
 
 class HeuristicTreePatternCandidateLearner(ExhaustivePatternCandidateLearner):

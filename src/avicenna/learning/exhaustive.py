@@ -1,13 +1,10 @@
-import copy
 import logging
 from typing import List, Tuple, Optional, Iterable, Set
 import itertools
 
 from isla.language import Formula, ConjunctiveFormula
-from islearn.learner import weighted_geometric_mean
 from grammar_graph import gg
 from isla import language
-from islearn.learner import InvariantLearner
 
 from debugging_framework.fuzzingbook.grammar import Grammar
 from debugging_framework.input.oracle import OracleResult
@@ -20,7 +17,7 @@ logger = logging.getLogger("learner")
 
 
 class ExhaustivePatternCandidateLearner(
-    TruthTablePatternCandidateLearner, InvariantLearner
+    TruthTablePatternCandidateLearner
 ):
     def __init__(
         self,
@@ -29,6 +26,7 @@ class ExhaustivePatternCandidateLearner(
         patterns: Optional[List[Formula]] = None,
         min_recall: float = 0.9,
         min_specificity: float = 0.6,
+        use_fast_evaluation: bool = True,
     ):
         TruthTablePatternCandidateLearner.__init__(
             self,
@@ -37,30 +35,29 @@ class ExhaustivePatternCandidateLearner(
             pattern_file=pattern_file,
             min_recall=min_recall,
             min_precision=min_specificity,
+            use_fast_evaluation=use_fast_evaluation,
         )
-        InvariantLearner.__init__(
-            self,
-            grammar,
-            min_recall=min_recall,
-            min_specificity=min_specificity,
-            patterns=list(self.patterns),
-            filter_inputs_for_learning_by_kpaths=False,
-        )
+        self.max_conjunction_size = 2
         self.all_negative_inputs: Set[Input] = set()
         self.all_positive_inputs: Set[Input] = set()
         self.graph = gg.GrammarGraph.from_grammar(grammar)
         self.exclude_nonterminals: Set[str] = set()
         self.positive_examples_for_learning: List[language.DerivationTree] = []
 
-        not_patterns = []
-        for pattern in self.patterns:
-            not_patterns.append(-pattern)
+        # not_patterns = []
+        # for pattern in self.patterns:
+        #     not_patterns.append(-pattern)
+
+        self.removed_atomic_formula = set()
 
     def learn_candidates(
         self,
         test_inputs: Set[Input],
         exclude_nonterminals: Optional[Iterable[str]] = None,
     ) -> List[Candidate]:
+        """
+        Learn candidates from the test inputs.
+        """
         positive_inputs, negative_inputs = self.categorize_inputs(test_inputs)
         self.update_inputs(positive_inputs, negative_inputs)
         self.exclude_nonterminals = exclude_nonterminals or set()
@@ -93,49 +90,41 @@ class ExhaustivePatternCandidateLearner(
         """
         Learn invariants from the positive and negative inputs and return the learned candidates.
         """
-        sorted_positive_inputs = self.sort_and_filter_inputs(self.all_positive_inputs)
-        new_candidates: Set[Candidate] = self.get_recall_candidates(
-            sorted_positive_inputs
+
+        logger.info("Starting creating atomic candidates")
+        atomic_formulas = self.construct_atomic_candidates(
+            self.all_positive_inputs, self.exclude_nonterminals
         )
+        # atomic_formulas = atomic_formulas - self.removed_atomic_formula
+        new_candidates = {Candidate(formula, use_fast_eval=self.use_fast_evaluation)
+                          for formula in atomic_formulas - self.removed_atomic_formula}
+        filtered_candidates = set()
+
+        logger.info("Starting filtering atomic candidates", len(new_candidates))
+        for cand in new_candidates:
+            cand.evaluate(set(list(self.all_positive_inputs)[:10]), self.graph)
+            if cand.recall() >= self.min_recall:
+                filtered_candidates.add(cand)
+            else:
+                self.removed_atomic_formula.add(cand.formula)
+        logger.info("Removed atomic candidates: ", len(self.removed_atomic_formula))
 
         cans = set(self.candidates.candidates)
-        for candidate in new_candidates:
+        # self.candidates = CandidateSet()
+        # cans = set()
+        for candidate in filtered_candidates:
             if candidate not in cans:
                 cans.add(candidate)
 
+        logger.info("Evaluating candidates: ", len(cans))
         for candidate in cans:
             self.evaluate_formula(candidate, positive_inputs, negative_inputs)
+
+        logger.info("Starting creating conjunctions")
         self.get_conjunctions()
         # self.filter_candidates_by_min_requirements()
 
         return self.sort_candidates()
-
-    def get_recall_candidates(self, sorted_positive_inputs) -> Set[Candidate]:
-        candidates_formula = self.generate_candidates(
-            self.patterns, [inp.tree for inp in sorted_positive_inputs]
-        )
-        candidates = set(Candidate(formula) for formula in candidates_formula)
-        logger.info("Found %d invariant candidates.", len(candidates))
-        return candidates
-
-    def sort_and_filter_inputs(
-        self,
-        positive_inputs: Set[Input],
-        max_number_positive_inputs_for_learning: int = 10,
-    ):
-        p_dummy = copy.deepcopy(positive_inputs)
-        sorted_positive_inputs = self._sort_inputs(
-            p_dummy,
-            self.filter_inputs_for_learning_by_kpaths,
-            more_paths_weight=1.7,
-            smaller_inputs_weight=1.0,
-        )
-        logger.info(
-            "Keeping %d positive examples for candidate generation.",
-            len(sorted_positive_inputs[:max_number_positive_inputs_for_learning]),
-        )
-
-        return sorted_positive_inputs[:max_number_positive_inputs_for_learning]
 
     def evaluate_formula(
         self,
@@ -151,6 +140,7 @@ class ExhaustivePatternCandidateLearner(
             if candidate.recall() < self.min_recall:
                 # filter out candidates that do not meet the recall threshold
                 self.candidates.remove(candidate)
+                self.removed_atomic_formula.add(candidate.formula)
             else:
                 # evaluate the candidate on the remaining negative inputs
                 candidate.evaluate(negative_inputs, self.graph)
@@ -159,6 +149,8 @@ class ExhaustivePatternCandidateLearner(
             candidate.evaluate(self.all_negative_inputs, self.graph)
             if candidate.recall() >= self.min_recall:
                 self.candidates.append(candidate)
+            else:
+                self.removed_atomic_formula.add(candidate.formula)
 
     def filter_candidates_by_min_requirements(self):
         """
@@ -249,72 +241,6 @@ class ExhaustivePatternCandidateLearner(
                 combinations.append(comb)
         return combinations
 
-    def _sort_inputs(
-        self,
-        inputs: Set[Input],
-        filter_inputs_for_learning_by_kpaths: bool,
-        more_paths_weight: float = 1.0,
-        smaller_inputs_weight: float = 0.0,
-    ) -> List[Input]:
-        """
-        Sort the inputs based on the number of uncovered paths and the length of the inputs.
-        """
-        assert more_paths_weight or smaller_inputs_weight
-        result: List[Input] = []
-
-        tree_paths = {
-            inp: {
-                path
-                for path in self.graph.k_paths_in_tree(inp.tree.to_parse_tree(), self.k)
-                if (
-                    not isinstance(path[-1], gg.TerminalNode)
-                    or (
-                        not isinstance(path[-1], gg.TerminalNode)
-                        and len(path[-1].symbol) > 1
-                    )
-                )
-            }
-            for inp in inputs
-        }
-
-        covered_paths: Set[Tuple[gg.Node, ...]] = set([])
-        max_len_input = max(len(inp.tree) for inp in inputs)
-
-        def uncovered_paths(inp: Input) -> Set[Tuple[gg.Node, ...]]:
-            return {path for path in tree_paths[inp] if path not in covered_paths}
-
-        def sort_by_paths_key(inp: Input) -> float:
-            return len(uncovered_paths(inp))
-
-        def sort_by_length_key(inp: Input) -> float:
-            return len(inp.tree)
-
-        def sort_by_paths_and_length_key(inp: Input) -> float:
-            return weighted_geometric_mean(
-                [len(uncovered_paths(inp)), max_len_input - len(inp.tree)],
-                [more_paths_weight, smaller_inputs_weight],
-            )
-
-        if not more_paths_weight:
-            key = sort_by_length_key
-        elif not smaller_inputs_weight:
-            key = sort_by_paths_key
-        else:
-            key = sort_by_paths_and_length_key
-
-        while inputs:
-            inp = sorted(inputs, key=key, reverse=True)[0]
-            inputs.remove(inp)
-            uncovered = uncovered_paths(inp)
-
-            if filter_inputs_for_learning_by_kpaths and not uncovered:
-                continue
-
-            covered_paths.update(uncovered)
-            result.append(inp)
-
-        return result
-
     def reset(self):
         """
         Reset the learner to its initial state.
@@ -324,4 +250,5 @@ class ExhaustivePatternCandidateLearner(
         self.exclude_nonterminals: Set[str] = set()
         self.positive_examples_for_learning: List[language.DerivationTree] = []
         self.candidates = CandidateSet()
+        self.removed_atomic_formula = set()
         super().reset()

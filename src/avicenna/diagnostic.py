@@ -9,12 +9,14 @@ from .data.input_data import Input
 from .learning.learner import CandidateLearner
 from .learning.table import Candidate
 from .learning.exhaustive import ExhaustivePatternCandidateLearner
-from .generator.generator import Generator, ISLaGrammarBasedGenerator
+from .generator.generator import Generator, ISLaGrammarBasedGenerator, ISLaSolverGenerator
+from .generator import engine as engine
 from .runner.execution_handler import ExecutionHandler
 from .learning.reducer import (
     FeatureReducer,
     SHAPRelevanceLearner,
     GradientBoostingTreeRelevanceLearner,
+    DecisionTreeRelevanceLearner,
 )
 from .features.feature_collector import GrammarFeatureCollector
 import avicenna.logger as logging
@@ -40,6 +42,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
         min_specificity: float = 0.6,
         generator: Generator = None,
         runner: ExecutionHandler = None,
+        use_fast_evaluation: bool = True,
         **kwargs,
     ):
         learner_parameter = {
@@ -47,6 +50,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
             "pattern_file": pattern_file,
             "min_recall": min_recall,
             "min_specificity": min_specificity,
+            "use_fast_evaluation": use_fast_evaluation,
         }
         learner = (
             learner
@@ -54,6 +58,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
             else ExhaustivePatternCandidateLearner(**learner_parameter)
         )
         generator = generator if generator else ISLaGrammarBasedGenerator(grammar)
+        self.engine: engine.Engine = engine.SingleEngine(generator)
 
         super().__init__(
             grammar,
@@ -72,8 +77,13 @@ class Avicenna(HypothesisInputFeatureDebugger):
             top_n_relevant_features=top_n_relevant_features,
             classifier_type=GradientBoostingTreeRelevanceLearner,
         )
+        self.feature_learner = DecisionTreeRelevanceLearner(
+            self.grammar,
+            top_n_relevant_features=top_n_relevant_features,
+        )
 
         self.collector = GrammarFeatureCollector(self.grammar)
+        self.max_candidates = 5
 
     def set_feature_reducer(self, feature_reducer: FeatureReducer):
         """
@@ -116,15 +126,16 @@ class Avicenna(HypothesisInputFeatureDebugger):
     @logging.log_execution_with_report(logging.learner_report)
     def learn_candidates(self, test_inputs: Set[Input]) -> Optional[List[Candidate]]:
         """
-        Learn the candidates based on the test inputs.
+        Learn the candidates based on the test inputs. The candidates are ordered based on their scores.
         :param test_inputs: The test inputs to learn the candidates from.
         :return Optional[List[Candidate]]: The learned candidates.
         """
         irrelevant_features = self.get_irrelevant_features(test_inputs)
-        candidates = self.learner.learn_candidates(
+        _ = self.learner.learn_candidates(
             test_inputs, exclude_nonterminals=irrelevant_features
         )
-        return candidates
+        candidates = self.learner.get_best_candidates()
+        return candidates[:self.max_candidates]
 
     @logging.log_execution_with_report(logging.generator_report)
     def generate_test_inputs(self, candidates: List[Candidate]) -> Set[Input]:
@@ -133,7 +144,7 @@ class Avicenna(HypothesisInputFeatureDebugger):
         :param candidates: The learned candidates.
         :return Set[Input]: The generated test inputs.
         """
-        test_inputs = self.generator.generate_test_inputs(candidates=candidates)
+        test_inputs = self.engine.generate(candidates=candidates)
         return test_inputs
 
     @logging.log_execution_with_report(logging.runner_report)

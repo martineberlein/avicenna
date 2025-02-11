@@ -7,6 +7,9 @@ from isla import language
 from debugging_framework.input.oracle import OracleResult
 from ..data import Input
 from avicenna.learning.metric import FitnessStrategy, RecallPriorityLengthFitness
+from avicenna.learning.evaluation.constraint_eval_new_indexer import create_constraint_ast, FastEvaluationNotSupported
+
+from avicenna.learning.evaluation.constraint_eval_new_indexer import evaluate_constraints_batch
 
 
 class Candidate:
@@ -22,6 +25,8 @@ class Candidate:
         positive_eval_results: Sequence[bool] = (),
         negative_eval_results: Sequence[bool] = (),
         comb: Dict[Input, bool] = None,
+        use_fast_eval: bool = False,
+        eval_ast: list = None,
     ):
         """
         Initialize a candidate with a formula, a set of inputs, a list of evaluation results and a combination of inputs
@@ -37,6 +42,27 @@ class Candidate:
         self.failing_inputs_eval_results: List[bool] = list(positive_eval_results)
         self.passing_inputs_eval_results: List[bool] = list(negative_eval_results)
         self.comb: Dict[Input, bool] = comb or {}
+        self.use_fast_eval = use_fast_eval
+
+        if use_fast_eval:
+            if eval_ast:
+                self.eval_ast = eval_ast
+            else:
+                try:
+                    self.eval_ast = [create_constraint_ast(formula)]
+                except FastEvaluationNotSupported as e:
+                    # Fast evaluation not supported for this formula
+                    self.use_fast_eval = False
+                    self.eval_ast = None
+        else:
+            self.eval_ast = None
+
+    @classmethod
+    def from_str(cls, formula: str, use_fast_eval: bool = True) -> "Candidate":
+        """
+        Create a candidate from a string representation of a formula.
+        """
+        return cls(formula=language.parse_isla(formula), use_fast_eval=use_fast_eval)
 
     def __copy__(self):
         return Candidate(
@@ -58,9 +84,16 @@ class Candidate:
         new_inputs = test_inputs - self.inputs
 
         for inp in new_inputs:
-            eval_result = evaluate(
-                self.formula, inp.tree, graph.grammar, graph=graph
-            ).is_true()
+            if self.use_fast_eval and self.eval_ast:
+                try:
+                    eval_result = all(evaluate_constraints_batch(self.eval_ast, {'start': inp.tree}, inp.index))
+                except Exception as e:
+                    print(f"Error evaluating {language.ISLaUnparser(self.formula).unparse()} on {inp.tree}")
+                    raise e
+            else:
+                eval_result = evaluate(
+                    self.formula, inp.tree, graph.grammar, graph=graph
+                ).is_true()
             self._update_eval_results_and_combination(eval_result, inp)
 
         self.inputs.update(new_inputs)
@@ -80,6 +113,8 @@ class Candidate:
         """
         Return the specificity of the candidate.
         """
+        if len(self.passing_inputs_eval_results) == 0:
+            return 0.0
         return sum(not int(entry) for entry in self.passing_inputs_eval_results) / len(
             self.passing_inputs_eval_results
         )
@@ -88,6 +123,8 @@ class Candidate:
         """
         Return the recall of the candidate.
         """
+        if len(self.failing_inputs_eval_results) == 0:
+            return 0.0
         return sum(int(entry) for entry in self.failing_inputs_eval_results) / len(
             self.failing_inputs_eval_results
         )
@@ -141,7 +178,8 @@ class Candidate:
         """
         Return a string representation of the candidate.
         """
-        return f"Candidate({str(self.formula)},failing={repr(self.failing_inputs_eval_results)}, passing={repr(self.passing_inputs_eval_results)})"
+        return (f"Candidate({str(self.formula)}, precision={self.precision()}, recall={self.recall()}, "
+                f"failing={repr(self.failing_inputs_eval_results)}, passing={repr(self.passing_inputs_eval_results)})")
 
     def __str__(self):
         """
@@ -185,6 +223,7 @@ class Candidate:
                 not eval_result for eval_result in self.passing_inputs_eval_results
             ],
             comb=comb,
+            use_fast_eval=False,  # TODO: Fast evaluation of negation not supported yet
         )
 
     def __and__(self, other: "Candidate") -> "Candidate":
@@ -212,12 +251,19 @@ class Candidate:
 
         inputs = copy.copy(self.inputs)
 
+        if self.eval_ast and other.eval_ast:
+            eval_ast = self.eval_ast + other.eval_ast
+        else:
+            eval_ast = None
+
         return Candidate(
             formula=self.formula & other.formula,
             inputs=inputs,
             positive_eval_results=new_failing_results,
             negative_eval_results=new_passing_results,
             comb=comb,
+            use_fast_eval=self.use_fast_eval and other.use_fast_eval,
+            eval_ast=eval_ast,
         )
 
     def __or__(self, other: "Candidate") -> "Candidate":
